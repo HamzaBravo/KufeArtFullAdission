@@ -11,5 +11,7 @@ public class DBContext(DbContextOptions<DBContext> options) : DbContext(options)
     public DbSet<ProductImagesDbEntity> ProductImages { get; set; }
     public DbSet<TableDbEntity> Tables { get; set; }
     public DbSet<QrMenuVisibleDbEntity> QrMenuVisibles { get; set; }
-
+    public DbSet<CampaignDbEntity> Campaigns { get; set; }
+    public DbSet<CustomerPurchaseHistoryDbEntity> CustomerPurchaseHistories { get; set; }
+    public DbSet<CampaignProgressDbEntity> CampaignProgresses { get; set; }
 }

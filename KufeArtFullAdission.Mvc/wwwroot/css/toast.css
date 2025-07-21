@@ -1,0 +1,35 @@
+﻿/* Toast Custom Styles */
+.toast-container {
+    max-width: 400px;
+}
+
+.toast {
+    min-width: 300px;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+    /* Toast Types */
+    .toast.success {
+        background-color: #198754;
+        color: white;
+    }
+
+    .toast.error {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .toast.warning {
+        background-color: #fd7e14;
+        color: white;
+    }
+
+    .toast.info {
+        background-color: #0dcaf0;
+        color: white;
+    }
+
+/* Icons */
+.toast-icon {
+    font-size: 1.2rem;
+}
