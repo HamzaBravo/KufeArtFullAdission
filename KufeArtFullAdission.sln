@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36310.24 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KufeArtFullAdission.Entity", "KufeArtFullAdission.Entity\KufeArtFullAdission.Entity.csproj", "{A9ADC841-4DD7-4EEE-AC3E-AE62BC61185C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KufeArtFullAdission.Enums", "KufeArtFullAdission.Enums\KufeArtFullAdission.Enums.csproj", "{358165C6-E51A-4EC4-AB73-B8EC5AA1257D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A9ADC841-4DD7-4EEE-AC3E-AE62BC61185C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A9ADC841-4DD7-4EEE-AC3E-AE62BC61185C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A9ADC841-4DD7-4EEE-AC3E-AE62BC61185C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A9ADC841-4DD7-4EEE-AC3E-AE62BC61185C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{358165C6-E51A-4EC4-AB73-B8EC5AA1257D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{358165C6-E51A-4EC4-AB73-B8EC5AA1257D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{358165C6-E51A-4EC4-AB73-B8EC5AA1257D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{358165C6-E51A-4EC4-AB73-B8EC5AA1257D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B7A30DB7-6F58-4B8D-AF9B-0DDCCFC4FFAE}
+	EndGlobalSection
+EndGlobal
