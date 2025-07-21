@@ -1,8 +1,632 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@model dynamic
+@{
+    ViewData["Title"] = "Dashboard - Kasa Paneli";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="container-fluid">
+    <!-- Dashboard Başlık -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="fw-bold text-dark">
+                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                <small class="text-muted fs-6">@DateTime.Now.ToString("dd MMMM yyyy, HH:mm")</small>
+            </h2>
+        </div>
+    </div>
+
+    <!-- Dashboard Kartları -->
+    <div class="row g-3 mb-4">
+        <!-- Günlük Ciro -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted fw-normal mb-1">Günlük Ciro</h6>
+                            <h3 class="mb-0 fw-bold text-success">₺@Model.DailySales.ToString("N2")</h3>
+                        </div>
+                        <div class="text-success">
+                            <i class="fas fa-lira-sign fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- QR Görüntülenme -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted fw-normal mb-1">QR Menü Görüntülenme</h6>
+                            <h3 class="mb-0 fw-bold text-info">@Model.QrViewCount</h3>
+                        </div>
+                        <div class="text-info">
+                            <i class="fas fa-qrcode fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aktif Masalar -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted fw-normal mb-1">Dolu Masalar</h6>
+                            <h3 class="mb-0 fw-bold text-warning">@Model.ActiveTableCount</h3>
+                        </div>
+                        <div class="text-warning">
+                            <i class="fas fa-chair fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Günlük Sipariş -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted fw-normal mb-1">Günlük Sipariş</h6>
+                            <h3 class="mb-0 fw-bold text-primary">@Model.DailyOrderCount</h3>
+                        </div>
+                        <div class="text-primary">
+                            <i class="fas fa-shopping-cart fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Masa Durumları -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-table me-2"></i>Masa Durumları
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="tablesContainer">
+                        <!-- Masalar burada gösterilecek -->
+                        <div class="text-center py-5">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Yükleniyor...</span>
+                            </div>
+                            <p class="mt-2">Masalar yükleniyor...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            loadTables(); // İlk yükleme
+
+            // Her dakika sadece zamanları güncelle
+            setInterval(updateTableTimes, 60000); // 1 dakika
+
+            // Event delegation ile masa tıklama - DOM'da değişiklik olsa da çalışır
+            $(document).on('click', '.table-card', function() {
+                const tableId = $(this).data('table-id');
+                const tableName = $(this).find('.card-title').text();
+                const isOccupied = $(this).hasClass('border-warning');
+
+                openTableModal(tableId, tableName, isOccupied);
+            });
+        });
+
+        let currentTablesData = {}; // Global olarak tutalım
+
+        function loadTables() {
+            $.ajax({
+                url: '/Home/GetTables',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        currentTablesData = response.data; // Veriyi sakla
+                        renderTables(response.data);
+                    } else {
+                        console.error('Masa yükleme hatası:', response.message);
+                        ToastHelper.error('Masalar yüklenemedi!');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX Hatası:', error);
+                    ToastHelper.error('Bağlantı hatası!');
+                }
+            });
+        }
+
+        // Sadece zamanları güncelle - tab pozisyonu korunsun
+        function updateTableTimes() {
+            // Sadece dolu masaların zamanlarını güncelle
+            $('.table-card[data-opened-at]').each(function() {
+                const openedAt = $(this).data('opened-at');
+                if (openedAt) {
+                    const timeDisplay = $(this).find('.time-display');
+                    if (timeDisplay.length > 0) {
+                        timeDisplay.text(getTimeAgo(openedAt));
+                    }
+                }
+            });
+
+            // Son güncelleme zamanını güncelle
+            $('#lastUpdateTime').text(new Date().toLocaleTimeString('tr-TR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            }));
+        }
+
+        // Tab pozisyonunu koruyarak render
+        function renderTables(tablesData) {
+            // Şu anki aktif tab'ı kaydet
+            const activeTabId = $('.nav-tabs .nav-link.active').attr('id');
+
+            let html = '';
+
+            if (Object.keys(tablesData).length === 0) {
+                html = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-chair fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Henüz masa tanımlanmamış</h5>
+                        <p class="text-muted">Masa eklemek için masa yönetimi sayfasını kullanabilirsiniz.</p>
+                    </div>
+                `;
+            } else {
+                // İstatistikler
+                let totalTables = 0;
+                let occupiedTables = 0;
+
+                Object.values(tablesData).forEach(tables => {
+                    totalTables += tables.length;
+                    occupiedTables += tables.filter(t => t.isOccupied).length;
+                });
+
+                const occupancyRate = totalTables > 0 ? Math.round((occupiedTables / totalTables) * 100) : 0;
+                const freeTableCount = totalTables - occupiedTables;
+
+                // Üst bilgi çubuğu
+                html += `
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center">
+                                <div class="me-4">
+                   
+                                </div>
+                                <div class="me-4">
+                                    <small class="text-muted">
+                                        <i class="fas fa-chair me-1 text-warning"></i>
+                                        <span class="text-warning fw-bold">${occupiedTables}</span> Dolu
+                                    </small>
+                                </div>
+                                <div>
+                                    <small class="text-muted">
+                                        <i class="fas fa-chair me-1 text-success"></i>
+                                        <span class="text-success fw-bold">${freeTableCount}</span> Boş
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-end">
+                               <span class="badge bg-light text-dark fs-6 px-3 py-2">
+                                        <i class="fas fa-chart-pie me-2 text-primary"></i>
+                                        Doluluk: <strong class="text-primary">${occupancyRate}%</strong>
+                                    </span>
+                        </div>
+                    </div>
+                `;
+
+                // Tab Navigation
+                const categories = Object.keys(tablesData);
+
+                html += '<ul class="nav nav-tabs mb-4" id="categoryTabs" role="tablist">';
+                categories.forEach((category, index) => {
+                    const categoryId = category.replace(/\s+/g, '').toLowerCase();
+                    // Aktif tab'ı koru, yoksa ilkini aktif yap
+                    const isActive = (activeTabId && activeTabId === `${categoryId}-tab`) || (!activeTabId && index === 0) ? 'active' : '';
+                    const tables = tablesData[category];
+                    const categoryOccupied = tables.filter(t => t.isOccupied).length;
+
+                    html += `
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link ${isActive} d-flex align-items-center"
+                                    id="${categoryId}-tab"
+                                    data-bs-toggle="tab"
+                                    data-bs-target="#${categoryId}"
+                                    type="button"
+                                    role="tab">
+                                <i class="fas fa-map-marker-alt me-2"></i>
+                                ${category}
+                                <span class="badge bg-secondary ms-2">${tables.length}</span>
+                                ${categoryOccupied > 0 ? `<span class="badge bg-warning ms-1">${categoryOccupied}</span>` : ''}
+                            </button>
+                        </li>
+                    `;
+                });
+                html += '</ul>';
+
+                // Tab Content
+                html += '<div class="tab-content" id="categoryTabContent">';
+                categories.forEach((category, index) => {
+                    const categoryId = category.replace(/\s+/g, '').toLowerCase();
+                    // Aktif content'i koru
+                    const isActive = (activeTabId && activeTabId === `${categoryId}-tab`) || (!activeTabId && index === 0) ? 'show active' : '';
+                    const tables = tablesData[category];
+
+                    html += `
+                        <div class="tab-pane fade ${isActive}"
+                             id="${categoryId}"
+                             role="tabpanel"
+                             aria-labelledby="${categoryId}-tab">
+                            <div class="row g-3">
+                    `;
+
+                    tables.forEach(table => {
+                        const isOccupied = table.isOccupied;
+                        const cardClass = isOccupied ? 'border-warning bg-warning bg-opacity-10' : 'border-success bg-success bg-opacity-10';
+                        const iconClass = isOccupied ? 'text-warning' : 'text-success';
+                        const statusIcon = isOccupied ? 'fas fa-clock' : 'fas fa-check-circle';
+
+                        html += `
+                            <div class="col-xl-2 col-lg-3 col-md-4 col-6">
+                                <div class="card ${cardClass} table-card h-100"
+                                     style="cursor: pointer;"
+                                     data-table-id="${table.id}"
+                                     data-opened-at="${table.openedAt || ''}">
+                                    <div class="card-body text-center p-3">
+                                        <div class="${iconClass} mb-2">
+                                            <i class="fas fa-chair fa-2x"></i>
+                                        </div>
+                                        <h6 class="card-title mb-1">${table.name}</h6>
+                                        <div class="small ${iconClass}">
+                                            <i class="${statusIcon} me-1"></i>
+                                            ${isOccupied ? 'Dolu' : 'Boş'}
+                                        </div>
+                                        ${isOccupied ? `
+                                            <div class="mt-2 pt-2 border-top">
+                                                <div class="small text-muted time-display">
+                                                    ${getTimeAgo(table.openedAt)}
+                                                </div>
+                                                <div class="fw-bold text-warning">
+                                                    ₺${table.totalAmount.toFixed(2)}
+                                                </div>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+
+            $('#tablesContainer').html(html);
+        }
+
+        // Modal açma fonksiyonu
+        function openTableModal(tableId, tableName, isOccupied) {
+            // Modal başlığını ayarla
+            $('#modalTableName').text(tableName);
+
+            const statusBadge = $('#modalTableStatus');
+            if (isOccupied) {
+                statusBadge.text('Dolu').removeClass('bg-success').addClass('bg-warning');
+            } else {
+                statusBadge.text('Boş').removeClass('bg-warning').addClass('bg-success');
+            }
+
+            // Modal'ı aç
+            const modal = new bootstrap.Modal(document.getElementById('tableModal'));
+            modal.show();
+
+            // Loader göster
+            $('#tableModalBody').html(`
+                <div class="text-center py-4">
+                    <div class="spinner-border" role="status"></div>
+                    <p class="mt-2">Masa bilgileri yükleniyor...</p>
+                </div>
+            `);
+
+            // Masa detaylarını getir
+            loadTableDetails(tableId);
+        }
+
+        function loadTableDetails(tableId) {
+            $.ajax({
+                url: '/Home/GetTableDetails',
+                method: 'GET',
+                data: { tableId: tableId },
+                success: function(response) {
+                    if (response.success) {
+                        renderTableModal(response.data);
+                    } else {
+                        $('#tableModalBody').html(`
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                ${response.message}
+                            </div>
+                        `);
+                    }
+                },
+                error: function() {
+                    $('#tableModalBody').html(`
+                        <div class="alert alert-danger">
+                            <i class="fas fa-wifi me-2"></i>
+                            Bağlantı hatası! Lütfen tekrar deneyin.
+                        </div>
+                    `);
+                }
+            });
+        }
+
+        function renderTableModal(data) {
+            const table = data.table;
+            const orders = data.orders;
+            const totalAmount = data.totalAmount;
+
+            let html = '';
+
+            if (!table.isOccupied) {
+                // Boş masa - Hesap açma
+                html = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-chair fa-4x text-success mb-3"></i>
+                        <h5 class="text-muted mb-3">Masa Boş</h5>
+                        <p class="text-muted mb-4">Bu masaya yeni sipariş almak için hesap açabilirsiniz.</p>
+                        <button class="btn btn-primary btn-lg" onclick="openTableAccount('${table.id}')">
+                            <i class="fas fa-plus me-2"></i>Hesap Aç
+                        </button>
+                    </div>
+                `;
+            } else {
+                // Dolu masa - Sipariş detayları
+                html = `
+                    <!-- Masa Özeti -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card bg-warning bg-opacity-10 border-warning">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-clock fa-2x text-warning mb-2"></i>
+                                    <h6 class="text-muted">Açılış Zamanı</h6>
+                                    <p class="fw-bold mb-0">${getTimeAgo(orders[0]?.createdAt)}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-info bg-opacity-10 border-info">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-shopping-cart fa-2x text-info mb-2"></i>
+                                    <h6 class="text-muted">Toplam Ürün</h6>
+                                    <p class="fw-bold mb-0">${orders.reduce((sum, order) => sum + order.productQuantity, 0)} adet</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-success bg-opacity-10 border-success">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-lira-sign fa-2x text-success mb-2"></i>
+                                    <h6 class="text-muted">Toplam Tutar</h6>
+                                    <p class="fw-bold mb-0">₺${totalAmount.toFixed(2)}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sipariş Listesi -->
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">
+                                <i class="fas fa-list me-2"></i>Sipariş Detayları
+                            </h6>
+                            <button class="btn btn-sm btn-outline-primary" onclick="addNewOrder('${table.id}')">
+                                <i class="fas fa-plus me-1"></i>Ürün Ekle
+                            </button>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Ürün</th>
+                                            <th>Adet</th>
+                                            <th>Birim Fiyat</th>
+                                            <th>Toplam</th>
+                                            <th>Garson</th>
+                                            <th>Saat</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                `;
+
+                orders.forEach(order => {
+                    html += `
+                        <tr>
+                            <td>
+                                <div class="fw-bold">${order.productName}</div>
+                                ${order.shorLabel ? `<small class="text-muted">${order.shorLabel}</small>` : ''}
+                            </td>
+                            <td><span class="badge bg-primary">${order.productQuantity}</span></td>
+                            <td>₺${order.productPrice.toFixed(2)}</td>
+                            <td class="fw-bold">₺${order.totalPrice.toFixed(2)}</td>
+                            <td>${order.personFullName}</td>
+                            <td class="text-muted small">${new Date(order.createdAt).toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ödeme Butonları -->
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <button class="btn btn-success w-100" onclick="processPayment('${table.id}', 'cash', ${totalAmount})">
+                                <i class="fas fa-money-bill-wave me-2"></i>
+                                Nakit Ödeme
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-primary w-100" onclick="processPayment('${table.id}', 'card', ${totalAmount})">
+                                <i class="fas fa-credit-card me-2"></i>
+                                Kart Ödeme
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-warning w-100" onclick="partialPayment('${table.id}', ${totalAmount})">
+                                <i class="fas fa-coins me-2"></i>
+                                Parçalı Ödeme
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                // Ödeme Butonları bölümüne ekle (mevcut kodun altına)
+                html += `
+            <!-- Hesap Kapatma -->
+            <div class="row mt-3">
+                <div class="col-12">
+                    <hr>
+                    <button class="btn btn-outline-danger w-100" onclick="closeTableAccount('${table.id}')">
+                        <i class="fas fa-times me-2"></i>
+                        Hesap Kapat (Ödeme Almadan)
+                    </button>
+                    <small class="text-muted d-block mt-2 text-center">
+                        ⚠️ Dikkat: Bu işlem hesabı kapatır ancak ödeme almaz!
+                    </small>
+                </div>
+            </div>
+        `;
+            }
+
+            $('#tableModalBody').html(html);
+        }
+
+        // Zaman farkı hesaplama
+        function getTimeAgo(dateString) {
+            const now = new Date();
+            const openedAt = new Date(dateString);
+            const diffMs = now - openedAt;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+
+            if (diffMins < 2) return 'Az önce';
+            if (diffMins < 60) return `${diffMins} dakika önce`;
+            if (diffHours < 24) {
+                const remainMins = diffMins % 60;
+                return remainMins > 0 ? `${diffHours} saat ${remainMins} dakika önce` : `${diffHours} saat önce`;
+            }
+            return `${Math.floor(diffHours / 24)} gün`;
+        }
+
+        // Placeholder yerine gerçek hesap açma
+        function openTableAccount(tableId) {
+            // Confirmation dialog
+            if (!confirm('Bu masaya yeni hesap açmak istediğinizden emin misiniz?')) {
+                return;
+            }
+
+            LoaderHelper.show('Hesap açılıyor...');
+
+            $.ajax({
+                url: '/Home/OpenTableAccount',
+                method: 'POST',
+                data: { tableId: tableId },
+                success: function(response) {
+                    LoaderHelper.hide();
+
+                    if (response.success) {
+                        ToastHelper.success(response.message);
+
+                        // Modal'ı kapat
+                        $('#tableModal').modal('hide');
+
+                        // Masa listesini güncelle
+                        loadTables();
+
+                        // 1 saniye sonra yeni açılan hesap modal'ını aç
+                        setTimeout(() => {
+                            // Masayı tekrar aç (artık dolu olarak görünecek)
+                            const tableName = $('#modalTableName').text();
+                            openTableModal(tableId, tableName, true);
+                        }, 1000);
+
+                    } else {
+                        ToastHelper.error(response.message);
+                    }
+                },
+                error: function() {
+                    LoaderHelper.hide();
+                    ToastHelper.error('Bağlantı hatası! Lütfen tekrar deneyin.');
+                }
+            });
+        }
+
+
+                function closeTableAccount(tableId) {
+            if (!confirm('Bu hesabı kapatmak istediğinizden emin misiniz?\n\n⚠️ DİKKAT: Ödeme alınmadan hesap kapatılacak!')) {
+                return;
+            }
+
+            LoaderHelper.show('Hesap kapatılıyor...');
+
+            $.ajax({
+                url: '/Home/CloseTableAccount',
+                method: 'POST',
+                data: { tableId: tableId },
+                success: function(response) {
+                    LoaderHelper.hide();
+
+                    if (response.success) {
+                        ToastHelper.success(response.message);
+                        $('#tableModal').modal('hide');
+                        loadTables(); // Masa listesini güncelle
+                    } else {
+                        ToastHelper.error(response.message);
+                    }
+                },
+                error: function() {
+                    LoaderHelper.hide();
+                    ToastHelper.error('Bağlantı hatası!');
+                }
+            });
+        }
+
+        function addNewOrder(tableId) {
+            console.log('Ürün ekleniyor:', tableId);
+            ToastHelper.info('Ürün ekleme özelliği yakında eklenecek!');
+        }
+
+        function processPayment(tableId, paymentType, amount) {
+            console.log('Ödeme işleniyor:', tableId, paymentType, amount);
+            ToastHelper.info(`${paymentType === 'cash' ? 'Nakit' : 'Kart'} ödeme özelliği yakında eklenecek!`);
+        }
+
+        function partialPayment(tableId, totalAmount) {
+            console.log('Parçalı ödeme:', tableId, totalAmount);
+            ToastHelper.info('Parçalı ödeme özelliği yakında eklenecek!');
+        }
+    </script>
+}

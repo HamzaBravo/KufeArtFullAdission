@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/toast.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/loader.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/KufeArtFullAdission.Mvc.styles.css" asp-append-version="true" />
 </head>
 <body>
@@ -28,8 +29,20 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/js/toast-helper.js" asp-append-version="true"></script>
-   
+    <script src="~/js/loader-helper.js" asp-append-version="true"></script>
+
+    <!-- Global Loader (body sonuna ekle, toast container'dan önce) -->
+    <div id="globalLoader" class="global-loader">
+        <div class="loader-content">
+            <div class="loader-spinner"></div>
+            <p class="loader-text">Yükleniyor...</p>
+        </div>
+    </div>
+
+
     @await RenderSectionAsync("Scripts", required: false)
+
+
 
     <!-- Toast Container -->
     <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
@@ -44,6 +57,28 @@
         </div>
     </div>
 
+    <!-- Masa Modal -->
+    <div class="modal fade" id="tableModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-chair me-2"></i>
+                        <span id="modalTableName">Masa</span>
+                        <span id="modalTableStatus" class="badge ms-2"></span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="tableModalBody">
+                    <!-- Modal içeriği buraya yüklenecek -->
+                    <div class="text-center py-4">
+                        <div class="spinner-border" role="status"></div>
+                        <p class="mt-2">Yükleniyor...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     @if (TempData["ToastMessage"] != null)
     {
         <script>

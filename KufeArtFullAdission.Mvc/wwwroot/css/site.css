@@ -20,3 +20,97 @@ html {
 body {
   margin-bottom: 60px;
 }
+
+/* Masa kartlarý */
+.table-card {
+    transition: all 0.3s ease;
+    border-width: 2px !important;
+}
+
+    .table-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+
+.table-category {
+    border-left: 4px solid #e9ecef;
+    padding-left: 1rem;
+}
+/* Kategori Tabs */
+.nav-tabs .nav-link {
+    color: #6c757d;
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 1rem 1.5rem;
+    font-weight: 500;
+    background: none;
+}
+
+    .nav-tabs .nav-link:hover {
+        color: #495057;
+        border-bottom-color: #dee2e6;
+        background: rgba(0,0,0,0.05);
+    }
+
+    .nav-tabs .nav-link.active {
+        color: #495057;
+        background: none;
+        border-bottom-color: #0d6efd;
+        font-weight: 600;
+    }
+
+.nav-tabs {
+    border-bottom: 1px solid #dee2e6;
+}
+
+/* Tab Content */
+.tab-content {
+    min-height: 300px;
+}
+
+.tab-pane {
+    padding-top: 1rem;
+}
+
+/* Responsive tabs */
+@media (max-width: 768px) {
+    .nav-tabs .nav-link {
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+    }
+
+        .nav-tabs .nav-link .badge {
+            font-size: 0.7rem;
+        }
+}
+
+/* Doluluk oraný badge */
+.badge.fs-6 {
+    font-size: 0.9rem !important;
+    font-weight: 500;
+}
+
+/* Online durum göstergesi */
+.text-success .fa-circle {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Tab'lara ek badge */
+.nav-tabs .nav-link .badge.bg-warning {
+    font-size: 0.7rem;
+    padding: 0.25em 0.5em;
+}
