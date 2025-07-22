@@ -37,4 +37,19 @@ namespace KufeArtFullAdission.Mvc.Models
         public string PersonFullName { get; set; }
         public DateTime CreatedAt { get; set; }
     }
+
+    public class OrderSubmissionDto
+    {
+        public Guid TableId { get; set; }
+        public string? WaiterNote { get; set; }
+        public List<OrderItemDto> Items { get; set; } = new();
+    }
+
+    public class OrderItemDto
+    {
+        public Guid ProductId { get; set; }
+        public string ProductName { get; set; }
+        public double Price { get; set; }
+        public int Quantity { get; set; }
+    }
 }

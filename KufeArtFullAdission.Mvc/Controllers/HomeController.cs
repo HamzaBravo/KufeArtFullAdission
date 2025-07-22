@@ -1,4 +1,5 @@
 using AppDbContext;
+using KufeArtFullAdission.Entity;
 using KufeArtFullAdission.Mvc.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -181,6 +182,116 @@ namespace KufeArtFullAdission.Mvc.Controllers
             catch (Exception ex)
             {
                 return Json(new { success = false, message = "Bir hata oluþtu: " + ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetProducts()
+        {
+            try
+            {
+                var products = await _dbContext.Products
+                    .Where(p => p.IsActive) // Sadece aktif ürünler
+                    .OrderBy(p => p.CategoryName)
+                    .ThenBy(p => p.Name)
+                    .Select(p => new
+                    {
+                        id = p.Id,
+                        name = p.Name,
+                        description = p.Description,
+                        price = p.Price,
+                        categoryName = p.CategoryName,
+                        type = p.Type.ToString(), // Backend için (mutfak/bar yönlendirme)
+                        hasCampaign = p.HasCampaign,
+                        campaignCaption = p.CampaignCaption
+                    })
+                    .ToListAsync();
+
+                // Kategorilere göre grupla
+                var categories = products.GroupBy(p => p.categoryName)
+                                       .Select(g => new
+                                       {
+                                           name = g.Key,
+                                           products = g.ToList(),
+                                           count = g.Count()
+                                       })
+                                       .OrderBy(c => c.name)
+                                       .ToList();
+
+                return Json(new { success = true, data = new { categories = categories, allProducts = products } });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Ürünler yüklenemedi: " + ex.Message });
+            }
+        }
+
+
+        [HttpPost]
+        public async Task<IActionResult> SubmitOrder([FromBody] OrderSubmissionDto orderDto)
+        {
+            try
+            {
+                if (orderDto?.Items == null || !orderDto.Items.Any())
+                    return Json(new { success = false, message = "Sepet boþ!" });
+
+                var table = await _dbContext.Tables.FindAsync(orderDto.TableId);
+                if (table == null)
+                    return Json(new { success = false, message = "Masa bulunamadý!" });
+
+                // Sipariþ batch ID'si oluþtur (ayný anda verilen sipariþler için)
+                var batchId = Guid.NewGuid();
+                var currentUser = "Sistem"; // TODO: Login sisteminden gelecek
+                var currentUserId = Guid.NewGuid(); // TODO: Login sisteminden gelecek
+
+                // Her ürün için sipariþ kaydý oluþtur
+                foreach (var item in orderDto.Items)
+                {
+                    var product = await _dbContext.Products.FindAsync(item.ProductId);
+                    if (product == null) continue;
+
+                    var orderHistory = new AddtionHistoryDbEntity
+                    {
+                        AddionStatusId = table.Id, // Masa ID'si
+                        OrderBatchId = batchId, // Yeni eklenen field
+                        ShorLabel = orderDto.WaiterNote, // Garson notu
+                        ProductName = product.Name,
+                        ProductPrice = product.Price,
+                        ProductQuantity = item.Quantity,
+                        TotalPrice = product.Price * item.Quantity,
+                        PersonId = currentUserId, // Garson ID'si
+                        PersonFullName = currentUser // Garson adý
+                    };
+
+                    _dbContext.AddtionHistories.Add(orderHistory);
+                }
+
+                // Eðer masa ilk defa açýlýyorsa AddionStatus ayarla
+                if (table.AddionStatus == null)
+                {
+                    table.AddionStatus = batchId;
+                }
+
+                await _dbContext.SaveChangesAsync();
+
+                // Baþarýlý response
+                var totalAmount = orderDto.Items.Sum(i => i.Quantity * i.Price);
+                return Json(new
+                {
+                    success = true,
+                    message = $"Sipariþ baþarýyla alýndý! Toplam: ?{totalAmount:F2}",
+                    data = new
+                    {
+                        batchId = batchId,
+                        tableId = table.Id,
+                        totalAmount = totalAmount,
+                        itemCount = orderDto.Items.Sum(i => i.Quantity)
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Sipariþ kaydedilemedi: " + ex.Message });
             }
         }
         private async Task<double> GetDailySales(DateTime date)

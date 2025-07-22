@@ -110,6 +110,128 @@
     </div>
 </div>
 
+
+<!-- Ürün Seçim Modal'ı -->
+<div class="modal fade" id="productSelectionModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-utensils me-3 text-primary fa-lg"></i>
+                    <div>
+                        <h4 class="modal-title mb-0" id="productModalTableName">Masa X - Sipariş Al</h4>
+                        <small class="text-muted">Ürün seçip sepete ekleyin</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body p-0">
+                <div class="row g-0">
+                    <!-- Sol Taraf - Ürün Seçimi -->
+                    <div class="col-8">
+                        <div class="p-4">
+                            <!-- Kategori Tabs -->
+                            <ul class="nav nav-pills mb-4" id="productCategoryTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="all-tab" data-bs-toggle="pill"
+                                            data-bs-target="#all-products" type="button" role="tab">
+                                        <i class="fas fa-th-large me-2"></i>Tümü
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="bar-tab" data-bs-toggle="pill"
+                                            data-bs-target="#bar-products" type="button" role="tab">
+                                        <i class="fas fa-cocktail me-2"></i>Bar
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="kitchen-tab" data-bs-toggle="pill"
+                                            data-bs-target="#kitchen-products" type="button" role="tab">
+                                        <i class="fas fa-kitchen-set me-2"></i>Mutfak
+                                    </button>
+                                </li>
+                            </ul>
+
+                            <!-- Arama Çubuğu -->
+                            <div class="input-group mb-4">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="fas fa-search text-muted"></i>
+                                </span>
+                                <input type="text" class="form-control border-start-0"
+                                       id="productSearch" placeholder="Ürün ara...">
+                            </div>
+
+                            <!-- Ürün Listesi -->
+                            <div class="tab-content" id="productTabContent">
+                                <div class="tab-pane fade show active" id="all-products">
+                                    <div id="allProductsGrid" class="row g-3">
+                                        <div class="col-12 text-center py-5">
+                                            <div class="spinner-border text-primary" role="status"></div>
+                                            <p class="mt-2 text-muted">Ürünler yükleniyor...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="bar-products">
+                                    <div id="barProductsGrid" class="row g-3">
+                                        <!-- Bar ürünleri -->
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="kitchen-products">
+                                    <div id="kitchenProductsGrid" class="row g-3">
+                                        <!-- Mutfak ürünleri -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sağ Taraf - Sepet -->
+                    <div class="col-4 border-start bg-light">
+                        <div class="p-4">
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="fas fa-shopping-cart me-2 text-success"></i>
+                                <h5 class="mb-0">Sepet</h5>
+                                <span class="badge bg-primary ms-auto" id="cartItemCount">0</span>
+                            </div>
+
+                            <!-- Sepet İçeriği -->
+                            <div id="cartItems" class="mb-4" style="max-height: 400px; overflow-y: auto;">
+                                <div class="text-center py-5 text-muted" id="emptyCartMessage">
+                                    <i class="fas fa-shopping-cart fa-3x mb-3 opacity-25"></i>
+                                    <p class="mb-0">Sepet boş</p>
+                                    <small>Ürün seçerek sepete ekleyin</small>
+                                </div>
+                            </div>
+
+                            <!-- Sepet Özeti -->
+                            <div class="border-top pt-3" id="cartSummary" style="display: none;">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Toplam:</span>
+                                    <strong id="cartTotal">₺0.00</strong>
+                                </div>
+
+                                <!-- Garson Notu -->
+                                <div class="mb-3">
+                                    <label class="form-label small">Not (opsiyonel):</label>
+                                    <textarea class="form-control form-control-sm"
+                                              id="waiterNote" rows="2"
+                                              placeholder="Özel talimat..."></textarea>
+                                </div>
+
+                                <!-- Sipariş Gönder -->
+                                <button class="btn btn-success w-100 btn-lg" id="submitOrderBtn">
+                                    <i class="fas fa-paper-plane me-2"></i>
+                                    Sipariş Gönder
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 @section Scripts {
     <script>
         $(document).ready(function() {
@@ -585,7 +707,7 @@
         }
 
 
-                function closeTableAccount(tableId) {
+        function closeTableAccount(tableId) {
             if (!confirm('Bu hesabı kapatmak istediğinizden emin misiniz?\n\n⚠️ DİKKAT: Ödeme alınmadan hesap kapatılacak!')) {
                 return;
             }
@@ -615,8 +737,13 @@
         }
 
         function addNewOrder(tableId) {
-            console.log('Ürün ekleniyor:', tableId);
-            ToastHelper.info('Ürün ekleme özelliği yakında eklenecek!');
+            const tableName = $('#modalTableName').text();
+
+            // Masa modal'ını kapat
+            $('#tableModal').modal('hide');
+
+            // Ürün seçim modal'ını aç
+            openProductSelectionModal(tableId, tableName);
         }
 
         function processPayment(tableId, paymentType, amount) {
@@ -628,5 +755,431 @@
             console.log('Parçalı ödeme:', tableId, totalAmount);
             ToastHelper.info('Parçalı ödeme özelliği yakında eklenecek!');
         }
+
+        // ============= ÜRÜN SEÇİM MODALİ SİSTEMİ =============
+
+        let currentProducts = []; // Tüm ürünler
+        let cartItems = []; // Sepet
+        let currentTableId = null; // Hangi masa
+
+        // Modal açma fonksiyonunu güncelle
+        function openProductSelectionModal(tableId, tableName) {
+            currentTableId = tableId;
+
+            // Modal başlığını ayarla
+            $('#productModalTableName').text(`${tableName} - Sipariş Al`);
+
+            // Modal'ı aç
+            const modal = new bootstrap.Modal(document.getElementById('productSelectionModal'));
+            modal.show();
+
+            // Sepeti temizle
+            clearCart();
+
+            // Ürünleri yükle
+            loadProducts();
+        }
+
+        // Ürünleri API'den yükle
+        function loadProducts() {
+            $.ajax({
+                url: '/Home/GetProducts',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        currentProducts = response.data.allProducts;
+                        renderProductTabs(response.data.categories);
+                        renderProducts(currentProducts, 'allProductsGrid');
+                    } else {
+                        showError('Ürünler yüklenemedi: ' + response.message);
+                    }
+                },
+                error: function() {
+                    showError('Bağlantı hatası! Ürünler yüklenemedi.');
+                }
+            });
+        }
+
+        // Kategori tab'larını dinamik oluştur
+        function renderProductTabs(categories) {
+            const tabsContainer = $('#productCategoryTabs');
+            const contentContainer = $('#productTabContent');
+
+            // Tümü tab'ı hariç diğerlerini temizle
+            tabsContainer.find('li:not(:first)').remove();
+            contentContainer.find('.tab-pane:not(:first)').remove();
+
+            // Her kategori için tab ekle
+            categories.forEach((category, index) => {
+                const categoryId = category.name.replace(/\s+/g, '').toLowerCase();
+                const tabId = `${categoryId}-tab`;
+                const contentId = `${categoryId}-products`;
+
+                // Tab button
+                const tabHtml = `
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="${tabId}" data-bs-toggle="pill"
+                                data-bs-target="#${contentId}" type="button" role="tab">
+                            <i class="fas fa-tag me-2"></i>${category.name}
+                            <span class="badge bg-secondary ms-2">${category.count}</span>
+                        </button>
+                    </li>
+                `;
+                tabsContainer.append(tabHtml);
+
+                // Tab content
+                const contentHtml = `
+                    <div class="tab-pane fade" id="${contentId}">
+                        <div id="${categoryId}ProductsGrid" class="row g-3">
+                            <!-- Ürünler buraya gelecek -->
+                        </div>
+                    </div>
+                `;
+                contentContainer.append(contentHtml);
+
+                // Tab tıklama event'i
+                $(`#${tabId}`).on('click', function() {
+                    renderProducts(category.products, `${categoryId}ProductsGrid`);
+                });
+            });
+        }
+
+        // Ürünleri grid'de göster
+        function renderProducts(products, containerId) {
+            const container = $(`#${containerId}`);
+
+            if (products.length === 0) {
+                container.html(`
+                    <div class="col-12 text-center py-5">
+                        <i class="fas fa-search fa-3x text-muted mb-3 opacity-25"></i>
+                        <h6 class="text-muted">Ürün bulunamadı</h6>
+                    </div>
+                `);
+                return;
+            }
+
+            let html = '';
+            products.forEach(product => {
+                html += `
+                    <div class="col-lg-4 col-md-6">
+                        <div class="card h-100 shadow-sm product-card" data-product-id="${product.id}">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="card-title mb-0 fw-bold">${product.name}</h6>
+                                    ${product.hasCampaign ? `<span class="badge bg-warning text-dark">${product.campaignCaption}</span>` : ''}
+                                </div>
+
+                                ${product.description ? `<p class="card-text small text-muted mb-2">${product.description}</p>` : ''}
+
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="h6 text-success mb-0">₺${product.price.toFixed(2)}</span>
+                                    <button class="btn btn-primary btn-sm" onclick="addToCart('${product.id}')">
+                                        <i class="fas fa-plus me-1"></i>Ekle
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.html(html);
+        }
+
+        // Ürün arama
+        $('#productSearch').on('input', function() {
+            const searchTerm = $(this).val().toLowerCase();
+            const filtered = currentProducts.filter(p =>
+                p.name.toLowerCase().includes(searchTerm) ||
+                (p.description && p.description.toLowerCase().includes(searchTerm))
+            );
+
+            // Aktif tab'ı bul ve o grid'i güncelle
+            const activeTab = $('.nav-pills .nav-link.active').attr('id');
+            if (activeTab === 'all-tab') {
+                renderProducts(filtered, 'allProductsGrid');
+            }
+        });
+
+        // Sepete ekle
+        function addToCart(productId) {
+            const product = currentProducts.find(p => p.id === productId);
+            if (!product) return;
+
+            const existingItem = cartItems.find(item => item.productId === productId);
+
+            if (existingItem) {
+                existingItem.quantity += 1;
+                existingItem.totalPrice = existingItem.quantity * existingItem.price;
+            } else {
+                cartItems.push({
+                    productId: productId,
+                    name: product.name,
+                    price: product.price,
+                    quantity: 1,
+                    totalPrice: product.price,
+                    type: product.type // mutfak/bar için
+                });
+            }
+
+            updateCartDisplay();
+
+            // Visual feedback
+            ToastHelper.success(`${product.name} sepete eklendi!`, 1500);
+        }
+
+        // Sepet görüntüsünü güncelle
+        function updateCartDisplay() {
+            const cartContainer = $('#cartItems');
+            const emptyMessage = $('#emptyCartMessage');
+            const cartSummary = $('#cartSummary');
+            const cartCount = $('#cartItemCount');
+
+            cartCount.text(cartItems.reduce((sum, item) => sum + item.quantity, 0));
+
+            if (cartItems.length === 0) {
+                emptyMessage.show();
+                cartSummary.hide();
+                return;
+            }
+
+            emptyMessage.hide();
+            cartSummary.show();
+
+            let html = '';
+            let total = 0;
+
+            cartItems.forEach(item => {
+                total += item.totalPrice;
+                html += `
+                    <div class="card mb-2 cart-item">
+                        <div class="card-body p-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-0 small fw-bold">${item.name}</h6>
+                                    <small class="text-muted">₺${item.price.toFixed(2)} x ${item.quantity}</small>
+                                </div>
+                                <div class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-danger btn-sm" onclick="updateCartQuantity('${item.productId}', -1)">
+                                            <i class="fas fa-minus"></i>
+                                        </button>
+                                        <span class="btn btn-outline-secondary btn-sm">${item.quantity}</span>
+                                        <button class="btn btn-outline-success btn-sm" onclick="updateCartQuantity('${item.productId}', 1)">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+                                    <div class="fw-bold small mt-1">₺${item.totalPrice.toFixed(2)}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            cartContainer.html(html);
+            $('#cartTotal').text(`₺${total.toFixed(2)}`);
+        }
+
+        // Sepet miktarı güncelle
+        function updateCartQuantity(productId, change) {
+            const item = cartItems.find(item => item.productId === productId);
+            if (!item) return;
+
+            item.quantity += change;
+
+            if (item.quantity <= 0) {
+                cartItems = cartItems.filter(i => i.productId !== productId);
+            } else {
+                item.totalPrice = item.quantity * item.price;
+            }
+
+            updateCartDisplay();
+        }
+
+        // Sepeti temizle
+        function clearCart() {
+            cartItems = [];
+            updateCartDisplay();
+        }
+
+        // Hata gösterme
+        function showError(message) {
+            $('#allProductsGrid').html(`
+                <div class="col-12 text-center py-5">
+                    <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                    <h6 class="text-danger">${message}</h6>
+                </div>
+            `);
+        }
+
+
+                // ============= SİPARİŞ GÖNDERME SİSTEMİ =============
+
+        // Sipariş gönder butonu event'i
+        $('#submitOrderBtn').on('click', function() {
+            if (cartItems.length === 0) {
+                ToastHelper.warning('Sepette ürün bulunmuyor!');
+                return;
+            }
+
+            if (!currentTableId) {
+                ToastHelper.error('Masa bilgisi bulunamadı!');
+                return;
+            }
+
+            submitOrder();
+        });
+
+        // Ana sipariş gönderme fonksiyonu
+        function submitOrder() {
+            const waiterNote = $('#waiterNote').val().trim();
+
+            // Sipariş verisini hazırla
+            const orderData = {
+                tableId: currentTableId,
+                waiterNote: waiterNote || null,
+                items: cartItems.map(item => ({
+                    productId: item.productId,
+                    productName: item.name,
+                    price: item.price,
+                    quantity: item.quantity
+                }))
+            };
+
+            // Konfirmasyon dialog'u
+            const totalAmount = cartItems.reduce((sum, item) => sum + item.totalPrice, 0);
+            const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
+            const confirmMessage = `
+        🛒 ${itemCount} ürün
+        💰 Toplam: ₺${totalAmount.toFixed(2)}
+        ${waiterNote ? `📝 Not: ${waiterNote}` : ''}
+
+        Siparişi göndermek istediğinizden emin misiniz?
+            `;
+
+            if (!confirm(confirmMessage.trim())) {
+                return;
+            }
+
+            // Loading göster
+            const submitBtn = $('#submitOrderBtn');
+            const originalText = submitBtn.html();
+            submitBtn.html('<i class="fas fa-spinner fa-spin me-2"></i>Gönderiliyor...').prop('disabled', true);
+
+            // AJAX request
+            $.ajax({
+                url: '/Home/SubmitOrder',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(orderData),
+                success: function(response) {
+                    submitBtn.html(originalText).prop('disabled', false);
+
+                    if (response.success) {
+                        // Başarılı sipariş
+                        ToastHelper.success(response.message);
+
+                        // Modal'ı kapat
+                        $('#productSelectionModal').modal('hide');
+
+                        // Masa listesini güncelle (dashboard'da durumları güncellensin)
+                        loadTables();
+
+                        // 1.5 saniye sonra masa detayını göster (yeni siparişle)
+                        setTimeout(() => {
+                            showTableWithNewOrder(currentTableId);
+                        }, 1500);
+
+                    } else {
+                        ToastHelper.error('Sipariş gönderilemedi: ' + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    submitBtn.html(originalText).prop('disabled', false);
+
+                    console.error('Sipariş gönderme hatası:', error);
+                    ToastHelper.error('Bağlantı hatası! Sipariş gönderilemedi.');
+                }
+            });
+        }
+
+        // Sipariş sonrası masa detayını göster
+        function showTableWithNewOrder(tableId) {
+            // Güncellenmiş masa listesinden masa adını bul
+            const tableData = Object.values(currentTablesData).flat().find(t => t.id === tableId);
+            if (tableData) {
+                openTableModal(tableId, tableData.name, true); // true = dolu masa
+            }
+        }
+
+        // Modal kapatma event'leri - sepeti temizle
+        $('#productSelectionModal').on('hidden.bs.modal', function() {
+            clearCart();
+            currentTableId = null;
+            $('#waiterNote').val('');
+        });
+
+        // Enter tuşu ile sipariş gönderme (waiterNote textarea'sında)
+        $('#waiterNote').on('keypress', function(e) {
+            if (e.which === 13 && e.ctrlKey) { // Ctrl+Enter
+                e.preventDefault();
+                if (cartItems.length > 0) {
+                    submitOrder();
+                }
+            }
+        });
+
+        // Hızlı miktar değiştirme (+ - butonları için)
+        function updateCartQuantity(productId, change) {
+            const item = cartItems.find(item => item.productId === productId);
+            if (!item) return;
+
+            const oldQuantity = item.quantity;
+            item.quantity += change;
+
+            if (item.quantity <= 0) {
+                // Ürünü sepetten çıkar
+                cartItems = cartItems.filter(i => i.productId !== productId);
+                const productName = item.name;
+                ToastHelper.info(`${productName} sepetten çıkarıldı`, 1500);
+            } else {
+                item.totalPrice = item.quantity * item.price;
+
+                // Visual feedback
+                if (change > 0) {
+                    ToastHelper.success(`${item.name} +${change}`, 1000);
+                } else {
+                    ToastHelper.warning(`${item.name} ${change}`, 1000);
+                }
+            }
+
+            updateCartDisplay();
+        }
+
+        // Sepet temizleme fonksiyonu güncelleme
+        function clearCart() {
+            cartItems = [];
+            updateCartDisplay();
+        }
+
+        // Keyboard shortcuts
+        $(document).on('keydown', function(e) {
+            // Modal açıkken çalışsın
+            if ($('#productSelectionModal').hasClass('show')) {
+                // Esc = Modal kapat
+                if (e.key === 'Escape' && !e.ctrlKey && !e.altKey) {
+                    $('#productSelectionModal').modal('hide');
+                }
+
+                // Ctrl+Enter = Sipariş gönder
+                if (e.key === 'Enter' && e.ctrlKey && cartItems.length > 0) {
+                    e.preventDefault();
+                    submitOrder();
+                }
+            }
+        });
     </script>
 }
+
