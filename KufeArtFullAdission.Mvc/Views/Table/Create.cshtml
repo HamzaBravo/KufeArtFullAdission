@@ -1,0 +1,81 @@
+﻿@model TableDbEntity
+@{
+    ViewData["Title"] = "Yeni Masa";
+    var existingCategories = ViewBag.ExistingCategories as List<string> ?? new List<string>();
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-plus me-2"></i>Yeni Masa Ekle
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" method="post">
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label">Masa Adı *</label>
+                            <input asp-for="Name" class="form-control" placeholder="Örn: Masa 1, Balkon Köşe, VIP-A" required />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Category" class="form-label">Kategori *</label>
+                            <input asp-for="Category" class="form-control" list="categoryOptions"
+                                   placeholder="Kategori yazın veya listeden seçin..." required />
+
+                            <!-- Datalist ile mevcut kategoriler -->
+                            <datalist id="categoryOptions">
+                                @foreach (var category in existingCategories)
+                                {
+                                    <option value="@category">@category</option>
+                                }
+                            </datalist>
+
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Mevcut kategoriler:
+                                @if (existingCategories.Any())
+                                {
+                                    @string.Join(", ", existingCategories)
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Henüz kategori yok</span>
+                                }
+                            </div>
+                            <span asp-validation-for="Category" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a asp-action="Index" class="btn btn-outline-secondary me-md-2">
+                                <i class="fas fa-arrow-left me-1"></i>Geri
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-1"></i>Kaydet
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        // Kategori input'una focus olduğunda placeholder'ı güncelle
+        document.getElementById('Category').addEventListener('focus', function() {
+            const existingCount = @existingCategories.Count;
+            if (existingCount > 0) {
+                this.placeholder = 'Mevcut kategorilerden seçin veya yeni kategori yazın...';
+            }
+        });
+    </script>
+}

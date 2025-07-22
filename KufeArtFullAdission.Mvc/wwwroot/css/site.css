@@ -114,3 +114,150 @@ body {
     font-size: 0.7rem;
     padding: 0.25em 0.5em;
 }
+/* Navigation Styles */
+.navbar-brand {
+    font-size: 1.5rem;
+}
+
+.dropdown-menu {
+    border: none;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.dropdown-item {
+    transition: all 0.2s ease;
+}
+
+    .dropdown-item:hover {
+        background-color: #f8f9fa;
+        padding-left: 1.5rem;
+    }
+
+/* Active navigation */
+.navbar-nav .nav-link.active {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 0.375rem;
+}
+/* Layout spacing */
+main {
+    min-height: calc(100vh - 160px); /* navbar + footer yüksekliði */
+}
+
+/* Datalist styling */
+input[list] {
+    position: relative;
+}
+
+.form-text {
+    font-size: 0.875em;
+}
+
+/* Card improvements */
+.card {
+    border: none;
+    transition: box-shadow 0.15s ease-in-out;
+}
+
+    .card:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+
+/* Form improvements */
+.form-control:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Navigation Styles */
+.navbar-brand {
+    font-size: 1.5rem;
+}
+
+.dropdown-menu {
+    border: none;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.dropdown-item {
+    transition: all 0.2s ease;
+}
+
+    .dropdown-item:hover {
+        background-color: #f8f9fa;
+        padding-left: 1.5rem;
+    }
+
+/* Active navigation */
+.navbar-nav .nav-link.active {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 0.375rem;
+}
+
+/* Layout spacing - navbar'dan sonra her zaman boþluk */
+.container-fluid {
+    padding-top: 1.5rem; /* navbar'dan sonra sabit boþluk */
+}
+
+/* Main content spacing */
+main {
+    min-height: calc(100vh - 200px); /* navbar + footer + padding */
+}
+
+/* Page headers - sayfa baþlýklarý için ekstra margin */
+.page-header {
+    margin-bottom: 2rem;
+}
+
+/* Datalist styling */
+input[list] {
+    position: relative;
+}
+
+.form-text {
+    font-size: 0.875em;
+}
+
+/* Card improvements */
+.card {
+    border: none;
+    transition: box-shadow 0.15s ease-in-out;
+}
+
+    .card:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+
+/* Form improvements */
+.form-control:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Button group spacing */
+.btn-group .btn {
+    border-radius: 0.375rem !important;
+    margin-right: 2px;
+}
+
+    .btn-group .btn:last-child {
+        margin-right: 0;
+    }
+
+/* Table improvements */
+.table th {
+    border-top: none;
+    font-weight: 600;
+}
+
+/* Icon buttons */
+.btn-outline-primary, .btn-outline-danger {
+    border-width: 1px;
+}
+
+    .btn-outline-primary:hover {
+        transform: translateY(-1px);
+    }
+
+    .btn-outline-danger:hover {
+        transform: translateY(-1px);
+    }

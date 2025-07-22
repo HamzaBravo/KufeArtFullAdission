@@ -1,0 +1,106 @@
+﻿@model IEnumerable<TableDbEntity>
+@{
+    ViewData["Title"] = "Masa Yönetimi";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="fw-bold">
+                <i class="fas fa-chair me-2"></i>Masa Yönetimi
+            </h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a asp-action="Create" class="btn btn-success">
+                <i class="fas fa-plus me-2"></i>Yeni Masa
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Masa Adı</th>
+                            <th>Kategori</th>
+                            <th>Durum</th>
+                            <th>Oluşturma Tarihi</th>
+                            <th width="120">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Any())
+                        {
+                            @foreach (var table in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>@table.Name</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">@table.Category</span>
+                                    </td>
+                                    <td>
+                                        @if (table.AddionStatus.HasValue)
+                                        {
+                                            <span class="badge bg-warning">Dolu</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">Boş</span>
+                                        }
+                                    </td>
+                                    <td>@table.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a asp-action="Edit" asp-route-id="@table.Id"
+                                               class="btn btn-outline-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger"
+                                                    onclick="deleteTable('@table.Id', '@table.Name')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    <i class="fas fa-chair fa-3x mb-3"></i>
+                                    <br>Henüz masa eklenmemiş
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function deleteTable(id, name) {
+            if (confirm(`"${name}" masasını silmek istediğinizden emin misiniz?`)) {
+                $.post('@Url.Action("Delete", "Table")', { id: id })
+                    .done(function(response) {
+                        if (response.success) {
+                            ToastHelper.success(response.message);
+                            setTimeout(() => location.reload(), 1000);
+                        } else {
+                            ToastHelper.error(response.message);
+                        }
+                    })
+                    .fail(function() {
+                        ToastHelper.error('Bağlantı hatası!');
+                    });
+            }
+        }
+    </script>
+}
