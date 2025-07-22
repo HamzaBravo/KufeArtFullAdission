@@ -1,5 +1,6 @@
 ﻿using AppDbContext;
 using KufeArtFullAdission.Entity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -9,6 +10,7 @@ using System.Threading.Tasks;
 
 namespace KufeArtFullAdission.Mvc.Controllers;
 
+[Authorize]
 public class TableController(DBContext _dbContext) : Controller
 {
     public async Task<IActionResult> Index()

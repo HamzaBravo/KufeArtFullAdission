@@ -1,0 +1,188 @@
+﻿@model ProductDbEntity
+@{
+    ViewData["Title"] = "Yeni Ürün";
+    var existingCategories = ViewBag.ExistingCategories as List<string> ?? new List<string>();
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-plus me-2"></i>Yeni Ürün Ekle
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" method="post" enctype="multipart/form-data">
+                        <div class="row">
+                            <!-- Sol Kolon - Temel Bilgiler -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Name" class="form-label">Ürün Adı *</label>
+                                    <input asp-for="Name" class="form-control" placeholder="Örn: Americano, Cheesecake" required />
+                                    <span asp-validation-for="Name" class="text-danger"></span>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="CategoryName" class="form-label">Kategori *</label>
+                                    <input asp-for="CategoryName" class="form-control" list="categoryOptions"
+                                           placeholder="Kategori yazın veya seçin..." required />
+
+                                    <datalist id="categoryOptions">
+                                        @foreach (var category in existingCategories)
+                                        {
+                                            <option value="@category">@category</option>
+                                        }
+                                    </datalist>
+                                    <span asp-validation-for="CategoryName" class="text-danger"></span>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="Price" class="form-label">Fiyat (₺) *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">₺</span>
+                                        <input asp-for="Price" class="form-control" type="number" step="0.01" min="0" required />
+                                    </div>
+                                    <span asp-validation-for="Price" class="text-danger"></span>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="Type" class="form-label">Ürün Türü *</label>
+                                    <select asp-for="Type" class="form-select" required>
+                                        <option value="">Tür Seçin</option>
+                                        <option value="Kitchen">🍽️ Mutfak</option>
+                                        <option value="Bar">🍹 Bar</option>
+                                    </select>
+                                    <span asp-validation-for="Type" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <!-- Sağ Kolon - Detaylar -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Description" class="form-label">Açıklama</label>
+                                    <textarea asp-for="Description" class="form-control" rows="3"
+                                              placeholder="Ürün açıklaması (opsiyonel)"></textarea>
+                                    <span asp-validation-for="Description" class="text-danger"></span>
+                                </div>
+
+                                <!-- Menü Görünürlüğü -->
+                                <div class="mb-3">
+                                    <label class="form-label">Menü Görünürlüğü</label>
+                                    <div class="form-check">
+                                        <input asp-for="IsQrMenu" class="form-check-input" type="checkbox" />
+                                        <label asp-for="IsQrMenu" class="form-check-label">
+                                            📱 QR Menüde Göster
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input asp-for="IsTvMenu" class="form-check-input" type="checkbox" />
+                                        <label asp-for="IsTvMenu" class="form-check-label">
+                                            📺 TV Menüde Göster
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Kampanya Bilgileri -->
+                                <div class="mb-3">
+                                    <div class="form-check mb-2">
+                                        <input asp-for="HasCampaign" class="form-check-input" type="checkbox" id="campaignToggle" />
+                                        <label asp-for="HasCampaign" class="form-check-label">
+                                            🎯 Kampanyalı Ürün
+                                        </label>
+                                    </div>
+
+                                    <div id="campaignFields" style="display: none;">
+                                        <div class="mb-2">
+                                            <input asp-for="CampaignCaption" class="form-control form-control-sm"
+                                                   placeholder="Kampanya etiketi (Örn: 2+1, %20 İndirim)" />
+                                        </div>
+                                        <div>
+                                            <textarea asp-for="CampaignDetail" class="form-control form-control-sm" rows="2"
+                                                      placeholder="Kampanya detayı"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Resim Upload -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    <label class="form-label">Ürün Resimleri</label>
+                                    <input type="file" name="images" class="form-control" multiple accept="image/*" id="imageUpload" />
+                                    <div class="form-text">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Birden fazla resim seçebilirsiniz. Resimler otomatik olarak WebP formatına çevrilecek.
+                                    </div>
+
+                                    <!-- Resim Önizleme -->
+                                    <div id="imagePreview" class="mt-3"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Butonlar -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a asp-action="Index" class="btn btn-outline-secondary me-md-2">
+                                <i class="fas fa-arrow-left me-1"></i>Geri
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-1"></i>Kaydet
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        // Kampanya toggle
+        document.getElementById('campaignToggle').addEventListener('change', function() {
+            const campaignFields = document.getElementById('campaignFields');
+            campaignFields.style.display = this.checked ? 'block' : 'none';
+        });
+
+        // Resim önizleme
+        document.getElementById('imageUpload').addEventListener('change', function(e) {
+            const preview = document.getElementById('imagePreview');
+            preview.innerHTML = '';
+
+            if (e.target.files.length > 0) {
+                const previewContainer = document.createElement('div');
+                previewContainer.className = 'row g-2';
+
+                Array.from(e.target.files).forEach(file => {
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const col = document.createElement('div');
+                            col.className = 'col-md-3 col-6';
+                            col.innerHTML = `
+                                <div class="card">
+                                    <img src="${e.target.result}" class="card-img-top" style="height: 120px; object-fit: cover;" />
+                                    <div class="card-body p-2 text-center">
+                                        <small class="text-muted">${file.name}</small>
+                                    </div>
+                                </div>
+                            `;
+                            previewContainer.appendChild(col);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+
+                preview.appendChild(previewContainer);
+            }
+        });
+    </script>
+}

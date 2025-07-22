@@ -1,6 +1,7 @@
 ﻿using AppDbContext;
 using KufeArtFullAdission.Entity;
 using KufeArtFullAdission.Mvc.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -11,6 +12,7 @@ using System.Threading.Tasks;
 
 namespace KufeArtFullAdission.Mvc.Controllers;
 
+[Authorize]
 public class HomeController(DBContext _dbContext) : Controller
 {
 

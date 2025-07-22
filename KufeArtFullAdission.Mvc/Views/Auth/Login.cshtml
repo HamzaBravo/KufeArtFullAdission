@@ -1,0 +1,88 @@
+﻿@{
+    ViewData["Title"] = "Giriş Yap";
+    Layout = null; // Layout kullanmıyoruz
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - KufeArt</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/toast.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-4">
+                <div class="card login-card border-0">
+                    <div class="card-header login-header text-center py-4">
+                        <h3 class="mb-0">
+                            <i class="fas fa-coffee me-2"></i>KufeArt
+                        </h3>
+                        <p class="mb-0 opacity-75">Yönetici Paneli</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <form method="post" asp-action="Login">
+                            <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
+
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-user me-2"></i>Kullanıcı Adı
+                                </label>
+                                <input type="text" name="username" class="form-control" required autofocus
+                                       placeholder="Kullanıcı adınızı girin" />
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label">
+                                    <i class="fas fa-lock me-2"></i>Şifre
+                                </label>
+                                <input type="password" name="password" class="form-control" required
+                                       placeholder="Şifrenizi girin" />
+                            </div>
+
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-login">
+                                    <i class="fas fa-sign-in-alt me-2"></i>Giriş Yap
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/toast-helper.js"></script>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+        <div id="toastTemplate" class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true" style="display: none;">
+            <div class="d-flex">
+                <div class="toast-body d-flex align-items-center">
+                    <i class="toast-icon me-2"></i>
+                    <span class="toast-message"></span>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Toast Handler -->
+    @if (TempData["ToastMessage"] != null)
+    {
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                ToastHelper.@(TempData["ToastType"] ?? "info")('@Html.Raw(TempData["ToastMessage"])');
+            });
+        </script>
+    }
+</body>
+</html>

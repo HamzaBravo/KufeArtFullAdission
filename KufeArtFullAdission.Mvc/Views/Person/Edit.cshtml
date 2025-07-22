@@ -1,0 +1,178 @@
+﻿@model PersonDbEntity
+@{
+    ViewData["Title"] = "Personel Düzenle";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-edit me-2"></i>Personel Düzenle
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Edit" method="post" enctype="multipart/form-data">
+                        <input asp-for="Id" type="hidden" />
+                        <input asp-for="CreatedAt" type="hidden" />
+                        <input asp-for="IsActive" type="hidden" />
+                        <input asp-for="IsDeleted" type="hidden" />
+
+                        <!-- Mevcut Profil Fotoğrafı -->
+                        <div class="mb-3 text-center">
+                            <label class="form-label">Profil Fotoğrafı</label>
+                            <div class="mb-3">
+                                <div id="currentImageContainer">
+                                    @if (!string.IsNullOrEmpty(Model.ProfileImagePath))
+                                    {
+                                        <img src="@Model.ProfileImagePath" class="rounded-circle mx-auto d-block border mb-2"
+                                             style="width: 120px; height: 120px; object-fit: cover;" id="currentImage" />
+
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" name="deleteExistingImage" value="true" id="deleteImageCheck">
+                                            <label class="form-check-label text-danger" for="deleteImageCheck">
+                                                <i class="fas fa-trash me-1"></i>Mevcut fotoğrafı sil
+                                            </label>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="rounded-circle bg-light border d-flex align-items-center justify-content-center mx-auto mb-2"
+                                             style="width: 120px; height: 120px;" id="defaultAvatar">
+                                            <i class="fas fa-user fa-2x text-muted"></i>
+                                        </div>
+                                        <p class="text-muted small">Fotoğraf yok</p>
+                                    }
+                                </div>
+
+                                <!-- Yeni Resim Önizleme -->
+                                <div id="newImagePreview" style="display: none;">
+                                    <p class="text-success small mb-2">
+                                        <i class="fas fa-arrow-down me-1"></i>Yeni fotoğraf önizleme:
+                                    </p>
+                                </div>
+
+                                <input type="file" name="profileImage" class="form-control" accept="image/*" id="profileImageInput" />
+                                <div class="form-text">
+                                    <i class="fas fa-camera me-1"></i>
+                                    Yeni fotoğraf seçmek için dosya seçin
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="FullName" class="form-label">Ad Soyad *</label>
+                            <input asp-for="FullName" class="form-control" required />
+                            <span asp-validation-for="FullName" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Username" class="form-label">Kullanıcı Adı *</label>
+                            <input asp-for="Username" class="form-control" required />
+                            <span asp-validation-for="Username" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Password" class="form-label">Şifre</label>
+                            <input asp-for="Password" type="password" class="form-control" />
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Boş bırakırsanız mevcut şifre korunur
+                            </div>
+                            <span asp-validation-for="Password" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="AccessType" class="form-label">Yetki Türü *</label>
+                            <select asp-for="AccessType" class="form-select" required>
+                                <option value="">Yetki Seçin</option>
+                                <option value="Person">👨‍💼 Garson</option>
+                                <option value="Admin">👑 Admin</option>
+                            </select>
+                            <span asp-validation-for="AccessType" class="text-danger"></span>
+                        </div>
+
+                        <!-- Durum Bilgisi -->
+                        <div class="mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body py-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="small text-muted">Durum:</span>
+                                        @if (Model.IsActive)
+                                        {
+                                            <span class="badge bg-success">Aktif</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning">Pasif</span>
+                                        }
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mt-1">
+                                        <span class="small text-muted">Kayıt Tarihi:</span>
+                                        <span class="small">@Model.CreatedAt.ToString("dd.MM.yyyy HH:mm")</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a asp-action="Index" class="btn btn-outline-secondary me-md-2">
+                                <i class="fas fa-arrow-left me-1"></i>Geri
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Güncelle
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        // Yeni profil resmi önizleme
+        document.getElementById('profileImageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const newImagePreview = document.getElementById('newImagePreview');
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    newImagePreview.style.display = 'block';
+                    newImagePreview.innerHTML = `
+                        <p class="text-success small mb-2">
+                            <i class="fas fa-arrow-down me-1"></i>Yeni fotoğraf önizleme:
+                        </p>
+                        <img src="${e.target.result}" class="rounded-circle mx-auto d-block border"
+                             style="width: 120px; height: 120px; object-fit: cover;" />
+                    `;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                newImagePreview.style.display = 'none';
+                newImagePreview.innerHTML = '';
+            }
+        });
+
+        // Mevcut resmi silme checkbox'ı
+        document.getElementById('deleteImageCheck')?.addEventListener('change', function() {
+            const currentImage = document.getElementById('currentImage');
+            if (currentImage) {
+                if (this.checked) {
+                    currentImage.style.opacity = '0.3';
+                    currentImage.style.filter = 'grayscale(100%)';
+                } else {
+                    currentImage.style.opacity = '1';
+                    currentImage.style.filter = 'none';
+                }
+            }
+        });
+    </script>
+}

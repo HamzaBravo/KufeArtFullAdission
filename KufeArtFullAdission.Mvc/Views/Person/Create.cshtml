@@ -1,0 +1,107 @@
+﻿@model PersonDbEntity
+@{
+    ViewData["Title"] = "Yeni Personel";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-plus me-2"></i>Yeni Personel Ekle
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" method="post" enctype="multipart/form-data">
+                        <div class="mb-3 text-center">
+                            <label class="form-label">Profil Fotoğrafı</label>
+                            <div class="mb-3">
+                                <div id="imagePreview" class="mb-3">
+                                    <div class="rounded-circle bg-light border d-flex align-items-center justify-content-center mx-auto"
+                                         style="width: 120px; height: 120px;" id="defaultAvatar">
+                                        <i class="fas fa-camera fa-2x text-muted"></i>
+                                    </div>
+                                </div>
+                                <input type="file" name="profileImage" class="form-control" accept="image/*" id="profileImageInput" />
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Müşteri değerlendirmeleri için fotoğraf ekleyin
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="FullName" class="form-label">Ad Soyad *</label>
+                            <input asp-for="FullName" class="form-control" placeholder="Örn: Ahmet Yılmaz" required />
+                            <span asp-validation-for="FullName" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Username" class="form-label">Kullanıcı Adı *</label>
+                            <input asp-for="Username" class="form-control" placeholder="Örn: ahmet.yilmaz" required />
+                            <span asp-validation-for="Username" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Password" class="form-label">Şifre *</label>
+                            <input asp-for="Password" type="password" class="form-control" required />
+                            <span asp-validation-for="Password" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="AccessType" class="form-label">Yetki Türü *</label>
+                            <select asp-for="AccessType" class="form-select" required>
+                                <option value="">Yetki Seçin</option>
+                                <option value="Person">👨‍💼 Garson</option>
+                                <option value="Admin">👑 Yönetici</option>
+                            </select>
+                            <span asp-validation-for="AccessType" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a asp-action="Index" class="btn btn-outline-secondary me-md-2">
+                                <i class="fas fa-arrow-left me-1"></i>Geri
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-1"></i>Kaydet
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        // Profil resmi önizleme
+        document.getElementById('profileImageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('imagePreview');
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `
+                        <img src="${e.target.result}" class="rounded-circle mx-auto d-block border"
+                             style="width: 120px; height: 120px; object-fit: cover;" />
+                    `;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.innerHTML = `
+                    <div class="rounded-circle bg-light border d-flex align-items-center justify-content-center mx-auto"
+                         style="width: 120px; height: 120px;">
+                        <i class="fas fa-camera fa-2x text-muted"></i>
+                    </div>
+                `;
+            }
+        });
+    </script>
+}

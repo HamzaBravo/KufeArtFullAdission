@@ -1,0 +1,141 @@
+﻿@model IEnumerable<PersonDbEntity>
+@{
+    ViewData["Title"] = "Personel Yönetimi";
+}
+
+<div class="page-header">
+    <div class="row align-items-center mb-4">
+        <div class="col-md-8">
+            <h2 class="fw-bold mb-0">
+                <i class="fas fa-users me-2"></i>Personel Yönetimi
+            </h2>
+            <p class="text-muted mb-0">Çalışanlarınızı yönetin</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a asp-action="Create" class="btn btn-success btn-lg">
+                <i class="fas fa-user-plus me-2"></i>Yeni Personel
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th width="80">Foto</th>
+                        <th>Ad Soyad</th>
+                        <th>Kullanıcı Adı</th>
+                        <th>Yetki</th>
+                        <th>Durum</th>
+                        <th>Kayıt Tarihi</th>
+                        <th width="120">İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Any())
+                    {
+                        @foreach (var person in Model)
+                        {
+                            <tr>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(person.ProfileImagePath))
+                                    {
+                                        <img src="@person.ProfileImagePath" class="rounded-circle"
+                                             style="width: 50px; height: 50px; object-fit: cover;" alt="@person.FullName" />
+                                    }
+                                    else
+                                    {
+                                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center"
+                                             style="width: 50px; height: 50px;">
+                                            <i class="fas fa-user text-white"></i>
+                                        </div>
+                                    }
+                                </td>
+                                <td>
+                                    <strong>@person.FullName</strong>
+                                </td>
+                                <td>
+                                    <code>@person.Username</code>
+                                </td>
+                                <td>
+                                    @if (person.AccessType == AccessType.Admin)
+                                    {
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-crown me-1"></i>Yönetici
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-primary">
+                                            <i class="fas fa-user-tie me-1"></i>Garson
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (person.IsActive)
+                                    {
+                                        <span class="badge bg-success">Aktif</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning">Pasif</span>
+                                    }
+                                </td>
+                                <td>@person.CreatedAt.ToString("dd.MM.yyyy")</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a asp-action="Edit" asp-route-id="@person.Id"
+                                           class="btn btn-outline-primary" title="Düzenle">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button class="btn btn-outline-danger" title="Sil"
+                                                onclick="deletePerson('@person.Id', '@person.FullName')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">
+                                <i class="fas fa-users fa-3x mb-3"></i>
+                                <br>Henüz personel eklenmemiş
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function deletePerson(id, name) {
+            if (confirm(`"${name}" personelini silmek istediğinizden emin misiniz?`)) {
+                LoaderHelper.show('Personel siliniyor...');
+
+                $.post('@Url.Action("Delete", "Person")', { id: id })
+                    .done(function(response) {
+                        LoaderHelper.hide();
+                        if (response.success) {
+                            ToastHelper.success(response.message);
+                            setTimeout(() => location.reload(), 1000);
+                        } else {
+                            ToastHelper.error(response.message);
+                        }
+                    })
+                    .fail(function() {
+                        LoaderHelper.hide();
+                        ToastHelper.error('Bağlantı hatası!');
+                    });
+            }
+        }
+    </script>
+}

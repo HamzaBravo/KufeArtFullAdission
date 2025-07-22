@@ -208,19 +208,24 @@ window.PaymentManager = {
                 ToastHelper.warning('Lütfen geçerli bir tutar girin!');
                 return;
             }
-
-            if (amount > remainingAmount) {
-                ToastHelper.error(`Maksimum ₺${remainingAmount.toFixed(2)} ödeme alabilirsiniz!`);
-                $('#customPaymentAmount').val(remainingAmount.toFixed(2));
-                return;
-            }
-
             label = 'Manuel tutar';
         }
 
-        // Genel tutar kontrolü
+        // ✅ GENEL TUTAR KONTROLÜ - HEM NAKİT HEM KART İÇİN
         if (amount > remainingAmount) {
-            ToastHelper.error(`Bu tutar kalan borcu (₺${remainingAmount.toFixed(2)}) aşıyor!`);
+            const paymentTypeText = paymentType === 0 ? 'Nakit' : 'Kart';
+            ToastHelper.error(`${paymentTypeText} ile maksimum ₺${remainingAmount.toFixed(2)} ödeme alabilirsiniz!\n\nGirilen tutar: ₺${amount.toFixed(2)}\nKalan borç: ₺${remainingAmount.toFixed(2)}`);
+
+            // Manuel tutar tab'ındaysa değeri düzelt
+            if (activeTab === '#customAmountTab') {
+                $('#customPaymentAmount').val(remainingAmount.toFixed(2));
+            }
+            return;
+        }
+
+        // ✅ SIFIR VEYA NEGATİF TUTAR KONTROLÜ
+        if (amount <= 0) {
+            ToastHelper.warning('Ödeme tutarı sıfırdan büyük olmalıdır!');
             return;
         }
 
@@ -234,7 +239,9 @@ window.PaymentManager = {
 
         // Konfirmasyon
         const paymentTypeText = paymentType === 0 ? 'Nakit' : 'Kart';
-        if (!confirm(`${paymentTypeText} ile ₺${amount.toFixed(2)} ödeme almak istediğinizden emin misiniz?`)) {
+        const confirmMessage = `${paymentTypeText} ile ₺${amount.toFixed(2)} ödeme almak istediğinizden emin misiniz?\n\nKalan borç: ₺${(remainingAmount - amount).toFixed(2)}`;
+
+        if (!confirm(confirmMessage)) {
             return;
         }
 

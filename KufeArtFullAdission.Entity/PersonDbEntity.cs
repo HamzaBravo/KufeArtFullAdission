@@ -9,5 +9,6 @@ public sealed class PersonDbEntity:BaseDbEntity
     public string Password { get; set; }
     public AccessType AccessType { get; set; }
     public bool IsActive { get; set; }
+    public string ProfileImagePath { get; set; } // Profil resmi yolu
     public bool IsDeleted { get; set; } = false;
 }

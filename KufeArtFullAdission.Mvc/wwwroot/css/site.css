@@ -261,3 +261,72 @@ input[list] {
     .btn-outline-danger:hover {
         transform: translateY(-1px);
     }
+
+/* Person profile image styles */
+.profile-image-container {
+    position: relative;
+    display: inline-block;
+}
+
+.profile-image-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.profile-image-container:hover .profile-image-overlay {
+    opacity: 1;
+}
+
+/* User role badges */
+.badge-admin {
+    background: linear-gradient(45deg, #dc3545, #fd7e14);
+}
+
+.badge-person {
+    background: linear-gradient(45deg, #0d6efd, #6f42c1);
+}
+
+/* Navbar user dropdown improvements */
+.navbar .dropdown-item-text {
+    padding: 0.75rem 1rem;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.navbar .dropdown-menu {
+    min-width: 280px;
+}
+
+/* Profile image hover effect */
+.navbar .rounded-circle {
+    transition: transform 0.2s ease;
+}
+
+    .navbar .rounded-circle:hover {
+        transform: scale(1.1);
+    }
+
+/* Admin crown animation */
+.fa-crown {
+    animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+    from {
+        text-shadow: 0 0 5px #ffc107;
+    }
+
+    to {
+        text-shadow: 0 0 10px #ffc107, 0 0 15px #ffc107;
+    }
+}
