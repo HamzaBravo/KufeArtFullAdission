@@ -302,13 +302,13 @@ window.TableManager = {
 
             html += `
                 <div class="border rounded mb-3 p-3 ${index % 2 === 0 ? 'bg-light' : ''}">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="text-primary mb-0">
-                            <i class="fas fa-clock me-1"></i>
-                            ${batchTime} - ${batchOrders[0].personFullName}
-                        </h6>
-                        <span class="badge bg-success">₺${batchTotal.toFixed(2)}</span>
-                    </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="text-primary mb-0">
+                                <i class="fas fa-clock me-1"></i>
+                                ${Utils.getTimeAgo(batchOrders[0].createdAt)} - ${batchOrders[0].personFullName}
+                            </h6>
+                            <span class="badge bg-success">₺${batchTotal.toFixed(2)}</span>
+                        </div>
                                <div class="table-responsive">
                 <table class="table table-sm table-borderless mb-0" style="table-layout: fixed;">
                     <colgroup>
@@ -346,7 +346,7 @@ window.TableManager = {
                 </div>
             </div>
 
-            <!-- Ödeme Butonları -->
+                     <!-- Ödeme Butonları -->
             <div class="card mb-3">
                 <div class="card-header">
                     <h6 class="mb-0"><i class="fas fa-credit-card me-2"></i>Ödeme Al</h6>
@@ -354,25 +354,23 @@ window.TableManager = {
                 <div class="card-body">
                     <div class="row g-2">
                         <div class="col-md-4">
-                            <button class="btn btn-success w-100" onclick="PaymentManager.processFullPayment('${table.id}', 'cash')">
-                                <i class="fas fa-money-bill-wave me-2"></i>
-                                Nakit<br>
-                                <strong>₺${safeRemainingAmount.toFixed(2)}</strong>
-                                <small class="d-block">Kalan Tutar</small>
+                            <button class="btn btn-success w-100 d-flex flex-column align-items-center" onclick="PaymentManager.processFullPayment('${table.id}', 'cash')">
+                                <i class="fas fa-money-bill-wave fa-lg mb-1"></i>
+                                <span class="fw-bold">Nakit</span>
+                                <small>₺${safeRemainingAmount.toFixed(2)}</small>
                             </button>
                         </div>
                         <div class="col-md-4">
-                            <button class="btn btn-primary w-100" onclick="PaymentManager.processFullPayment('${table.id}', 'card')">
-                                <i class="fas fa-credit-card me-2"></i>
-                                Kart<br>
-                                <strong>₺${safeRemainingAmount.toFixed(2)}</strong>
-                                <small class="d-block">Kalan Tutar</small>
+                            <button class="btn btn-primary w-100 d-flex flex-column align-items-center" onclick="PaymentManager.processFullPayment('${table.id}', 'card')">
+                                <i class="fas fa-credit-card fa-lg mb-1"></i>
+                                <span class="fw-bold">Kart</span>
+                                <small>₺${safeRemainingAmount.toFixed(2)}</small>
                             </button>
                         </div>
                         <div class="col-md-4">
-                            <button class="btn btn-warning w-100" onclick="PaymentManager.openPartialPaymentModal('${table.id}')">
-                                <i class="fas fa-list-check me-2"></i>
-                                Parçalı<br>
+                            <button class="btn btn-warning w-100 d-flex flex-column align-items-center" onclick="PaymentManager.openPartialPaymentModal('${table.id}')">
+                                <i class="fas fa-calculator fa-lg mb-1"></i>
+                                <span class="fw-bold">Parçalı</span>
                                 <small>Seç & Öde</small>
                             </button>
                         </div>
