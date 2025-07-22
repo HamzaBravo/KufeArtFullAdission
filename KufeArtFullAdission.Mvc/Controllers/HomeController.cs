@@ -49,7 +49,7 @@ namespace KufeArtFullAdission.Mvc.Controllers
                 {
                     // Bu masa için siparişler var mı kontrol et
                     var orders = await _dbContext.AddtionHistories
-                        .Where(h => h.AddionStatusId == table.Id)
+                        .Where(h => h.AddionStatusId == table.AddionStatus)
                         .OrderBy(h => h.CreatedAt)
                         .ToListAsync();
 

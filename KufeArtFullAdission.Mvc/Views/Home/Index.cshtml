@@ -417,13 +417,13 @@
                                             <i class="${statusIcon} me-1"></i>
                                             ${isOccupied ? 'Dolu' : 'Boş'}
                                         </div>
-                                        ${isOccupied ? `
+                                                       ${isOccupied ? `
                                             <div class="mt-2 pt-2 border-top">
                                                 <div class="small text-muted time-display">
                                                     ${getTimeAgo(table.openedAt)}
                                                 </div>
                                                 <div class="fw-bold text-warning">
-                                                    ₺${table.totalAmount.toFixed(2)}
+                                                    ₺${(table.totalAmount || 0).toFixed(2)}
                                                 </div>
                                             </div>
                                         ` : ''}
