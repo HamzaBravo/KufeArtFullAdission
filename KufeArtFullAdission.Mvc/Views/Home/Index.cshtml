@@ -461,12 +461,10 @@
             modal.show();
 
             // Loader göster
-            $('#tableModalBody').html(`
-                <div class="text-center py-4">
-                    <div class="spinner-border" role="status"></div>
-                    <p class="mt-2">Masa bilgileri yükleniyor...</p>
-                </div>
-            `);
+        // Tab'ları bozmadan sadece içeriklerini loading yap
+        $('#ordersTab').html('<div class="text-center py-4"><div class="spinner-border"></div><p class="mt-2">Yükleniyor...</p></div>');
+        $('#paymentsTab').html('<div class="text-center py-4"><div class="spinner-border"></div><p class="mt-2">Yükleniyor...</p></div>');
+        $('#summaryTab').html('<div class="text-center py-4"><div class="spinner-border"></div><p class="mt-2">Yükleniyor...</p></div>');
 
             // Masa detaylarını getir
             loadTableDetails(tableId);
@@ -478,66 +476,51 @@
                 method: 'GET',
                 data: { tableId: tableId },
                 success: function(response) {
+
+                       console.log('🔍 Response:', response);
+            console.log('🔍 Orders:', response.data?.orders);
+            console.log('🔍 Total Amount:', response.data?.totalOrderAmount);
+
                     if (response.success) {
-                        renderTableModal(response.data);
+                        const data = response.data;
+                        const table = data.table;
+                        const orders = data.orders || [];
+                        const payments = data.payments || [];
+
+                        if (!table.isOccupied) {
+                            // Boş masa
+                            $('#ordersTab').html(`
+                                <div class="text-center py-4">
+                                    <i class="fas fa-utensils fa-4x text-primary mb-3"></i>
+                                    <h5 class="text-muted mb-3">Masa Boş</h5>
+                                    <p class="text-muted mb-4">Bu masaya sipariş almak için ürün seçim ekranını açın.</p>
+                                    <button class="btn btn-primary btn-lg" onclick="startNewOrder('${table.id}')">
+                                        <i class="fas fa-plus me-2"></i>Sipariş Al
+                                    </button>
+                                </div>
+                            `);
+                        } else {
+                            // Dolu masa - gerçek sipariş detaylarını göster
+                                    // Tüm gerekli parametreleri gönder
+        const ordersHtml = generateOccupiedTableHTML(table, orders, data.totalOrderAmount || 0, data.totalPaidAmount || 0, data.remainingAmount || 0);
+                            $('#ordersTab').html(ordersHtml);
+                        }
+
+                        // Diğer tab'lar
+                        $('#paymentsTab').html(generatePaymentsTabContent(payments, table.id));
+                        $('#summaryTab').html(generateSummaryTabContent(data.totalOrderAmount || 0, data.totalPaidAmount || 0, data.remainingAmount || 0));
+
+                        $('#orderCount').text(orders.length);
+                        $('#paymentCount').text(payments.length);
+
                     } else {
-                        $('#tableModalBody').html(`
-                            <div class="alert alert-danger">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                ${response.message}
-                            </div>
-                        `);
+                        $('#ordersTab').html(`<div class="alert alert-danger">${response.message}</div>`);
                     }
                 },
                 error: function() {
-                    $('#tableModalBody').html(`
-                        <div class="alert alert-danger">
-                            <i class="fas fa-wifi me-2"></i>
-                            Bağlantı hatası! Lütfen tekrar deneyin.
-                        </div>
-                    `);
+                    $('#ordersTab').html('<div class="alert alert-danger">Bağlantı hatası!</div>');
                 }
             });
-        }
-
-        // renderTableModal fonksiyonunu bul ve şu şekilde güncelle:
-        function renderTableModal(data) {
-            const table = data.Table || data.table;
-            const orders = data.Orders || data.orders || [];
-            const payments = data.Payments || data.payments || [];
-            const totalAmount = data.TotalOrderAmount || data.totalAmount || 0;
-            const totalPaidAmount = data.TotalPaidAmount || data.totalPaidAmount || 0;
-            const remainingAmount = data.RemainingAmount || data.remainingAmount || 0;
-
-            // Tab yapısına uygun olarak sadece content kısmını doldur
-            if (!table.IsOccupied) {
-                // Boş masa - sadece orders tab'ına içerik ekle
-                $('#ordersTab').html(`
-                    <div class="text-center py-4">
-                        <i class="fas fa-utensils fa-4x text-primary mb-3"></i>
-                        <h5 class="text-muted mb-3">Masa Boş</h5>
-                        <p class="text-muted mb-4">Bu masaya sipariş almak için ürün seçim ekranını açın.</p>
-                        <button class="btn btn-primary btn-lg" onclick="startNewOrder('${table.Id}')">
-                            <i class="fas fa-plus me-2"></i>Sipariş Al
-                        </button>
-                    </div>
-                `);
-                $('#paymentsTab').html('<p class="text-muted">Henüz ödeme yok</p>');
-                $('#summaryTab').html('<p class="text-muted">Masa boş</p>');
-            } else {
-                // Dolu masa - tab içeriklerini doldur
-                const ordersHtml = generateOrdersTabContent(table, orders);
-                const paymentsHtml = generatePaymentsTabContent(payments, table.Id);
-                const summaryHtml = generateSummaryTabContent(totalAmount, totalPaidAmount, remainingAmount);
-
-                $('#ordersTab').html(ordersHtml);
-                $('#paymentsTab').html(paymentsHtml);
-                $('#summaryTab').html(summaryHtml);
-            }
-
-            // Badge'leri güncelle
-            $('#orderCount').text(orders.length);
-            $('#paymentCount').text(payments.length);
         }
 
         // Zaman farkı hesaplama
@@ -622,11 +605,11 @@
         }
 
         // Dolu masa HTML'ini oluşturan fonksiyon
-        function generateOccupiedTableHTML(table, orders, totalAmount) {
-            // Batch'lere göre grupla
-                    const safeOrderAmount = totalOrderAmount || 0;
-                    const safePaidAmount = totalPaidAmount || 0;
-                    const safeRemainingAmount = remainingAmount || 0;
+        function generateOccupiedTableHTML(table, orders, totalAmount, totalPaidAmount, remainingAmount) {
+                  const safeOrderAmount = totalAmount || 0;
+        const safePaidAmount = totalPaidAmount || 0;
+        const safeRemainingAmount = remainingAmount || 0;
+
 
             const batches = {};
             orders.forEach(order => {

@@ -90,60 +90,87 @@ namespace KufeArtFullAdission.Mvc.Controllers
                 if (table == null)
                     return Json(new { success = false, message = "Masa bulunamadı!" });
 
-                // Masa siparişlerini getir
+                // Boş masa kontrolü - AddionStatus'a göre
+                var isOccupied = table.AddionStatus.HasValue;
+
+                if (!isOccupied)
+                {
+                    // Boş masa için özel response
+                    var emptyTableResult = new
+                    {
+                        table = new
+                        {
+                            id = table.Id,
+                            name = table.Name,
+                            category = table.Category,
+                            addionStatus = table.AddionStatus,
+                            isOccupied = false
+                        },
+                        orders = new List<object>(),
+                        payments = new List<object>(),
+                        totalOrderAmount = 0.0,
+                        totalPaidAmount = 0.0,
+                        remainingAmount = 0.0,
+                        isFullyPaid = true
+                    };
+
+                    return Json(new { success = true, data = emptyTableResult });
+                }
+
+                // Dolu masa için: Siparişleri getir (AddionStatus ile)
                 var orders = await _dbContext.AddtionHistories
-                    .Where(h => h.AddionStatusId == tableId)
+                    .Where(h => h.AddionStatusId == table.AddionStatus)
                     .OrderBy(h => h.CreatedAt)
-                    .Select(h => new OrderInfo
+                    .Select(h => new
                     {
-                        Id = h.Id,
-                        ShorLabel = h.ShorLabel,
-                        ProductName = h.ProductName,
-                        ProductPrice = h.ProductPrice,
-                        ProductQuantity = h.ProductQuantity,
-                        TotalPrice = h.TotalPrice,
-                        PersonFullName = h.PersonFullName,
-                        CreatedAt = h.CreatedAt,
-                        OrderBatchId = h.OrderBatchId
+                        id = h.Id,
+                        shorLabel = h.ShorLabel,
+                        productName = h.ProductName,
+                        productPrice = h.ProductPrice,
+                        productQuantity = h.ProductQuantity,
+                        totalPrice = h.TotalPrice,
+                        personFullName = h.PersonFullName,
+                        createdAt = h.CreatedAt,
+                        orderBatchId = h.OrderBatchId
                     })
                     .ToListAsync();
 
-                // YENİ: Ödemeleri getir
+                // Ödemeleri getir (AddionStatus ile)
                 var payments = await _dbContext.Payments
-                    .Where(p => p.AddionStatusId == tableId)
+                    .Where(p => p.AddionStatusId == table.AddionStatus)
                     .OrderByDescending(p => p.CreatedAt)
-                    .Select(p => new PaymentInfo
+                    .Select(p => new
                     {
-                        Id = p.Id,
-                        PaymentType = p.PaymentType,
-                        Amount = p.Amount,
-                        ShortLabel = p.ShortLabel,
-                        CreatedAt = p.CreatedAt,
-                        PersonFullName = "Garson" // TODO: Person tablosundan join edilecek
+                        id = p.Id,
+                        paymentType = p.PaymentType,
+                        amount = p.Amount,
+                        shortLabel = p.ShortLabel,
+                        createdAt = p.CreatedAt,
+                        personFullName = "Garson" // TODO: Person tablosundan join edilecek
                     })
                     .ToListAsync();
 
-                var totalOrderAmount = orders.Sum(o => o.TotalPrice);
-                var totalPaidAmount = payments.Sum(p => p.Amount);
+                // Hesaplamalar
+                var totalOrderAmount = orders.Sum(o => o.totalPrice);
+                var totalPaidAmount = payments.Sum(p => p.amount);
                 var remainingAmount = totalOrderAmount - totalPaidAmount;
-                var isOccupied = orders.Any();
 
                 var result = new
                 {
-                    Table = new TableInfo
+                    table = new
                     {
-                        Id = table.Id,
-                        Name = table.Name,
-                        Category = table.Category,
-                        AddionStatus = table.AddionStatus,
-                        IsOccupied = isOccupied
+                        id = table.Id,
+                        name = table.Name,
+                        category = table.Category,
+                        addionStatus = table.AddionStatus,
+                        isOccupied = true
                     },
-                    Orders = orders,
-                    Payments = payments, // YENİ
-                    TotalOrderAmount = totalOrderAmount,
-                    TotalPaidAmount = totalPaidAmount, // YENİ
-                    RemainingAmount = remainingAmount, // YENİ
-                    IsFullyPaid = remainingAmount <= 0 // YENİ
+                    orders = orders,
+                    payments = payments,
+                    totalOrderAmount = totalOrderAmount,
+                    totalPaidAmount = totalPaidAmount,
+                    remainingAmount = remainingAmount,
+                    isFullyPaid = remainingAmount <= 0
                 };
 
                 return Json(new { success = true, data = result });
@@ -276,10 +303,27 @@ namespace KufeArtFullAdission.Mvc.Controllers
                 if (table == null)
                     return Json(new { success = false, message = "Masa bulunamadı!" });
 
-                // Sipariş batch ID'si oluştur (aynı anda verilen siparişler için)
+                // 🎯 DOĞRU MANTIK: AddionStatus kontrolü
+                Guid addionStatusId;
+
+                if (table.AddionStatus == null)
+                {
+                    // İlk sipariş - Yeni AddionStatus oluştur
+                    addionStatusId = Guid.NewGuid();
+                    table.AddionStatus = addionStatusId;
+                    System.Diagnostics.Debug.WriteLine($"✅ Yeni AddionStatus oluşturuldu: {addionStatusId}");
+                }
+                else
+                {
+                    // Mevcut sipariş - Var olan AddionStatus'u kullan
+                    addionStatusId = table.AddionStatus.Value;
+                    System.Diagnostics.Debug.WriteLine($"✅ Mevcut AddionStatus kullanılıyor: {addionStatusId}");
+                }
+
+                // Sipariş batch ID'si oluştur
                 var batchId = Guid.NewGuid();
-                var currentUser = "Sistem"; // TODO: Login sisteminden gelecek
                 var currentUserId = Guid.NewGuid(); // TODO: Login sisteminden gelecek
+                var currentUser = "Garson"; // TODO: Login sisteminden gelecek
 
                 // Her ürün için sipariş kaydı oluştur
                 foreach (var item in orderDto.Items)
@@ -289,29 +333,22 @@ namespace KufeArtFullAdission.Mvc.Controllers
 
                     var orderHistory = new AddtionHistoryDbEntity
                     {
-                        AddionStatusId = table.Id, // Masa ID'si
-                        OrderBatchId = batchId, // Yeni eklenen field
-                        ShorLabel = orderDto.WaiterNote, // Garson notu
+                        AddionStatusId = addionStatusId, // ← DOĞRU: AddionStatus kullan
+                        OrderBatchId = batchId,
+                        ShorLabel = orderDto.WaiterNote,
                         ProductName = product.Name,
                         ProductPrice = product.Price,
                         ProductQuantity = item.Quantity,
                         TotalPrice = product.Price * item.Quantity,
-                        PersonId = currentUserId, // Garson ID'si
-                        PersonFullName = currentUser // Garson adı
+                        PersonId = currentUserId,
+                        PersonFullName = currentUser
                     };
 
                     _dbContext.AddtionHistories.Add(orderHistory);
                 }
 
-                // Eğer masa ilk defa açılıyorsa AddionStatus ayarla
-                if (table.AddionStatus == null)
-                {
-                    table.AddionStatus = batchId;
-                }
-
                 await _dbContext.SaveChangesAsync();
 
-                // Başarılı response
                 var totalAmount = orderDto.Items.Sum(i => i.Quantity * i.Price);
                 return Json(new
                 {
@@ -319,10 +356,9 @@ namespace KufeArtFullAdission.Mvc.Controllers
                     message = $"Sipariş başarıyla alındı! Toplam: ₺{totalAmount:F2}",
                     data = new
                     {
-                        batchId = batchId,
+                        addionStatusId = addionStatusId,
                         tableId = table.Id,
-                        totalAmount = totalAmount,
-                        itemCount = orderDto.Items.Sum(i => i.Quantity)
+                        totalAmount = totalAmount
                     }
                 });
             }
@@ -390,7 +426,7 @@ namespace KufeArtFullAdission.Mvc.Controllers
 
         private async Task<object> GetTablesWithStatus()
         {
-            // 1. Önce temel masa bilgilerini al
+            // 1. Masa bilgilerini al
             var tables = await _dbContext.Tables
                 .Where(x => x.IsActive)
                 .Select(x => new {
@@ -398,23 +434,23 @@ namespace KufeArtFullAdission.Mvc.Controllers
                     x.Name,
                     x.Category,
                     x.AddionStatus,
-                    IsOccupied = x.AddionStatus.HasValue
+                    IsOccupied = x.AddionStatus.HasValue // ← DOĞRU KONTROL
                 })
                 .ToListAsync();
 
             var result = new List<object>();
 
-            // 2. Her masa için ayrı ayrı hesapla (Memory'de)
+            // 2. Her masa için hesaplama yap
             foreach (var table in tables)
             {
                 double totalAmount = 0;
                 DateTime? openedAt = null;
 
-                if (table.AddionStatus.HasValue)
+                if (table.AddionStatus.HasValue) // ← AddionStatus varsa dolu
                 {
-                    // Siparişleri getir
+                    // Siparişleri AddionStatus ile getir
                     var orders = await _dbContext.AddtionHistories
-                        .Where(h => h.AddionStatusId == table.AddionStatus)
+                        .Where(h => h.AddionStatusId == table.AddionStatus) // ← DOĞRU SORGU
                         .Select(h => new { h.TotalPrice, h.CreatedAt })
                         .ToListAsync();
 
@@ -422,12 +458,6 @@ namespace KufeArtFullAdission.Mvc.Controllers
                     {
                         totalAmount = orders.Sum(x => x.TotalPrice);
                         openedAt = orders.Min(x => x.CreatedAt);
-                    }
-                    else
-                    {
-                        // Siparişi yoksa masa açılış zamanı olarak şimdiyi kullan
-                        totalAmount = 0;
-                        openedAt = DateTime.Now;
                     }
                 }
 
@@ -437,7 +467,7 @@ namespace KufeArtFullAdission.Mvc.Controllers
                     table.Name,
                     table.Category,
                     table.AddionStatus,
-                    IsOccupied = table.IsOccupied,
+                    IsOccupied = table.IsOccupied, // AddionStatus.HasValue
                     TotalAmount = totalAmount,
                     OpenedAt = openedAt
                 });

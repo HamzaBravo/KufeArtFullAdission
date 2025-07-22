@@ -27,10 +27,10 @@ namespace KufeArtFullAdission.Mvc.Models
         public bool IsOccupied { get; set; }
     }
 
+
     public class OrderInfo
     {
         public Guid Id { get; set; }
-        public Guid OrderBatchId { get; set; }
         public string ShorLabel { get; set; }
         public string ProductName { get; set; }
         public double ProductPrice { get; set; }
@@ -38,13 +38,14 @@ namespace KufeArtFullAdission.Mvc.Models
         public double TotalPrice { get; set; }
         public string PersonFullName { get; set; }
         public DateTime CreatedAt { get; set; }
+        public Guid OrderBatchId { get; set; }
     }
 
     public class OrderSubmissionDto
     {
         public Guid TableId { get; set; }
-        public string? WaiterNote { get; set; }
-        public List<OrderItemDto> Items { get; set; } = new();
+        public string WaiterNote { get; set; }
+        public List<OrderItemDto> Items { get; set; } = new List<OrderItemDto>();
     }
 
     public class OrderItemDto
