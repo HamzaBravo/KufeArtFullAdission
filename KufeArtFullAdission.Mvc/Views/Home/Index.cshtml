@@ -609,7 +609,7 @@
             });
         }
 
-                // Dolu masa HTML'ini oluşturan fonksiyon (mevcut kodu buraya taşı)
+        // Dolu masa HTML'ini oluşturan fonksiyon
         function generateOccupiedTableHTML(table, orders, totalAmount) {
             // Batch'lere göre grupla
             const batches = {};
@@ -682,16 +682,22 @@
                         </div>
 
                         <div class="table-responsive">
-                            <table class="table table-sm table-borderless mb-0">
+                            <table class="table table-sm table-borderless mb-0" style="table-layout: fixed;">
+                                <colgroup>
+                                    <col style="width: 45%;">  <!-- Ürün adı -->
+                                    <col style="width: 15%;">  <!-- Adet -->
+                                    <col style="width: 20%;">  <!-- Birim fiyat -->
+                                    <col style="width: 20%;">  <!-- Toplam -->
+                                </colgroup>
                 `;
 
                 batchOrders.forEach(order => {
                     html += `
                         <tr>
-                            <td>${order.productName}</td>
-                            <td><span class="badge bg-primary">${order.productQuantity}</span></td>
-                            <td>₺${order.productPrice.toFixed(2)}</td>
-                            <td class="fw-bold">₺${order.totalPrice.toFixed(2)}</td>
+                            <td style="word-wrap: break-word;">${order.productName}</td>
+                            <td class="text-center"><span class="badge bg-primary">${order.productQuantity}</span></td>
+                            <td class="text-end">₺${order.productPrice.toFixed(2)}</td>
+                            <td class="text-end fw-bold">₺${order.totalPrice.toFixed(2)}</td>
                         </tr>
                     `;
                 });
@@ -1046,8 +1052,7 @@
             `);
         }
 
-
-                // ============= SİPARİŞ GÖNDERME SİSTEMİ =============
+        // ============= SİPARİŞ GÖNDERME SİSTEMİ =============
 
         // Sipariş gönder butonu event'i
         $('#submitOrderBtn').on('click', function() {

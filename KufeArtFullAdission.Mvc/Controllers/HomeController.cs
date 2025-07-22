@@ -1,4 +1,4 @@
-using AppDbContext;
+ï»¿using AppDbContext;
 using KufeArtFullAdission.Entity;
 using KufeArtFullAdission.Mvc.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +16,7 @@ namespace KufeArtFullAdission.Mvc.Controllers
 
         public async Task<IActionResult> Index()
         {
-            // Dashboard kartlarý için veriler
+            // Dashboard kartlarÄ± iÃ§in veriler
             var today = DateTime.Today;
 
             var dashboardData = new
@@ -36,37 +36,48 @@ namespace KufeArtFullAdission.Mvc.Controllers
         {
             try
             {
+                // MasalarÄ± kategorilere gÃ¶re grupla
                 var tables = await _dbContext.Tables
-                    .Where(x => x.IsActive)
-                    .OrderBy(x => x.Category)
-                    .ThenBy(x => x.Name)
-                    .Select(x => new {
-                        x.Id,
-                        x.Name,
-                        x.Category,
-                        x.AddionStatus,
-                        IsOccupied = x.AddionStatus.HasValue,
-                        TotalAmount = x.AddionStatus.HasValue ?
-                            _dbContext.AddtionHistories
-                                .Where(h => h.AddionStatusId == x.AddionStatus)
-                                .Sum(h => h.TotalPrice) : 0,
-                        OpenedAt = x.AddionStatus.HasValue ?
-                            _dbContext.AddtionHistories
-                                .Where(h => h.AddionStatusId == x.AddionStatus)
-                                .Min(h => h.CreatedAt) : (DateTime?)null
-                    })
+                    .Where(t => t.IsActive)
+                    .OrderBy(t => t.Category)
+                    .ThenBy(t => t.Name)
                     .ToListAsync();
 
-                // Kategori bazlý grupla
-                var groupedTables = tables
-                    .GroupBy(x => x.Category)
-                    .ToDictionary(g => g.Key, g => g.ToList());
+                var groupedTables = new Dictionary<string, List<object>>();
+
+                foreach (var table in tables)
+                {
+                    // Bu masa iÃ§in sipariÅŸler var mÄ± kontrol et
+                    var orders = await _dbContext.AddtionHistories
+                        .Where(h => h.AddionStatusId == table.Id)
+                        .OrderBy(h => h.CreatedAt)
+                        .ToListAsync();
+
+                    var hasOrders = orders.Any();
+                    var totalAmount = orders.Sum(o => o.TotalPrice);
+                    var firstOrderTime = hasOrders ? orders.First().CreatedAt : (DateTime?)null;
+
+                    var tableInfo = new
+                    {
+                        id = table.Id,
+                        name = table.Name,
+                        category = table.Category,
+                        isOccupied = hasOrders,
+                        totalAmount = totalAmount,
+                        openedAt = firstOrderTime?.ToString("yyyy-MM-ddTHH:mm:ss") // Basit ISO format
+                    };
+
+                    if (!groupedTables.ContainsKey(table.Category))
+                        groupedTables[table.Category] = new List<object>();
+
+                    groupedTables[table.Category].Add(tableInfo);
+                }
 
                 return Json(new { success = true, data = groupedTables });
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = ex.Message });
+                return Json(new { success = false, message = "Masalar yÃ¼klenemedi: " + ex.Message });
             }
         }
 
@@ -77,12 +88,12 @@ namespace KufeArtFullAdission.Mvc.Controllers
             {
                 var table = await _dbContext.Tables.FindAsync(tableId);
                 if (table == null)
-                    return Json(new { success = false, message = "Masa bulunamadý!" });
+                    return Json(new { success = false, message = "Masa bulunamadÄ±!" });
 
-                // Masa sipariþlerini getir (OrderBatchId bazlý gruplu)
+                // Masa sipariÅŸlerini getir (OrderBatchId bazlÄ± gruplu)
                 var orders = await _dbContext.AddtionHistories
                     .Where(h => h.AddionStatusId == tableId)
-                    .OrderByDescending(h => h.CreatedAt)
+                    .OrderBy(h => h.CreatedAt)
                     .Select(h => new OrderInfo
                     {
                         Id = h.Id,
@@ -118,7 +129,7 @@ namespace KufeArtFullAdission.Mvc.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = "Masa detaylarý alýnamadý: " + ex.Message });
+                return Json(new { success = false, message = "Masa detaylarÄ± alÄ±namadÄ±: " + ex.Message });
             }
         }
 
@@ -129,12 +140,12 @@ namespace KufeArtFullAdission.Mvc.Controllers
             {
                 var table = await _dbContext.Tables.FindAsync(tableId);
                 if (table == null)
-                    return Json(new { success = false, message = "Masa bulunamadý!" });
+                    return Json(new { success = false, message = "Masa bulunamadÄ±!" });
 
                 if (table.AddionStatus.HasValue)
-                    return Json(new { success = false, message = "Bu masada zaten açýk hesap var!" });
+                    return Json(new { success = false, message = "Bu masada zaten aÃ§Ä±k hesap var!" });
 
-                // Yeni hesap ID'si oluþtur
+                // Yeni hesap ID'si oluÅŸtur
                 var newAccountId = Guid.NewGuid();
 
                 // Masaya hesap ID'si ata
@@ -145,14 +156,14 @@ namespace KufeArtFullAdission.Mvc.Controllers
                 return Json(new
                 {
                     success = true,
-                    message = "Hesap baþarýyla açýldý!",
+                    message = "Hesap baÅŸarÄ±yla aÃ§Ä±ldÄ±!",
                     accountId = newAccountId,
                     tableId = tableId
                 });
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = "Bir hata oluþtu: " + ex.Message });
+                return Json(new { success = false, message = "Bir hata oluÅŸtu: " + ex.Message });
             }
         }
 
@@ -164,12 +175,16 @@ namespace KufeArtFullAdission.Mvc.Controllers
             {
                 var table = await _dbContext.Tables.FindAsync(tableId);
                 if (table == null)
-                    return Json(new { success = false, message = "Masa bulunamadý!" });
+                    return Json(new { success = false, message = "Masa bulunamadÄ±!" });
 
-                if (!table.AddionStatus.HasValue)
-                    return Json(new { success = false, message = "Bu masada açýk hesap yok!" });
+                // Eski sipariÅŸleri sil
+                var existingOrders = await _dbContext.AddtionHistories
+                    .Where(h => h.AddionStatusId == tableId)
+                    .ToListAsync();
 
-                // Hesap kapatma iþlemi
+                _dbContext.AddtionHistories.RemoveRange(existingOrders);
+
+                // Masa durumunu sÄ±fÄ±rla
                 table.AddionStatus = null;
 
                 await _dbContext.SaveChangesAsync();
@@ -177,12 +192,12 @@ namespace KufeArtFullAdission.Mvc.Controllers
                 return Json(new
                 {
                     success = true,
-                    message = "Hesap baþarýyla kapatýldý!"
+                    message = "Hesap baÅŸarÄ±yla kapatÄ±ldÄ±!"
                 });
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = "Bir hata oluþtu: " + ex.Message });
+                return Json(new { success = false, message = "Hesap kapatÄ±lamadÄ±: " + ex.Message });
             }
         }
 
@@ -192,7 +207,7 @@ namespace KufeArtFullAdission.Mvc.Controllers
             try
             {
                 var products = await _dbContext.Products
-                    .Where(p => p.IsActive) // Sadece aktif ürünler
+                    .Where(p => p.IsActive) // Sadece aktif Ã¼rÃ¼nler
                     .OrderBy(p => p.CategoryName)
                     .ThenBy(p => p.Name)
                     .Select(p => new
@@ -202,13 +217,13 @@ namespace KufeArtFullAdission.Mvc.Controllers
                         description = p.Description,
                         price = p.Price,
                         categoryName = p.CategoryName,
-                        type = p.Type.ToString(), // Backend için (mutfak/bar yönlendirme)
+                        type = p.Type.ToString(), // Backend iÃ§in (mutfak/bar yÃ¶nlendirme)
                         hasCampaign = p.HasCampaign,
                         campaignCaption = p.CampaignCaption
                     })
                     .ToListAsync();
 
-                // Kategorilere göre grupla
+                // Kategorilere gÃ¶re grupla
                 var categories = products.GroupBy(p => p.categoryName)
                                        .Select(g => new
                                        {
@@ -223,7 +238,7 @@ namespace KufeArtFullAdission.Mvc.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = "Ürünler yüklenemedi: " + ex.Message });
+                return Json(new { success = false, message = "ÃœrÃ¼nler yÃ¼klenemedi: " + ex.Message });
             }
         }
 
@@ -234,18 +249,18 @@ namespace KufeArtFullAdission.Mvc.Controllers
             try
             {
                 if (orderDto?.Items == null || !orderDto.Items.Any())
-                    return Json(new { success = false, message = "Sepet boþ!" });
+                    return Json(new { success = false, message = "Sepet boÅŸ!" });
 
                 var table = await _dbContext.Tables.FindAsync(orderDto.TableId);
                 if (table == null)
-                    return Json(new { success = false, message = "Masa bulunamadý!" });
+                    return Json(new { success = false, message = "Masa bulunamadÄ±!" });
 
-                // Sipariþ batch ID'si oluþtur (ayný anda verilen sipariþler için)
+                // SipariÅŸ batch ID'si oluÅŸtur (aynÄ± anda verilen sipariÅŸler iÃ§in)
                 var batchId = Guid.NewGuid();
                 var currentUser = "Sistem"; // TODO: Login sisteminden gelecek
                 var currentUserId = Guid.NewGuid(); // TODO: Login sisteminden gelecek
 
-                // Her ürün için sipariþ kaydý oluþtur
+                // Her Ã¼rÃ¼n iÃ§in sipariÅŸ kaydÄ± oluÅŸtur
                 foreach (var item in orderDto.Items)
                 {
                     var product = await _dbContext.Products.FindAsync(item.ProductId);
@@ -261,13 +276,13 @@ namespace KufeArtFullAdission.Mvc.Controllers
                         ProductQuantity = item.Quantity,
                         TotalPrice = product.Price * item.Quantity,
                         PersonId = currentUserId, // Garson ID'si
-                        PersonFullName = currentUser // Garson adý
+                        PersonFullName = currentUser // Garson adÄ±
                     };
 
                     _dbContext.AddtionHistories.Add(orderHistory);
                 }
 
-                // Eðer masa ilk defa açýlýyorsa AddionStatus ayarla
+                // EÄŸer masa ilk defa aÃ§Ä±lÄ±yorsa AddionStatus ayarla
                 if (table.AddionStatus == null)
                 {
                     table.AddionStatus = batchId;
@@ -275,12 +290,12 @@ namespace KufeArtFullAdission.Mvc.Controllers
 
                 await _dbContext.SaveChangesAsync();
 
-                // Baþarýlý response
+                // BaÅŸarÄ±lÄ± response
                 var totalAmount = orderDto.Items.Sum(i => i.Quantity * i.Price);
                 return Json(new
                 {
                     success = true,
-                    message = $"Sipariþ baþarýyla alýndý! Toplam: ?{totalAmount:F2}",
+                    message = $"SipariÅŸ baÅŸarÄ±yla alÄ±ndÄ±! Toplam: â‚º{totalAmount:F2}",
                     data = new
                     {
                         batchId = batchId,
@@ -292,9 +307,10 @@ namespace KufeArtFullAdission.Mvc.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = "Sipariþ kaydedilemedi: " + ex.Message });
+                return Json(new { success = false, message = "SipariÅŸ kaydedilemedi: " + ex.Message });
             }
         }
+
         private async Task<double> GetDailySales(DateTime date)
         {
             return await _dbContext.AddtionHistories
@@ -322,7 +338,7 @@ namespace KufeArtFullAdission.Mvc.Controllers
 
         private async Task<object> GetTablesWithStatus()
         {
-            // 1. Önce temel masa bilgilerini al
+            // 1. Ã–nce temel masa bilgilerini al
             var tables = await _dbContext.Tables
                 .Where(x => x.IsActive)
                 .Select(x => new {
@@ -336,7 +352,7 @@ namespace KufeArtFullAdission.Mvc.Controllers
 
             var result = new List<object>();
 
-            // 2. Her masa için ayrý ayrý hesapla (Memory'de)
+            // 2. Her masa iÃ§in ayrÄ± ayrÄ± hesapla (Memory'de)
             foreach (var table in tables)
             {
                 double totalAmount = 0;
@@ -344,7 +360,7 @@ namespace KufeArtFullAdission.Mvc.Controllers
 
                 if (table.AddionStatus.HasValue)
                 {
-                    // Sipariþleri getir
+                    // SipariÅŸleri getir
                     var orders = await _dbContext.AddtionHistories
                         .Where(h => h.AddionStatusId == table.AddionStatus)
                         .Select(h => new { h.TotalPrice, h.CreatedAt })
@@ -357,7 +373,7 @@ namespace KufeArtFullAdission.Mvc.Controllers
                     }
                     else
                     {
-                        // Sipariþi yoksa masa açýlýþ zamaný olarak þimdiyi kullan
+                        // SipariÅŸi yoksa masa aÃ§Ä±lÄ±ÅŸ zamanÄ± olarak ÅŸimdiyi kullan
                         totalAmount = 0;
                         openedAt = DateTime.Now;
                     }
