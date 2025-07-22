@@ -69,11 +69,42 @@
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body" id="tableModalBody">
-                    <!-- Modal içeriği buraya yüklenecek -->
-                    <div class="text-center py-4">
-                        <div class="spinner-border" role="status"></div>
-                        <p class="mt-2">Yükleniyor...</p>
+                <div class="modal-body p-0" id="tableModalBody">
+                    <!-- Tab Navigation -->
+                    <ul class="nav nav-tabs px-3 pt-3" id="tableDetailTabs">
+                        <li class="nav-item">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#ordersTab">
+                                📋 Siparişler <span class="badge bg-primary ms-1" id="orderCount">0</span>
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#paymentsTab">
+                                💳 Ödemeler <span class="badge bg-success ms-1" id="paymentCount">0</span>
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#summaryTab">
+                                📊 Özet
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content p-3" id="tableDetailTabContent">
+                        <!-- Siparişler Tab -->
+                        <div class="tab-pane fade show active" id="ordersTab">
+                            <!-- Mevcut sipariş içeriği buraya gelecek -->
+                        </div>
+
+                        <!-- Ödemeler Tab -->
+                        <div class="tab-pane fade" id="paymentsTab">
+                            <!-- Ödeme geçmişi + yeni ödeme formu -->
+                        </div>
+
+                        <!-- Özet Tab -->
+                        <div class="tab-pane fade" id="summaryTab">
+                            <!-- Toplam/kalan tutar bilgileri -->
+                        </div>
                     </div>
                 </div>
             </div>

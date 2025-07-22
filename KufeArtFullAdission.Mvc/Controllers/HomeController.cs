@@ -90,7 +90,7 @@ namespace KufeArtFullAdission.Mvc.Controllers
                 if (table == null)
                     return Json(new { success = false, message = "Masa bulunamadı!" });
 
-                // Masa siparişlerini getir (OrderBatchId bazlı gruplu)
+                // Masa siparişlerini getir
                 var orders = await _dbContext.AddtionHistories
                     .Where(h => h.AddionStatusId == tableId)
                     .OrderBy(h => h.CreatedAt)
@@ -104,14 +104,31 @@ namespace KufeArtFullAdission.Mvc.Controllers
                         TotalPrice = h.TotalPrice,
                         PersonFullName = h.PersonFullName,
                         CreatedAt = h.CreatedAt,
-                        OrderBatchId = h.OrderBatchId // Batch ID'sini de ekle
+                        OrderBatchId = h.OrderBatchId
                     })
                     .ToListAsync();
 
-                var totalAmount = orders.Sum(o => o.TotalPrice);
+                // YENİ: Ödemeleri getir
+                var payments = await _dbContext.Payments
+                    .Where(p => p.AddionStatusId == tableId)
+                    .OrderByDescending(p => p.CreatedAt)
+                    .Select(p => new PaymentInfo
+                    {
+                        Id = p.Id,
+                        PaymentType = p.PaymentType,
+                        Amount = p.Amount,
+                        ShortLabel = p.ShortLabel,
+                        CreatedAt = p.CreatedAt,
+                        PersonFullName = "Garson" // TODO: Person tablosundan join edilecek
+                    })
+                    .ToListAsync();
+
+                var totalOrderAmount = orders.Sum(o => o.TotalPrice);
+                var totalPaidAmount = payments.Sum(p => p.Amount);
+                var remainingAmount = totalOrderAmount - totalPaidAmount;
                 var isOccupied = orders.Any();
 
-                var result = new TableDetailViewModel
+                var result = new
                 {
                     Table = new TableInfo
                     {
@@ -122,7 +139,11 @@ namespace KufeArtFullAdission.Mvc.Controllers
                         IsOccupied = isOccupied
                     },
                     Orders = orders,
-                    TotalAmount = totalAmount
+                    Payments = payments, // YENİ
+                    TotalOrderAmount = totalOrderAmount,
+                    TotalPaidAmount = totalPaidAmount, // YENİ
+                    RemainingAmount = remainingAmount, // YENİ
+                    IsFullyPaid = remainingAmount <= 0 // YENİ
                 };
 
                 return Json(new { success = true, data = result });
@@ -308,6 +329,37 @@ namespace KufeArtFullAdission.Mvc.Controllers
             catch (Exception ex)
             {
                 return Json(new { success = false, message = "Sipariş kaydedilemedi: " + ex.Message });
+            }
+        }
+
+
+        [HttpPost]
+        public async Task<IActionResult> ProcessPayment([FromBody] PaymentDto paymentDto)
+        {
+            try
+            {
+                var payment = new PaymentDbEntity
+                {
+                    TableId = paymentDto.TableId,
+                    AddionStatusId = paymentDto.AddionStatusId,
+                    PaymentType = paymentDto.PaymentType,
+                    Amount = paymentDto.Amount,
+                    ShortLabel = paymentDto.ShortLabel,
+                    PersonId = paymentDto.PersonId // TODO: Session'dan al
+                };
+
+                _dbContext.Payments.Add(payment);
+                await _dbContext.SaveChangesAsync();
+
+                return Json(new
+                {
+                    success = true,
+                    message = "Ödeme başarıyla kaydedildi!"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
             }
         }
 

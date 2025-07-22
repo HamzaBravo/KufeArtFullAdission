@@ -11,3 +11,9 @@ public enum AccessType
     Person,
     Admin,
 }
+
+public enum PaymentType
+{
+    Cash,
+    Card
+}

@@ -1,3 +1,4 @@
+using KufeArtFullAdission.Enums;
 using System;
 using System.Collections.Generic;
 
@@ -52,5 +53,27 @@ namespace KufeArtFullAdission.Mvc.Models
         public string ProductName { get; set; }
         public double Price { get; set; }
         public int Quantity { get; set; }
+    }
+
+    // KufeArtFullAdission.Mvc/Models/ErrorViewModel.cs - Bu dosyanýn sonuna ekle
+
+    public class PaymentDto
+    {
+        public Guid TableId { get; set; }
+        public Guid AddionStatusId { get; set; }
+        public PaymentType PaymentType { get; set; }
+        public double Amount { get; set; }
+        public string ShortLabel { get; set; }
+        public Guid PersonId { get; set; }
+    }
+
+    public class PaymentInfo
+    {
+        public Guid Id { get; set; }
+        public PaymentType PaymentType { get; set; }
+        public double Amount { get; set; }
+        public string ShortLabel { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string PersonFullName { get; set; }
     }
 }
