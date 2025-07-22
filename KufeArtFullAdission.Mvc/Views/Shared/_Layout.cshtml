@@ -184,15 +184,18 @@
                         </div>
                     </div>
                 </div>
+                <!-- Parçalı Ödeme Modal'ının footer'ında şöyle olmalı: -->
                 <div class="modal-footer">
                     <div class="row w-100 g-2">
                         <div class="col-6">
-                            <button type="button" class="btn btn-success w-100" id="payWithCash">
+                            <button type="button" class="btn btn-success w-100"
+                                    id="payWithCashBtn" data-payment-type="0">
                                 <i class="fas fa-money-bill-wave me-2"></i>Nakit Öde
                             </button>
                         </div>
                         <div class="col-6">
-                            <button type="button" class="btn btn-primary w-100" id="payWithCard">
+                            <button type="button" class="btn btn-primary w-100"
+                                    id="payWithCardBtn" data-payment-type="1">
                                 <i class="fas fa-credit-card me-2"></i>Kart Öde
                             </button>
                         </div>
@@ -202,13 +205,5 @@
         </div>
     </div>
 
-    @if (TempData["ToastMessage"] != null)
-    {
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                ToastHelper.@(TempData["ToastType"] ?? "info")('@Html.Raw(TempData["ToastMessage"])');
-            });
-        </script>
-    }
 </body>
 </html>
