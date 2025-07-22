@@ -500,32 +500,44 @@
             });
         }
 
+        // renderTableModal fonksiyonunu bul ve şu şekilde güncelle:
         function renderTableModal(data) {
-            const table = data.table;
-            const orders = data.orders;
-            const totalAmount = data.totalAmount;
+            const table = data.Table || data.table;
+            const orders = data.Orders || data.orders || [];
+            const payments = data.Payments || data.payments || [];
+            const totalAmount = data.TotalOrderAmount || data.totalAmount || 0;
+            const totalPaidAmount = data.TotalPaidAmount || data.totalPaidAmount || 0;
+            const remainingAmount = data.RemainingAmount || data.remainingAmount || 0;
 
-            let html = '';
+            // Tab yapısına uygun olarak sadece content kısmını doldur
+            if (!table.IsOccupied) {
+                // Boş masa - sadece orders tab'ına içerik ekle
+                $('#ordersTab').html(`
+                    <div class="text-center py-4">
+                        <i class="fas fa-utensils fa-4x text-primary mb-3"></i>
+                        <h5 class="text-muted mb-3">Masa Boş</h5>
+                        <p class="text-muted mb-4">Bu masaya sipariş almak için ürün seçim ekranını açın.</p>
+                        <button class="btn btn-primary btn-lg" onclick="startNewOrder('${table.Id}')">
+                            <i class="fas fa-plus me-2"></i>Sipariş Al
+                        </button>
+                    </div>
+                `);
+                $('#paymentsTab').html('<p class="text-muted">Henüz ödeme yok</p>');
+                $('#summaryTab').html('<p class="text-muted">Masa boş</p>');
+            } else {
+                // Dolu masa - tab içeriklerini doldur
+                const ordersHtml = generateOrdersTabContent(table, orders);
+                const paymentsHtml = generatePaymentsTabContent(payments, table.Id);
+                const summaryHtml = generateSummaryTabContent(totalAmount, totalPaidAmount, remainingAmount);
 
-            if (!table.isOccupied) {
-                // Boş masa - Hesap açma
-           html = `
-            <div class="text-center py-4">
-                <i class="fas fa-utensils fa-4x text-primary mb-3"></i>
-                <h5 class="text-muted mb-3">Masa Boş</h5>
-                <p class="text-muted mb-4">Bu masaya sipariş almak için ürün seçim ekranını açın.</p>
-                <button class="btn btn-primary btn-lg" onclick="startNewOrder('${table.id}')">
-                    <i class="fas fa-plus me-2"></i>Sipariş Al
-                </button>
-            </div>
-        `;
-                } else {
-            // Dolu masa - Mevcut kod (sipariş geçmişi ile)
-            // ... mevcut dolu masa kodu aynı kalacak
-            html = generateOccupiedTableHTML(table, orders, totalAmount);
-        }
+                $('#ordersTab').html(ordersHtml);
+                $('#paymentsTab').html(paymentsHtml);
+                $('#summaryTab').html(summaryHtml);
+            }
 
-            $('#tableModalBody').html(html);
+            // Badge'leri güncelle
+            $('#orderCount').text(orders.length);
+            $('#paymentCount').text(payments.length);
         }
 
         // Zaman farkı hesaplama
@@ -612,6 +624,10 @@
         // Dolu masa HTML'ini oluşturan fonksiyon
         function generateOccupiedTableHTML(table, orders, totalAmount) {
             // Batch'lere göre grupla
+                    const safeOrderAmount = totalOrderAmount || 0;
+                    const safePaidAmount = totalPaidAmount || 0;
+                    const safeRemainingAmount = remainingAmount || 0;
+
             const batches = {};
             orders.forEach(order => {
                 if (!batches[order.orderBatchId]) {
@@ -739,6 +755,9 @@
         function startNewOrder(tableId) {
             const tableName = $('#modalTableName').text();
 
+              // BURADA currentTableId'yi set et!
+             currentTableId = tableId; // ← Bu satır eksikti!
+
             // Masa modal'ını kapat
             $('#tableModal').modal('hide');
 
@@ -795,6 +814,82 @@
             ToastHelper.info('Parçalı ödeme özelliği yakında eklenecek!');
         }
 
+        function generateOrdersTabContent(table, orders) {
+            return generateOccupiedTableHTML(table, orders, 0); // Mevcut fonksiyonunu kullan
+        }
+
+        function generatePaymentsTabContent(payments, tableId) {
+            if (payments.length === 0) {
+                return `
+                    <div class="text-center py-4">
+                        <i class="fas fa-credit-card fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Henüz ödeme yapılmamış</p>
+                        <button class="btn btn-primary" onclick="showPaymentForm('${tableId}')">
+                            <i class="fas fa-plus me-2"></i>Ödeme Al
+                        </button>
+                    </div>
+                `;
+            }
+
+            // Ödeme geçmişi listesi
+            let html = '<div class="list-group">';
+            payments.forEach(payment => {
+                const paymentType = payment.PaymentType === 0 ? 'Nakit' : 'Kart';
+                const date = new Date(payment.CreatedAt).toLocaleString('tr-TR');
+
+                html += `
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <strong>${paymentType}</strong>
+                                <small class="text-muted d-block">${date}</small>
+                                ${payment.ShortLabel ? `<small class="text-info">${payment.ShortLabel}</small>` : ''}
+                            </div>
+                            <div class="text-success fw-bold">₺${payment.Amount.toFixed(2)}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            return html;
+        }
+
+        function generateSummaryTabContent(totalAmount, totalPaidAmount, remainingAmount) {
+            return `
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card bg-info bg-opacity-10">
+                            <div class="card-body text-center">
+                                <i class="fas fa-receipt fa-2x text-info mb-2"></i>
+                                <h6>Toplam Sipariş</h6>
+                                <h4 class="text-info">₺${totalAmount.toFixed(2)}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-success bg-opacity-10">
+                            <div class="card-body text-center">
+                                <i class="fas fa-check fa-2x text-success mb-2"></i>
+                                <h6>Ödenen</h6>
+                                <h4 class="text-success">₺${totalPaidAmount.toFixed(2)}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card ${remainingAmount > 0 ? 'bg-warning bg-opacity-10' : 'bg-success bg-opacity-10'}">
+                            <div class="card-body text-center">
+                                <i class="fas fa-balance-scale fa-2x ${remainingAmount > 0 ? 'text-warning' : 'text-success'} mb-2"></i>
+                                <h6>Kalan</h6>
+                                <h4 class="${remainingAmount > 0 ? 'text-warning' : 'text-success'}">₺${remainingAmount.toFixed(2)}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+
         // ============= ÜRÜN SEÇİM MODALİ SİSTEMİ =============
 
         let currentProducts = []; // Tüm ürünler
@@ -803,6 +898,7 @@
 
         // Modal açma fonksiyonunu güncelle
         function openProductSelectionModal(tableId, tableName) {
+           
             currentTableId = tableId;
 
             // Modal başlığını ayarla
@@ -1073,17 +1169,29 @@
         function submitOrder() {
             const waiterNote = $('#waiterNote').val().trim();
 
+                    console.log('Cart items:', cartItems); // DEBUG
+        console.log('Current table ID:', currentTableId); // DEBUG
+
+        if (cartItems.length === 0) {
+            ToastHelper.warning('Sepette ürün bulunmuyor!');
+            return;
+        }
+
+        if (!currentTableId) {
+            ToastHelper.error('Masa bilgisi bulunamadı!');
+            return;
+        }
             // Sipariş verisini hazırla
-            const orderData = {
-                tableId: currentTableId,
-                waiterNote: waiterNote || null,
-                items: cartItems.map(item => ({
-                    productId: item.productId,
-                    productName: item.name,
-                    price: item.price,
-                    quantity: item.quantity
-                }))
-            };
+        const orderData = {
+               tableId: currentTableId,
+               waiterNote: waiterNote || null,
+               items: cartItems.map(item => ({
+                   productId: item.productId,
+                   productName: item.name,
+                   price: item.price,
+                   quantity: item.quantity
+               }))
+           };
 
             // Konfirmasyon dialog'u
             const totalAmount = cartItems.reduce((sum, item) => sum + item.totalPrice, 0);
