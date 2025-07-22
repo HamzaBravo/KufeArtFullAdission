@@ -81,9 +81,9 @@ namespace KufeArtFullAdission.Mvc.Models
     public class QuickPaymentDto
     {
         public Guid TableId { get; set; }
-        public string PaymentMode { get; set; } // "full", "half", "tip15", "label", "custom"
-        public PaymentType PaymentType { get; set; } // Cash, Card
-        public string PaymentLabel { get; set; } // Etiket ödemesi için
-        public double CustomAmount { get; set; } // Özel tutar için
+        public string PaymentMode { get; set; } // "full" veya "partial"
+        public PaymentType PaymentType { get; set; } // 0=Nakit, 1=Kart
+        public string PaymentLabel { get; set; } // Açýklama için
+        public double CustomAmount { get; set; } // Parçalý ödeme tutarý
     }
 }

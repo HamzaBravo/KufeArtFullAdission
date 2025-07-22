@@ -54,7 +54,19 @@ public class HomeController(DBContext _dbContext) : Controller
                     .ToListAsync();
 
                 var hasOrders = orders.Any();
-                var totalAmount = orders.Sum(o => o.TotalPrice);
+                var totalOrderAmount = orders.Sum(o => o.TotalPrice);
+
+                // ✅ ÖDEMELERİ DE HESAPLA
+                var totalPaidAmount = 0.0;
+                if (table.AddionStatus.HasValue)
+                {
+                    totalPaidAmount = await _dbContext.Payments
+                        .Where(p => p.AddionStatusId == table.AddionStatus)
+                        .SumAsync(p => p.Amount);
+                }
+
+                // ✅ KALAN TUTARI HESAPLA
+                var remainingAmount = Math.Max(0, totalOrderAmount - totalPaidAmount);
                 var firstOrderTime = hasOrders ? orders.First().CreatedAt : (DateTime?)null;
 
                 var tableInfo = new
@@ -63,8 +75,11 @@ public class HomeController(DBContext _dbContext) : Controller
                     name = table.Name,
                     category = table.Category,
                     isOccupied = hasOrders,
-                    totalAmount = totalAmount,
-                    openedAt = firstOrderTime?.ToString("yyyy-MM-ddTHH:mm:ss") // Basit ISO format
+                    totalAmount = remainingAmount, // ✅ Kalan tutarı göster (eski: totalOrderAmount)
+                    totalOrderAmount = totalOrderAmount, // ✅ Toplam sipariş tutarı
+                    totalPaidAmount = totalPaidAmount,   // ✅ Ödenen tutar
+                    remainingAmount = remainingAmount,    // ✅ Kalan tutar
+                    openedAt = firstOrderTime?.ToString("yyyy-MM-ddTHH:mm:ss")
                 };
 
                 if (!groupedTables.ContainsKey(table.Category))
@@ -142,7 +157,7 @@ public class HomeController(DBContext _dbContext) : Controller
                 .Select(p => new
                 {
                     id = p.Id,
-                    paymentType = p.PaymentType,
+                    paymentType = (int)p.PaymentType,
                     amount = p.Amount,
                     shortLabel = p.ShortLabel,
                     createdAt = p.CreatedAt,
@@ -153,7 +168,8 @@ public class HomeController(DBContext _dbContext) : Controller
             // Hesaplamalar
             var totalOrderAmount = orders.Sum(o => o.totalPrice);
             var totalPaidAmount = payments.Sum(p => p.amount);
-            var remainingAmount = totalOrderAmount - totalPaidAmount;
+            var remainingAmount = Math.Max(0, totalOrderAmount - totalPaidAmount); // ✅ Negatif değer engelle
+
 
             var result = new
             {
@@ -170,7 +186,7 @@ public class HomeController(DBContext _dbContext) : Controller
                 totalOrderAmount = totalOrderAmount,
                 totalPaidAmount = totalPaidAmount,
                 remainingAmount = remainingAmount,
-                isFullyPaid = remainingAmount <= 0
+                isFullyPaid = remainingAmount <= 0.01
             };
 
             return Json(new { success = true, data = result });
@@ -407,18 +423,55 @@ public class HomeController(DBContext _dbContext) : Controller
         {
             var table = await _dbContext.Tables.FindAsync(paymentDto.TableId);
             if (table == null || !table.AddionStatus.HasValue)
-                return Json(new { success = false, message = "Masa bulunamadı veya açık hesap yok!" });
+                return Json(new { success = false, message = "Masa bulunamadı!" });
 
-            // Mevcut siparişleri al
             var orders = await _dbContext.AddtionHistories
                 .Where(h => h.AddionStatusId == table.AddionStatus)
                 .ToListAsync();
 
             if (!orders.Any())
-                return Json(new { success = false, message = "Ödeme yapacak sipariş bulunamadı!" });
+                return Json(new { success = false, message = "Sipariş bulunamadı!" });
 
-            // Ödeme tutarını hesapla (tip, label, vb. göre)
-            var paymentAmount = CalculatePaymentAmount(orders, paymentDto);
+            // ✅ MEVCUT ÖDEMELERİ HESAPLA
+            var existingPayments = await _dbContext.Payments
+                .Where(p => p.AddionStatusId == table.AddionStatus)
+                .SumAsync(p => p.Amount);
+
+            var totalOrderAmount = orders.Sum(o => o.TotalPrice);
+            var remainingAmount = totalOrderAmount - existingPayments;
+
+            // ✅ FAZLA ÖDEME KONTROLÜ
+            if (remainingAmount <= 0)
+            {
+                return Json(new { success = false, message = "Bu hesap zaten tamamen ödenmiş!" });
+            }
+
+            double paymentAmount = 0;
+
+            if (paymentDto.PaymentMode == "full")
+            {
+                paymentAmount = remainingAmount; // ✅ Kalan tutarı öde (fazlasını değil)
+            }
+            else if (paymentDto.PaymentMode == "partial")
+            {
+                paymentAmount = paymentDto.CustomAmount;
+
+                // ✅ PARÇALI ÖDEME KONTROLÜ
+                if (paymentAmount > remainingAmount)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = $"Ödeme tutarı (₺{paymentAmount:F2}) kalan borcu (₺{remainingAmount:F2}) aşıyor!"
+                    });
+                }
+            }
+
+            // ✅ GÜVENLİK KONTROLÜ
+            if (paymentAmount <= 0)
+            {
+                return Json(new { success = false, message = "Ödeme tutarı sıfırdan büyük olmalıdır!" });
+            }
 
             // Ödeme kaydı oluştur
             var payment = new PaymentDbEntity
@@ -428,24 +481,21 @@ public class HomeController(DBContext _dbContext) : Controller
                 PaymentType = paymentDto.PaymentType,
                 Amount = paymentAmount,
                 ShortLabel = paymentDto.PaymentLabel,
-                PersonId = Guid.NewGuid() // TODO: Session'dan al
+                PersonId = Guid.NewGuid()
             };
 
             _dbContext.Payments.Add(payment);
             await _dbContext.SaveChangesAsync();
 
-            // Tam ödeme kontrolü - hesap kapatma
-            var totalOrderAmount = orders.Sum(o => o.TotalPrice);
-            var totalPaidAmount = await _dbContext.Payments
-                .Where(p => p.AddionStatusId == table.AddionStatus)
-                .SumAsync(p => p.Amount);
+            // Yeni kalan tutarı hesapla
+            var newTotalPaid = existingPayments + paymentAmount;
+            var newRemainingAmount = Math.Max(0, totalOrderAmount - newTotalPaid);
+            var isFullyPaid = newRemainingAmount <= 0.01; // Küsurat toleransı
 
-            var isFullyPaid = totalPaidAmount >= totalOrderAmount;
             var shouldCloseAccount = paymentDto.PaymentMode == "full" || isFullyPaid;
 
             if (shouldCloseAccount)
             {
-                // Hesabı kapat - siparişleri sil ve AddionStatus'u temizle
                 _dbContext.AddtionHistories.RemoveRange(orders);
                 table.AddionStatus = null;
                 await _dbContext.SaveChangesAsync();
@@ -454,18 +504,20 @@ public class HomeController(DBContext _dbContext) : Controller
             return Json(new
             {
                 success = true,
-                message = GetPaymentMessage(paymentDto.PaymentMode, paymentAmount),
+                message = shouldCloseAccount
+                    ? $"Hesap kapatıldı! ₺{paymentAmount:F2}"
+                    : $"Parçalı ödeme alındı: ₺{paymentAmount:F2} - Kalan: ₺{newRemainingAmount:F2}",
                 data = new
                 {
                     paidAmount = paymentAmount,
-                    remainingAmount = Math.Max(0, totalOrderAmount - totalPaidAmount),
+                    remainingAmount = newRemainingAmount,
                     accountClosed = shouldCloseAccount
                 }
             });
         }
         catch (Exception ex)
         {
-            return Json(new { success = false, message = "Ödeme işlenemedi: " + ex.Message });
+            return Json(new { success = false, message = ex.Message });
         }
     }
 

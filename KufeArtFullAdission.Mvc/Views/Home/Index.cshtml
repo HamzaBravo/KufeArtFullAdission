@@ -250,26 +250,269 @@
             });
         });
 
+        // Mevcut global değişkenlerin yanına ekle
+
+
+
+
+
         let currentTablesData = {}; // Global olarak tutalım
 
-        function loadTables() {
+        function loadTables(silent = false) {
+            if (!silent) {
+                // Normal yükleme - loading göster
+                // Mevcut kod aynı kalacak
+            }
+
             $.ajax({
                 url: '/Home/GetTables',
                 method: 'GET',
                 success: function(response) {
                     if (response.success) {
-                        currentTablesData = response.data; // Veriyi sakla
+                        currentTablesData = response.data;
                         renderTables(response.data);
+
+                        if (!silent) {
+                            console.log('✅ Tables loaded successfully');
+                        }
                     } else {
-                        console.error('Masa yükleme hatası:', response.message);
-                        ToastHelper.error('Masalar yüklenemedi!');
+                        if (!silent) {
+                            console.error('Masa yükleme hatası:', response.message);
+                            ToastHelper.error('Masalar yüklenemedi!');
+                        }
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.error('AJAX Hatası:', error);
-                    ToastHelper.error('Bağlantı hatası!');
+                    if (!silent) {
+                        console.error('AJAX Hatası:', error);
+                        ToastHelper.error('Bağlantı hatası!');
+                    }
                 }
             });
+        }
+
+                // JavaScript fonksiyonları bölümüne ekle (processFullPayment fonksiyonunun yanına)
+        function openPartialPaymentModal(tableId) {
+            if (!currentTableOrders || currentTableOrders.length === 0) {
+                ToastHelper.error('Sipariş verisi bulunamadı!');
+                return;
+            }
+
+            // ✅ ESKİ MODAL'I ÖNCE KAPAT
+            $('#tableModal').modal('hide');
+
+            // Kısa bir bekleme sonrası yeni modal'ı aç (animasyon için)
+            setTimeout(() => {
+                const modal = new bootstrap.Modal(document.getElementById('partialPaymentModal'));
+                modal.show();
+                populatePartialPaymentModal(tableId);
+            }, 300); // 300ms bekle
+        }
+
+                function populatePartialPaymentModal(tableId) {
+            // 1. Ürün listesini oluştur
+            populateOrderItems();
+
+            // 2. Etiket listesini oluştur
+            populateLabels();
+
+            // 3. Manuel tutar kısmını ayarla
+            const totalAmount = currentTableOrders.reduce((sum, order) => sum + order.totalPrice, 0);
+            $('#totalOrderAmount').text(`₺${totalAmount.toFixed(2)}`);
+            $('#customPaymentAmount').attr('max', totalAmount);
+
+            // 4. Ödeme butonlarını ayarla
+            setupPaymentButtons(tableId);
+        }
+
+                function populateOrderItems() {
+            let html = '';
+
+            currentTableOrders.forEach((order, index) => {
+                html += `
+                    <div class="form-check mb-2">
+                        <input class="form-check-input order-item-checkbox" type="checkbox"
+                               value="${order.totalPrice}" data-order-index="${index}"
+                               id="order_${index}">
+                        <label class="form-check-label w-100" for="order_${index}">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <strong>${order.productName}</strong>
+                                    <small class="text-muted d-block">
+                                        ${order.productQuantity} adet × ₺${order.productPrice.toFixed(2)}
+                                        ${order.shorLabel ? ` • ${order.shorLabel}` : ''}
+                                    </small>
+                                </div>
+                                <div class="fw-bold text-success">₺${order.totalPrice.toFixed(2)}</div>
+                            </div>
+                        </label>
+                    </div>
+                `;
+            });
+
+            $('#orderItemsList').html(html);
+
+            // Checkbox değişikliklerini dinle
+            $('.order-item-checkbox').on('change', updateSelectedItemsTotal);
+        }
+
+        // Etiketleri oluştur
+        function populateLabels() {
+            const labels = [...new Set(currentTableOrders.filter(o => o.shorLabel).map(o => o.shorLabel))];
+
+            if (labels.length === 0) {
+                $('#labelsList').html(`
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Bu siparişte etiket bulunmuyor.
+                    </div>
+                `);
+                return;
+            }
+
+            let html = '';
+            labels.forEach((label, index) => {
+                const labelTotal = currentTableOrders
+                    .filter(o => o.shorLabel === label)
+                    .reduce((sum, o) => sum + o.totalPrice, 0);
+
+                html += `
+                    <div class="form-check mb-2">
+                        <input class="form-check-input label-checkbox" type="radio"
+                               name="labelRadio" value="${labelTotal}"
+                               data-label="${label}" id="label_${index}">
+                        <label class="form-check-label w-100" for="label_${index}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>${label}</strong>
+                                <span class="badge bg-success">₺${labelTotal.toFixed(2)}</span>
+                            </div>
+                        </label>
+                    </div>
+                `;
+            });
+
+            $('#labelsList').html(html);
+        }
+
+        // Seçilen ürünlerin toplamını güncelle
+        function updateSelectedItemsTotal() {
+            let total = 0;
+            $('.order-item-checkbox:checked').each(function() {
+                total += parseFloat($(this).val());
+            });
+            $('#selectedItemsTotal').text(`₺${total.toFixed(2)}`);
+        }
+
+        // Ödeme butonlarını ayarla
+        function setupPaymentButtons(tableId) {
+            $('#payWithCash, #payWithCard').off('click').on('click', function() {
+                const paymentType = $(this).attr('id') === 'payWithCash' ? 0 : 1; // 0=Nakit, 1=Kart
+                processPartialPayment(tableId, paymentType);
+            });
+        }
+
+        function processPartialPayment(tableId, paymentType) {
+            // Aktif tab'ı bul
+            const activeTab = $('#partialPaymentTabs .nav-link.active').attr('data-bs-target');
+            let amount = 0;
+            let label = '';
+
+            if (activeTab === '#selectItemsTab') {
+                // Seçilen ürünler
+                const checkedBoxes = $('.order-item-checkbox:checked');
+                if (checkedBoxes.length === 0) {
+                    ToastHelper.warning('Lütfen ödenecek ürünleri seçin!');
+                    return;
+                }
+                checkedBoxes.each(function() {
+                    amount += parseFloat($(this).val());
+                });
+                label = `Seçili ürünler (${checkedBoxes.length} adet)`;
+
+            } else if (activeTab === '#selectLabelTab') {
+                // Seçilen etiket
+                const selectedLabel = $('.label-checkbox:checked');
+                if (selectedLabel.length === 0) {
+                    ToastHelper.warning('Lütfen bir etiket seçin!');
+                    return;
+                }
+                amount = parseFloat(selectedLabel.val());
+                label = `Etiket: ${selectedLabel.data('label')}`;
+
+            } else if (activeTab === '#customAmountTab') {
+                // Manuel tutar
+                amount = parseFloat($('#customPaymentAmount').val());
+                if (!amount || amount <= 0) {
+                    ToastHelper.warning('Lütfen geçerli bir tutar girin!');
+                    return;
+                }
+                label = 'Manuel tutar';
+            }
+
+            // Ödeme verilerini hazırla
+            const paymentData = {
+                tableId: tableId,
+                paymentMode: 'partial',
+                paymentType: paymentType,
+                paymentLabel: label,
+                customAmount: amount
+            };
+
+            // Konfirmasyon
+            const paymentTypeText = paymentType === 0 ? 'Nakit' : 'Kart';
+            if (!confirm(`${paymentTypeText} ile ₺${amount.toFixed(2)} ödeme almak istediğinizden emin misiniz?`)) {
+                return;
+            }
+
+            // Modal'ı kapat
+            $('#partialPaymentModal').modal('hide');
+
+            // Ödemeyi işle
+            processPayment(paymentData);
+
+                 $.ajax({
+            url: '/Home/ProcessQuickPayment',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(paymentData),
+            success: function(response) {
+                LoaderHelper.hide();
+
+                if (response.success) {
+                    ToastHelper.success(response.message);
+
+                    if (response.data.accountClosed) {
+                        // Hesap kapatıldıysa dashboard'ı güncelle
+                        loadTables();
+                    } else {
+                        // ✅ PARÇALI ÖDEME - HER ŞEYİ GÜNCELLE
+                        updateAllAfterPartialPayment(tableId);
+                    }
+                } else {
+                    ToastHelper.error(response.message);
+                }
+            },
+            error: function() {
+                LoaderHelper.hide();
+                ToastHelper.error('Bağlantı hatası!');
+            }
+        });
+        }
+
+        // updateAllAfterPartialPayment fonksiyonunu güncelle:
+        function updateAllAfterPartialPayment(tableId) {
+            // 1. Dashboard'ı sessizce güncelle (kullanıcı fark etmez)
+            loadTables(true); // ← silent=true parametresi
+
+            // 2. Modal'ı yenile
+            setTimeout(() => {
+                const tableName = $('#modalTableName').text() || 'Masa';
+                $('#tableModal').modal('hide');
+
+                setTimeout(() => {
+                    openTableModal(tableId, tableName, true);
+                }, 500);
+            }, 1000);
         }
 
         // Sadece zamanları güncelle - tab pozisyonu korunsun
@@ -506,6 +749,11 @@
                             $('#ordersTab').html(ordersHtml);
                         }
 
+                              currentTableOrders = orders;
+        console.log('🔍 currentTableOrders set to:', currentTableOrders); // ← Debug ekle
+
+
+
                         // Diğer tab'lar
                         $('#paymentsTab').html(generatePaymentsTabContent(payments, table.id));
                         $('#summaryTab').html(generateSummaryTabContent(data.totalOrderAmount || 0, data.totalPaidAmount || 0, data.remainingAmount || 0));
@@ -606,17 +854,20 @@
 
         // Dolu masa HTML'ini oluşturan fonksiyon
         function generateOccupiedTableHTML(table, orders, totalAmount, totalPaidAmount, remainingAmount) {
-            
+
                    // ✅ ÖNCE ETİKET BİLGİLERİNİ HESAPLA
         const hasLabels = orders.some(o => o.shorLabel && o.shorLabel.trim() !== '');
         const uniqueLabels = [...new Set(orders.filter(o => o.shorLabel && o.shorLabel.trim() !== '').map(o => o.shorLabel))];
         const labelAmounts = {};
+
+        currentTableOrders = orders;
+
         uniqueLabels.forEach(label => {
             labelAmounts[label] = orders.filter(o => o.shorLabel === label).reduce((sum, o) => sum + o.totalPrice, 0);
         });
-            
-            
-            const safeOrderAmount = totalAmount || 0;
+
+
+        const safeOrderAmount = totalAmount || 0;
         const safePaidAmount = totalPaidAmount || 0;
         const safeRemainingAmount = remainingAmount || 0;
 
@@ -718,95 +969,69 @@
                 `;
             });
 
+        // ✅ BUTONLARDA KALAN TUTARI GÖSTER (toplam değil)
             html += `
+                <!-- Temiz Ödeme Butonları -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-credit-card me-2"></i>Ödeme Al</h6>
                     </div>
-                </div>
+                    <div class="card-body">
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <button class="btn btn-success w-100" onclick="processFullPayment('${table.id}', 'cash')">
+                                    <i class="fas fa-money-bill-wave me-2"></i>
+                                    Nakit<br>
+                                    <strong>₺${safeRemainingAmount.toFixed(2)}</strong>
+                                    <small class="d-block">Kalan Tutar</small>
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-primary w-100" onclick="processFullPayment('${table.id}', 'card')">
+                                    <i class="fas fa-credit-card me-2"></i>
+                                    Kart<br>
+                                    <strong>₺${safeRemainingAmount.toFixed(2)}</strong>
+                                    <small class="d-block">Kalan Tutar</small>
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-warning w-100" onclick="openPartialPaymentModal('${table.id}')">
+                                    <i class="fas fa-list-check me-2"></i>
+                                    Parçalı<br>
+                                    <small>Seç & Öde</small>
+                                </button>
+                            </div>
+                        </div>
 
-                <!-- Ödeme Butonları -->
-                <div class="row g-2">
-                    <div class="col-md-4">
-                        <button class="btn btn-success w-100" onclick="processPayment('${table.id}', 'cash', ${totalAmount})">
-                            <i class="fas fa-money-bill-wave me-2"></i>Nakit Ödeme
-                        </button>
-                    </div>
-                    <div class="col-md-4">
-                        <button class="btn btn-primary w-100" onclick="processPayment('${table.id}', 'card', ${totalAmount})">
-                            <i class="fas fa-credit-card me-2"></i>Kart Ödeme
-                        </button>
-                    </div>
-                    <div class="col-md-4">
-                        <button class="btn btn-outline-danger w-100" onclick="closeTableAccount('${table.id}')">
-                            <i class="fas fa-times me-2"></i>Hesap Kapat
-                        </button>
+                        <!-- ✅ ÖDEME DURUMU BİLGİSİ -->
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div class="alert alert-info mb-0 py-2">
+                                    <div class="row text-center">
+                                        <div class="col-4">
+                                            <small class="text-muted">Toplam Sipariş</small><br>
+                                            <strong>₺${safeOrderAmount.toFixed(2)}</strong>
+                                        </div>
+                                        <div class="col-4">
+                                            <small class="text-muted">Ödenen</small><br>
+                                            <strong class="text-success">₺${safePaidAmount.toFixed(2)}</strong>
+                                        </div>
+                                        <div class="col-4">
+                                            <small class="text-muted">Kalan</small><br>
+                                            <strong class="text-warning">₺${safeRemainingAmount.toFixed(2)}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
 
-
-        // Ödeme Butonları bölümünü bu şekilde güncelle:
-        html += `
-            <!-- Hızlı Ödeme Butonları -->
-            <div class="card mb-3">
-                <div class="card-header">
-                    <h6 class="mb-0"><i class="fas fa-credit-card me-2"></i>Hızlı Ödeme</h6>
-                </div>
-                <div class="card-body">
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-3">
-                            <button class="btn btn-success w-100" onclick="processQuickPayment('${table.id}', 'full', 'cash')">
-                                <i class="fas fa-money-bill-wave me-1"></i>
-                                <div class="small">Tümü - Nakit</div>
-                                <strong>₺${safeOrderAmount.toFixed(2)}</strong>
-                            </button>
-                        </div>
-                        <div class="col-md-3">
-                            <button class="btn btn-primary w-100" onclick="processQuickPayment('${table.id}', 'full', 'card')">
-                                <i class="fas fa-credit-card me-1"></i>
-                                <div class="small">Tümü - Kart</div>
-                                <strong>₺${safeOrderAmount.toFixed(2)}</strong>
-                            </button>
-                        </div>
-                        <div class="col-md-3">
-                            <button class="btn btn-warning w-100" onclick="processQuickPayment('${table.id}', 'half', 'cash')">
-                                <i class="fas fa-percentage me-1"></i>
-                                <div class="small">Yarım - Nakit</div>
-                                <strong>₺${(safeOrderAmount/2).toFixed(2)}</strong>
-                            </button>
-                        </div>
-                        <div class="col-md-3">
-                            <button class="btn btn-info w-100" onclick="processQuickPayment('${table.id}', 'tip15', 'card')">
-                                <i class="fas fa-heart me-1"></i>
-                                <div class="small">+%15 Bahşiş</div>
-                                <strong>₺${(safeOrderAmount*1.15).toFixed(2)}</strong>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- İkinci Sıra -->
-                    <div class="row g-2">
-                        <div class="col-md-4">
-                            <button class="btn btn-outline-success w-100" onclick="processQuickPayment('${table.id}', 'tip10', 'cash')">
-                                <i class="fas fa-plus me-1"></i>+%10 Bahşiş (₺${(safeOrderAmount*1.10).toFixed(2)})
-                            </button>
-                        </div>
-                        <div class="col-md-4">
-                            <button class="btn btn-outline-info w-100" onclick="processQuickPayment('${table.id}', 'tip20', 'card')">
-                                <i class="fas fa-star me-1"></i>+%20 Bahşiş (₺${(safeOrderAmount*1.20).toFixed(2)})
-                            </button>
-                        </div>
-                        <div class="col-md-4">
-                            <button class="btn btn-outline-secondary w-100" onclick="showCustomPaymentModal('${table.id}', ${safeOrderAmount})">
-                                <i class="fas fa-calculator me-1"></i>Özel Tutar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-
             return html;
         }
+
+
 
 
                 // Hızlı ödeme işlemi
@@ -932,9 +1157,52 @@
             openProductSelectionModal(tableId, tableName);
         }
 
-        function processPayment(tableId, paymentType, amount) {
-            console.log('Ödeme işleniyor:', tableId, paymentType, amount);
-            ToastHelper.info(`${paymentType === 'cash' ? 'Nakit' : 'Kart'} ödeme özelliği yakında eklenecek!`);
+                function processFullPayment(tableId, paymentType) {
+            if (!confirm(`${paymentType === 'cash' ? 'Nakit' : 'Kart'} ile tüm hesabı kapatmak istediğinizden emin misiniz?`)) {
+                return;
+            }
+
+            const paymentData = {
+                tableId: tableId,
+                paymentMode: 'full',
+                paymentType: paymentType === 'cash' ? 0 : 1,
+                paymentLabel: `Tam ödeme - ${paymentType === 'cash' ? 'Nakit' : 'Kart'}`,
+                customAmount: 0
+            };
+
+            processPayment(paymentData);
+        }
+
+        // Ortak ödeme işleme fonksiyonu
+        function processPayment(paymentData) {
+            LoaderHelper.show('Ödeme işleniyor...');
+
+            $.ajax({
+                url: '/Home/ProcessQuickPayment',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(paymentData),
+                success: function(response) {
+                    LoaderHelper.hide();
+
+                    if (response.success) {
+                        ToastHelper.success(response.message);
+
+                        if (response.data.accountClosed) {
+                            $('#tableModal').modal('hide');
+                            loadTables(); // Dashboard'ı güncelle
+                        } else {
+                            loadTableDetails(paymentData.tableId); // Modal'ı yenile
+                        }
+                    } else {
+                        ToastHelper.error(response.message);
+                    }
+                },
+                error: function() {
+                    LoaderHelper.hide();
+                    ToastHelper.error('Bağlantı hatası!');
+                }
+            });
         }
 
         function partialPayment(tableId, totalAmount) {
@@ -956,10 +1224,8 @@
                 return `
                     <div class="text-center py-4">
                         <i class="fas fa-credit-card fa-3x text-muted mb-3"></i>
-                        <p class="text-muted">Henüz ödeme yapılmamış</p>
-                        <button class="btn btn-primary" onclick="showPaymentForm('${tableId}')">
-                            <i class="fas fa-plus me-2"></i>Ödeme Al
-                        </button>
+                        <p class="text-muted mb-3">Henüz ödeme yapılmamış</p>
+                        <p class="small text-info">Ödeme almak için "Siparişler" sekmesindeki hızlı ödeme butonlarını kullanabilirsiniz.</p>
                     </div>
                 `;
             }
@@ -967,8 +1233,13 @@
             // Ödeme geçmişi listesi
             let html = '<div class="list-group">';
             payments.forEach(payment => {
-                const paymentType = payment.PaymentType === 0 ? 'Nakit' : 'Kart';
-                const date = new Date(payment.CreatedAt).toLocaleString('tr-TR');
+                // ✅ PROPERTY İSİMLERİNİ DÜZELT
+                const paymentType = (payment.paymentType || payment.PaymentType) === 0 ? 'Nakit' : 'Kart';
+                const amount = payment.amount || payment.Amount || 0;
+                const createdAt = payment.createdAt || payment.CreatedAt;
+                const shortLabel = payment.shortLabel || payment.ShortLabel || '';
+
+                const date = new Date(createdAt).toLocaleString('tr-TR');
 
                 html += `
                     <div class="list-group-item">
@@ -976,9 +1247,9 @@
                             <div>
                                 <strong>${paymentType}</strong>
                                 <small class="text-muted d-block">${date}</small>
-                                ${payment.ShortLabel ? `<small class="text-info">${payment.ShortLabel}</small>` : ''}
+                                ${shortLabel ? `<small class="text-info">${shortLabel}</small>` : ''}
                             </div>
-                            <div class="text-success fw-bold">₺${payment.Amount.toFixed(2)}</div>
+                            <div class="text-success fw-bold">₺${amount.toFixed(2)}</div>
                         </div>
                     </div>
                 `;
@@ -1028,10 +1299,10 @@
         let currentProducts = []; // Tüm ürünler
         let cartItems = []; // Sepet
         let currentTableId = null; // Hangi masa
-
+        let currentTableOrders = []; // ← Bunu ekle
         // Modal açma fonksiyonunu güncelle
         function openProductSelectionModal(tableId, tableName) {
-           
+
             currentTableId = tableId;
 
             // Modal başlığını ayarla

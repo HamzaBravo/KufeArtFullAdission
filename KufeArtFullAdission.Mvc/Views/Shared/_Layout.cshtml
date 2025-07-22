@@ -110,6 +110,98 @@
             </div>
         </div>
     </div>
+
+    <!-- Parçalı Ödeme Modal'ı (mevcut modal'ların yanına ekle) -->
+    <div class="modal fade" id="partialPaymentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-list-check me-2"></i>
+                        Parçalı Ödeme
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Tab Navigation -->
+                    <ul class="nav nav-tabs mb-3" id="partialPaymentTabs">
+                        <li class="nav-item">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#selectItemsTab">
+                                📋 Ürün Seç
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#selectLabelTab">
+                                🏷️ Etiket Seç
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#customAmountTab">
+                                🖩 Manuel Tutar
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content">
+                        <!-- Ürün Seçimi Tab -->
+                        <div class="tab-pane fade show active" id="selectItemsTab">
+                            <div class="mb-3">
+                                <h6>Ödenecek ürünleri seçin:</h6>
+                                <div id="orderItemsList" class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                                    <!-- Ürünler buraya gelecek -->
+                                </div>
+                            </div>
+                            <div class="alert alert-info mb-0">
+                                <strong>Seçilen toplam:</strong>
+                                <span id="selectedItemsTotal" class="fw-bold text-success">₺0.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Etiket Seçimi Tab -->
+                        <div class="tab-pane fade" id="selectLabelTab">
+                            <div class="mb-3">
+                                <h6>Etiket seçin:</h6>
+                                <div id="labelsList">
+                                    <!-- Etiketler buraya gelecek -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Manuel Tutar Tab -->
+                        <div class="tab-pane fade" id="customAmountTab">
+                            <div class="mb-3">
+                                <h6>Ödenecek tutarı girin:</h6>
+                                <div class="input-group">
+                                    <span class="input-group-text">₺</span>
+                                    <input type="number" class="form-control" id="customPaymentAmount"
+                                           placeholder="0.00" step="0.01" min="0.01">
+                                </div>
+                                <small class="text-muted">
+                                    Toplam sipariş: <span id="totalOrderAmount">₺0.00</span>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="row w-100 g-2">
+                        <div class="col-6">
+                            <button type="button" class="btn btn-success w-100" id="payWithCash">
+                                <i class="fas fa-money-bill-wave me-2"></i>Nakit Öde
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button type="button" class="btn btn-primary w-100" id="payWithCard">
+                                <i class="fas fa-credit-card me-2"></i>Kart Öde
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @if (TempData["ToastMessage"] != null)
     {
         <script>
