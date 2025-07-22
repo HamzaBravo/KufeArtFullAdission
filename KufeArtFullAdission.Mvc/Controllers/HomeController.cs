@@ -79,6 +79,27 @@ namespace KufeArtFullAdission.Mvc.Controllers
                 if (table == null)
                     return Json(new { success = false, message = "Masa bulunamadý!" });
 
+                // Masa sipariþlerini getir (OrderBatchId bazlý gruplu)
+                var orders = await _dbContext.AddtionHistories
+                    .Where(h => h.AddionStatusId == tableId)
+                    .OrderByDescending(h => h.CreatedAt)
+                    .Select(h => new OrderInfo
+                    {
+                        Id = h.Id,
+                        ShorLabel = h.ShorLabel,
+                        ProductName = h.ProductName,
+                        ProductPrice = h.ProductPrice,
+                        ProductQuantity = h.ProductQuantity,
+                        TotalPrice = h.TotalPrice,
+                        PersonFullName = h.PersonFullName,
+                        CreatedAt = h.CreatedAt,
+                        OrderBatchId = h.OrderBatchId // Batch ID'sini de ekle
+                    })
+                    .ToListAsync();
+
+                var totalAmount = orders.Sum(o => o.TotalPrice);
+                var isOccupied = orders.Any();
+
                 var result = new TableDetailViewModel
                 {
                     Table = new TableInfo
@@ -87,37 +108,17 @@ namespace KufeArtFullAdission.Mvc.Controllers
                         Name = table.Name,
                         Category = table.Category,
                         AddionStatus = table.AddionStatus,
-                        IsOccupied = table.AddionStatus.HasValue
-                    }
+                        IsOccupied = isOccupied
+                    },
+                    Orders = orders,
+                    TotalAmount = totalAmount
                 };
-
-                // Eðer masa dolu ise sipariþleri getir
-                if (table.AddionStatus.HasValue)
-                {
-                    result.Orders = await _dbContext.AddtionHistories
-                        .Where(x => x.AddionStatusId == table.AddionStatus)
-                        .OrderBy(x => x.CreatedAt)
-                        .Select(x => new OrderInfo
-                        {
-                            Id = x.Id,
-                            ShorLabel = x.ShorLabel,
-                            ProductName = x.ProductName,
-                            ProductPrice = x.ProductPrice,
-                            ProductQuantity = x.ProductQuantity,
-                            TotalPrice = x.TotalPrice,
-                            PersonFullName = x.PersonFullName,
-                            CreatedAt = x.CreatedAt
-                        })
-                        .ToListAsync();
-
-                    result.TotalAmount = result.Orders.Sum(x => x.TotalPrice);
-                }
 
                 return Json(new { success = true, data = result });
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = ex.Message });
+                return Json(new { success = false, message = "Masa detaylarý alýnamadý: " + ex.Message });
             }
         }
 

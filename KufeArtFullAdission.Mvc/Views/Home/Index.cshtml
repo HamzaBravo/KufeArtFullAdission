@@ -326,7 +326,7 @@
                         <div class="col-md-8">
                             <div class="d-flex align-items-center">
                                 <div class="me-4">
-                   
+
                                 </div>
                                 <div class="me-4">
                                     <small class="text-muted">
@@ -509,158 +509,61 @@
 
             if (!table.isOccupied) {
                 // Boş masa - Hesap açma
-                html = `
-                    <div class="text-center py-4">
-                        <i class="fas fa-chair fa-4x text-success mb-3"></i>
-                        <h5 class="text-muted mb-3">Masa Boş</h5>
-                        <p class="text-muted mb-4">Bu masaya yeni sipariş almak için hesap açabilirsiniz.</p>
-                        <button class="btn btn-primary btn-lg" onclick="openTableAccount('${table.id}')">
-                            <i class="fas fa-plus me-2"></i>Hesap Aç
-                        </button>
-                    </div>
-                `;
-            } else {
-                // Dolu masa - Sipariş detayları
-                html = `
-                    <!-- Masa Özeti -->
-                    <div class="row mb-4">
-                        <div class="col-md-4">
-                            <div class="card bg-warning bg-opacity-10 border-warning">
-                                <div class="card-body text-center">
-                                    <i class="fas fa-clock fa-2x text-warning mb-2"></i>
-                                    <h6 class="text-muted">Açılış Zamanı</h6>
-                                    <p class="fw-bold mb-0">${getTimeAgo(orders[0]?.createdAt)}</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card bg-info bg-opacity-10 border-info">
-                                <div class="card-body text-center">
-                                    <i class="fas fa-shopping-cart fa-2x text-info mb-2"></i>
-                                    <h6 class="text-muted">Toplam Ürün</h6>
-                                    <p class="fw-bold mb-0">${orders.reduce((sum, order) => sum + order.productQuantity, 0)} adet</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card bg-success bg-opacity-10 border-success">
-                                <div class="card-body text-center">
-                                    <i class="fas fa-lira-sign fa-2x text-success mb-2"></i>
-                                    <h6 class="text-muted">Toplam Tutar</h6>
-                                    <p class="fw-bold mb-0">₺${totalAmount.toFixed(2)}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Sipariş Listesi -->
-                    <div class="card mb-4">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0">
-                                <i class="fas fa-list me-2"></i>Sipariş Detayları
-                            </h6>
-                            <button class="btn btn-sm btn-outline-primary" onclick="addNewOrder('${table.id}')">
-                                <i class="fas fa-plus me-1"></i>Ürün Ekle
-                            </button>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-hover mb-0">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Ürün</th>
-                                            <th>Adet</th>
-                                            <th>Birim Fiyat</th>
-                                            <th>Toplam</th>
-                                            <th>Garson</th>
-                                            <th>Saat</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                `;
-
-                orders.forEach(order => {
-                    html += `
-                        <tr>
-                            <td>
-                                <div class="fw-bold">${order.productName}</div>
-                                ${order.shorLabel ? `<small class="text-muted">${order.shorLabel}</small>` : ''}
-                            </td>
-                            <td><span class="badge bg-primary">${order.productQuantity}</span></td>
-                            <td>₺${order.productPrice.toFixed(2)}</td>
-                            <td class="fw-bold">₺${order.totalPrice.toFixed(2)}</td>
-                            <td>${order.personFullName}</td>
-                            <td class="text-muted small">${new Date(order.createdAt).toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'})}</td>
-                        </tr>
-                    `;
-                });
-
-                html += `
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Ödeme Butonları -->
-                    <div class="row g-2">
-                        <div class="col-md-4">
-                            <button class="btn btn-success w-100" onclick="processPayment('${table.id}', 'cash', ${totalAmount})">
-                                <i class="fas fa-money-bill-wave me-2"></i>
-                                Nakit Ödeme
-                            </button>
-                        </div>
-                        <div class="col-md-4">
-                            <button class="btn btn-primary w-100" onclick="processPayment('${table.id}', 'card', ${totalAmount})">
-                                <i class="fas fa-credit-card me-2"></i>
-                                Kart Ödeme
-                            </button>
-                        </div>
-                        <div class="col-md-4">
-                            <button class="btn btn-warning w-100" onclick="partialPayment('${table.id}', ${totalAmount})">
-                                <i class="fas fa-coins me-2"></i>
-                                Parçalı Ödeme
-                            </button>
-                        </div>
-                    </div>
-                `;
-
-                // Ödeme Butonları bölümüne ekle (mevcut kodun altına)
-                html += `
-            <!-- Hesap Kapatma -->
-            <div class="row mt-3">
-                <div class="col-12">
-                    <hr>
-                    <button class="btn btn-outline-danger w-100" onclick="closeTableAccount('${table.id}')">
-                        <i class="fas fa-times me-2"></i>
-                        Hesap Kapat (Ödeme Almadan)
-                    </button>
-                    <small class="text-muted d-block mt-2 text-center">
-                        ⚠️ Dikkat: Bu işlem hesabı kapatır ancak ödeme almaz!
-                    </small>
-                </div>
+           html = `
+            <div class="text-center py-4">
+                <i class="fas fa-utensils fa-4x text-primary mb-3"></i>
+                <h5 class="text-muted mb-3">Masa Boş</h5>
+                <p class="text-muted mb-4">Bu masaya sipariş almak için ürün seçim ekranını açın.</p>
+                <button class="btn btn-primary btn-lg" onclick="startNewOrder('${table.id}')">
+                    <i class="fas fa-plus me-2"></i>Sipariş Al
+                </button>
             </div>
         `;
-            }
+                } else {
+            // Dolu masa - Mevcut kod (sipariş geçmişi ile)
+            // ... mevcut dolu masa kodu aynı kalacak
+            html = generateOccupiedTableHTML(table, orders, totalAmount);
+        }
 
             $('#tableModalBody').html(html);
         }
 
         // Zaman farkı hesaplama
         function getTimeAgo(dateString) {
-            const now = new Date();
-            const openedAt = new Date(dateString);
-            const diffMs = now - openedAt;
-            const diffMins = Math.floor(diffMs / 60000);
-            const diffHours = Math.floor(diffMins / 60);
-
-            if (diffMins < 2) return 'Az önce';
-            if (diffMins < 60) return `${diffMins} dakika önce`;
-            if (diffHours < 24) {
-                const remainMins = diffMins % 60;
-                return remainMins > 0 ? `${diffHours} saat ${remainMins} dakika önce` : `${diffHours} saat önce`;
+            if (!dateString || dateString === 'undefined' || dateString === 'null') {
+                return 'Yeni açıldı';
             }
-            return `${Math.floor(diffHours / 24)} gün`;
+
+            try {
+                const now = new Date();
+                const openedAt = new Date(dateString);
+
+                // Geçersiz tarih kontrolü
+                if (isNaN(openedAt.getTime())) {
+                    return 'Az önce';
+                }
+
+                const diffMs = now - openedAt;
+
+                // Negatif değer kontrolü (gelecek tarih)
+                if (diffMs < 0) {
+                    return 'Az önce';
+                }
+
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMins / 60);
+
+                if (diffMins < 1) return 'Az önce';
+                if (diffMins < 60) return `${diffMins} dk`;
+                if (diffHours < 24) return `${diffHours} sa ${diffMins % 60} dk`;
+
+                const diffDays = Math.floor(diffHours / 24);
+                return `${diffDays} gün`;
+
+            } catch (error) {
+                console.error('Tarih hesaplama hatası:', error, dateString);
+                return 'Az önce';
+            }
         }
 
         // Placeholder yerine gerçek hesap açma
@@ -706,6 +609,136 @@
             });
         }
 
+                // Dolu masa HTML'ini oluşturan fonksiyon (mevcut kodu buraya taşı)
+        function generateOccupiedTableHTML(table, orders, totalAmount) {
+            // Batch'lere göre grupla
+            const batches = {};
+            orders.forEach(order => {
+                if (!batches[order.orderBatchId]) {
+                    batches[order.orderBatchId] = [];
+                }
+                batches[order.orderBatchId].push(order);
+            });
+
+            let html = `
+                <!-- Masa Özeti -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card bg-warning bg-opacity-10 border-warning">
+                            <div class="card-body text-center">
+                                <i class="fas fa-clock fa-2x text-warning mb-2"></i>
+                                <h6 class="text-muted">Açılış Zamanı</h6>
+                                <p class="fw-bold mb-0">${getTimeAgo(orders[0]?.createdAt)}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-info bg-opacity-10 border-info">
+                            <div class="card-body text-center">
+                                <i class="fas fa-shopping-cart fa-2x text-info mb-2"></i>
+                                <h6 class="text-muted">Toplam Ürün</h6>
+                                <p class="fw-bold mb-0">${orders.reduce((sum, order) => sum + order.productQuantity, 0)} adet</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-success bg-opacity-10 border-success">
+                            <div class="card-body text-center">
+                                <i class="fas fa-lira-sign fa-2x text-success mb-2"></i>
+                                <h6 class="text-muted">Toplam Tutar</h6>
+                                <p class="fw-bold mb-0">₺${totalAmount.toFixed(2)}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sipariş Geçmişi - Batch Bazlı -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i class="fas fa-list me-2"></i>Sipariş Geçmişi
+                        </h6>
+                        <button class="btn btn-sm btn-outline-primary" onclick="addNewOrder('${table.id}')">
+                            <i class="fas fa-plus me-1"></i>Ürün Ekle
+                        </button>
+                    </div>
+                    <div class="card-body">
+            `;
+
+            // Her batch için ayrı grup göster
+            Object.keys(batches).forEach((batchId, index) => {
+                const batchOrders = batches[batchId];
+                const batchTime = new Date(batchOrders[0].createdAt).toLocaleString('tr-TR');
+                const batchTotal = batchOrders.reduce((sum, o) => sum + o.totalPrice, 0);
+
+                html += `
+                    <div class="border rounded mb-3 p-3 ${index % 2 === 0 ? 'bg-light' : ''}">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="text-primary mb-0">
+                                <i class="fas fa-clock me-1"></i>
+                                ${batchTime} - ${batchOrders[0].personFullName}
+                            </h6>
+                            <span class="badge bg-success">₺${batchTotal.toFixed(2)}</span>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-sm table-borderless mb-0">
+                `;
+
+                batchOrders.forEach(order => {
+                    html += `
+                        <tr>
+                            <td>${order.productName}</td>
+                            <td><span class="badge bg-primary">${order.productQuantity}</span></td>
+                            <td>₺${order.productPrice.toFixed(2)}</td>
+                            <td class="fw-bold">₺${order.totalPrice.toFixed(2)}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                            </table>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                </div>
+
+                <!-- Ödeme Butonları -->
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <button class="btn btn-success w-100" onclick="processPayment('${table.id}', 'cash', ${totalAmount})">
+                            <i class="fas fa-money-bill-wave me-2"></i>Nakit Ödeme
+                        </button>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-primary w-100" onclick="processPayment('${table.id}', 'card', ${totalAmount})">
+                            <i class="fas fa-credit-card me-2"></i>Kart Ödeme
+                        </button>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-outline-danger w-100" onclick="closeTableAccount('${table.id}')">
+                            <i class="fas fa-times me-2"></i>Hesap Kapat
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            return html;
+        }
+
+        function startNewOrder(tableId) {
+            const tableName = $('#modalTableName').text();
+
+            // Masa modal'ını kapat
+            $('#tableModal').modal('hide');
+
+            // Direkt ürün seçim modal'ını aç
+            openProductSelectionModal(tableId, tableName);
+        }
 
         function closeTableAccount(tableId) {
             if (!confirm('Bu hesabı kapatmak istediğinizden emin misiniz?\n\n⚠️ DİKKAT: Ödeme alınmadan hesap kapatılacak!')) {

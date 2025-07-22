@@ -29,6 +29,7 @@ namespace KufeArtFullAdission.Mvc.Models
     public class OrderInfo
     {
         public Guid Id { get; set; }
+        public Guid OrderBatchId { get; set; }
         public string ShorLabel { get; set; }
         public string ProductName { get; set; }
         public double ProductPrice { get; set; }
