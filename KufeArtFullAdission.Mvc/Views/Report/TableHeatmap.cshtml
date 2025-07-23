@@ -299,9 +299,9 @@
         function loadTableHeatmapData() {
             const startDate = $('#heatmapStartDate').val();
             const endDate = $('#heatmapEndDate').val();
-            
+
             console.log('🔍 Loading heatmap data with dates:', startDate, endDate);
-            
+
             if (!startDate || !endDate) {
                 ToastHelper.warning('Lütfen tarih aralığını seçin!');
                 return;
@@ -315,27 +315,31 @@
                 data: { startDate, endDate },
                 success: function(response) {
                     LoaderHelper.hide();
-                    
+
                     console.log('🔍 Heatmap API Response:', response);
-                    console.log('🔍 Heatmap Response Keys:', Object.keys(response.data || {}));
-                    
+
                     if (response && response.success && response.data) {
                         currentHeatmapData = response.data;
-                        
-                        // ✅ Safe property access
-                        const tableStats = response.data.tableStats || response.data.TableStats || [];
-                        const categoryPerformance = response.data.categoryPerformance || response.data.CategoryPerformance || [];
-                        const dailyOccupancy = response.data.dailyOccupancy || response.data.DailyOccupancy || [];
-                        const timeSlotAnalysis = response.data.timeSlotAnalysis || response.data.TimeSlotAnalysis || [];
-                        
+
+                        // ✅ PROPERTY İSİMLERİNİ KONTROL EDİN
+                        console.log('🔍 Available properties:', Object.keys(response.data));
+
+                        const tableStats = response.data.tableStats || [];
+                        const categoryPerformance = response.data.categoryPerformance || [];
+                        const dailyOccupancy = response.data.dailyOccupancy || []; // ✅ Bu isim
+                        const timeSlotAnalysis = response.data.timeSlotAnalysis || []; // ✅ Bu isim
+
+                        console.log('🔍 Daily occupancy data:', dailyOccupancy);
+                        console.log('🔍 Time slot data:', timeSlotAnalysis);
+
                         updateHeatmapSummaryCards(response.data);
                         renderTableHeatmap(tableStats, 'revenue');
-                        renderTimeHeatmapChart(timeSlotAnalysis);
+                        renderTimeHeatmapChart(timeSlotAnalysis); // ✅ Önce bu
                         renderCategoryPerformanceChart(categoryPerformance);
-                        renderOccupancyTrendChart(dailyOccupancy);
+                        renderOccupancyTrendChart(dailyOccupancy); // ✅ Sonra bu
                         renderOptimizationSuggestions(response.data);
                         renderDetailedStats(tableStats);
-                        
+
                         ToastHelper.success(`Masa verileri yüklendi! ${tableStats.length} masa analiz edildi`);
                     } else {
                         console.error('❌ Heatmap API Error:', response);
@@ -349,7 +353,6 @@
                 }
             });
         }
-
         function updateHeatmapSummaryCards(data) {
             console.log('🔍 updateHeatmapSummaryCards called with:', data);
             

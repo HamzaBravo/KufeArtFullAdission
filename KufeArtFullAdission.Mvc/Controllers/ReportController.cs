@@ -378,61 +378,94 @@ public class ReportController(DBContext _dbContext) : Controller
             startDate = startDate.Date;
             endDate = endDate.Date.AddDays(1).AddSeconds(-1);
 
-            // ✅ TÜM masaları al (aktif olanlar)
+            System.Diagnostics.Debug.WriteLine($"🔍 Heatmap query date range: {startDate} - {endDate}");
+
+            // Raw veri kontrolü
+            var rawTableData = await (from h in _dbContext.AddtionHistories
+                                      join t in _dbContext.Tables on h.TableId equals t.Id
+                                      where h.CreatedAt >= startDate && h.CreatedAt <= endDate && t.IsActive
+                                      select new
+                                      {
+                                          TableId = t.Id,
+                                          TableName = t.Name,
+                                          Category = t.Category,
+                                          TotalPrice = h.TotalPrice,
+                                          AddionStatusId = h.AddionStatusId,
+                                          CreatedAt = h.CreatedAt
+                                      })
+                                     .ToListAsync();
+
+            System.Diagnostics.Debug.WriteLine($"🔍 Raw table data count: {rawTableData.Count}");
+
+            // Günlük masa kullanımı - DEBUG eklendi
+            var dailyTableUsage = rawTableData
+                .GroupBy(x => x.CreatedAt.Date)
+                .Select(g => new
+                {
+                    date = g.Key.ToString("yyyy-MM-dd"),
+                    activeTables = g.Select(x => x.TableId).Distinct().Count(),
+                    totalOrders = g.Count(),
+                    totalRevenue = g.Sum(x => x.TotalPrice)
+                })
+                .OrderBy(d => d.date)
+                .ToList();
+
+            System.Diagnostics.Debug.WriteLine($"🔍 Daily table usage count: {dailyTableUsage.Count}");
+            dailyTableUsage.ForEach(d => System.Diagnostics.Debug.WriteLine($"   Date: {d.date}, Tables: {d.activeTables}, Orders: {d.totalOrders}"));
+
+            // Saatlik masa yoğunluğu - DEBUG eklendi
+            var timeSlotAnalysis = rawTableData
+                .GroupBy(x => x.CreatedAt.Hour)
+                .Select(g => new
+                {
+                    hour = g.Key,
+                    totalActivity = g.Count(),
+                    activeTables = g.Select(x => x.TableId).Distinct().Count(),
+                    avgRevenue = g.Average(x => x.TotalPrice),
+                    totalRevenue = g.Sum(x => x.TotalPrice)
+                })
+                .OrderBy(h => h.hour)
+                .ToList();
+
+            System.Diagnostics.Debug.WriteLine($"🔍 Time slot analysis count: {timeSlotAnalysis.Count}");
+            timeSlotAnalysis.ForEach(t => System.Diagnostics.Debug.WriteLine($"   Hour: {t.hour}, Activity: {t.totalActivity}, Tables: {t.activeTables}"));
+
+            // Diğer hesaplamalar...
             var allTables = await _dbContext.Tables
                 .Where(t => t.IsActive)
                 .Select(t => new { t.Id, t.Name, t.Category })
                 .ToListAsync();
 
-            // ✅ Kullanılan masalar için veri al
-            var usedTableStats = await (from h in _dbContext.AddtionHistories
-                                        join t in _dbContext.Tables on h.TableId equals t.Id
-                                        where h.CreatedAt >= startDate && h.CreatedAt <= endDate && t.IsActive
-                                        group h by new { t.Id, t.Name, t.Category } into g
-                                        select new
-                                        {
-                                            tableId = g.Key.Id,
-                                            tableName = g.Key.Name,
-                                            category = g.Key.Category,
-                                            totalRevenue = g.Sum(h => h.TotalPrice),
-                                            orderCount = g.Count(),
-                                            uniqueCustomers = g.Select(h => h.AddionStatusId).Distinct().Count(),
-                                            avgOrderValue = g.Average(h => h.TotalPrice),
-                                            firstOrderTime = g.Min(h => h.CreatedAt),
-                                            lastOrderTime = g.Max(h => h.CreatedAt)
-                                        })
-                                       .ToListAsync();
-
-            // ✅ TÜM masalar için birleşik liste oluştur (kullanılan + kullanılmayan)
+            // tableStats hesaplaması...
             var allTableStats = allTables.Select(table =>
             {
-                var usedData = usedTableStats.FirstOrDefault(u => u.tableId == table.Id);
+                var hasData = rawTableData.Any(r => r.TableId == table.Id);
 
-                if (usedData != null)
+                if (hasData)
                 {
-                    // Kullanılan masa
-                    var avgSessionDuration = usedData.firstOrderTime != usedData.lastOrderTime
-                        ? (usedData.lastOrderTime - usedData.firstOrderTime).TotalMinutes
-                        : 30.0;
+                    var tableData = rawTableData.Where(r => r.TableId == table.Id).ToList();
+                    var totalRevenue = tableData.Sum(r => r.TotalPrice);
+                    var orderCount = tableData.Count();
+                    var uniqueCustomers = tableData.Select(r => r.AddionStatusId).Distinct().Count();
+                    var avgOrderValue = tableData.Average(r => r.TotalPrice);
 
                     return new
                     {
                         tableId = table.Id,
                         tableName = table.Name,
                         category = table.Category,
-                        totalRevenue = usedData.totalRevenue,
-                        orderCount = usedData.orderCount,
-                        uniqueCustomers = usedData.uniqueCustomers,
-                        avgOrderValue = usedData.avgOrderValue,
-                        avgSessionDuration = avgSessionDuration,
+                        totalRevenue = totalRevenue,
+                        orderCount = orderCount,
+                        uniqueCustomers = uniqueCustomers,
+                        avgOrderValue = avgOrderValue,
+                        avgSessionDuration = 30.0, // Basitleştirildi
                         isUsed = true,
-                        performanceScore = CalculatePerformanceScore(usedData.totalRevenue, usedData.orderCount, avgSessionDuration),
-                        suggestions = GenerateTableSuggestions(table.Name, usedData.totalRevenue, usedData.orderCount, avgSessionDuration, true)
+                        performanceScore = CalculatePerformanceScore(totalRevenue, orderCount, 30.0),
+                        suggestions = GenerateTableSuggestions(table.Name, totalRevenue, orderCount, 30.0, true)
                     };
                 }
                 else
                 {
-                    // Kullanılmayan masa
                     return new
                     {
                         tableId = table.Id,
@@ -453,40 +486,29 @@ public class ReportController(DBContext _dbContext) : Controller
             .ThenByDescending(t => t.totalRevenue)
             .ToList();
 
-            // Diğer hesaplamalar aynı...
-            var categoryPerformance = allTableStats
-                .Where(t => t.isUsed)
-                .GroupBy(t => t.category)
-                .Select(g => new
-                {
-                    category = g.Key,
-                    tableCount = g.Count(),
-                    totalRevenue = g.Sum(t => t.totalRevenue),
-                    avgRevenuePerTable = g.Average(t => t.totalRevenue),
-                    totalOrders = g.Sum(t => t.orderCount),
-                    avgSessionDuration = g.Average(t => t.avgSessionDuration)
-                })
-                .OrderByDescending(c => c.totalRevenue)
-                .ToList();
-
-            return new
+            var result = new
             {
-                tableStats = allTableStats, // ✅ Artık tüm masalar dahil
-                categoryPerformance = categoryPerformance,
-                // ... diğer veriler aynı
+                tableStats = allTableStats,
+                categoryPerformance = new List<object>(), // Geçici olarak boş
+                dailyOccupancy = dailyTableUsage, // ✅ Bu isim çok önemli!
+                timeSlotAnalysis = timeSlotAnalysis, // ✅ Bu isim çok önemli!
                 summary = new
                 {
                     totalTables = allTables.Count,
                     usedTables = allTableStats.Count(t => t.isUsed),
                     unusedTables = allTableStats.Count(t => !t.isUsed),
-                    utilizationRate = allTables.Count > 0 ? (double)allTableStats.Count(t => t.isUsed) / allTables.Count * 100 : 0,
-                    // ... diğer özet bilgiler
+                    utilizationRate = allTables.Count > 0 ? (double)allTableStats.Count(t => t.isUsed) / allTables.Count * 100 : 0
                 }
             };
+
+            System.Diagnostics.Debug.WriteLine($"🔍 Final result - Daily occupancy: {result.dailyOccupancy.Count()}, Time slots: {result.timeSlotAnalysis.Count()}");
+
+            return result;
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"GetTableHeatmapData Error: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"❌ GetTableHeatmapData Error: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"❌ Stack trace: {ex.StackTrace}");
             throw;
         }
     }
