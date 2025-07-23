@@ -122,11 +122,11 @@
     <div class="row g-4">
         <!-- Ana Isı Haritası -->
         <div class="col-lg-8">
-            <!-- Masa Performans Tablosu -->
+            <!-- Masa Performans Kartları -->
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
-                        <i class="fas fa-table me-2"></i>Masa Performans Sıralaması
+                        <i class="fas fa-th-large me-2"></i>Masa Performans Kartları
                     </h5>
                     <div class="btn-group btn-group-sm" role="group">
                         <input type="radio" class="btn-check" name="sortType" id="sortByRevenue" value="revenue" checked>
@@ -136,12 +136,12 @@
                         <label class="btn btn-outline-warning" for="sortByFreq">Sıklık</label>
 
                         <input type="radio" class="btn-check" name="sortType" id="sortByCustomers" value="customers">
-                        <label class="btn btn-outline-warning" for="sortByCustomers">Müşteri</label>
+                        <label class="btn btn-outline-warning" for="sortByCustomers">Performans</label>
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive" id="heatmapTableContainer">
-                        <div class="text-center py-4">
+                    <div id="heatmapCardsContainer" class="row g-3">
+                        <div class="text-center py-4 w-100">
                             <div class="spinner-border text-warning"></div>
                             <p class="mt-2 text-muted">Masa verileri yükleniyor...</p>
                         </div>
@@ -395,10 +395,10 @@
             }
         }
 
-        function renderTableHeatmap(tableStats, sortType = 'revenue') {
+                function renderTableHeatmap(tableStats, sortType = 'revenue') {
             if (!tableStats || tableStats.length === 0) {
-                $('#heatmapTableContainer').html(`
-                    <div class="text-center py-4 text-muted">
+                $('#heatmapCardsContainer').html(`
+                    <div class="col-12 text-center py-4 text-muted">
                         <i class="fas fa-table fa-3x mb-3 opacity-25"></i>
                         <p>Seçilen tarih aralığında masa verisi bulunamadı</p>
                     </div>
@@ -410,102 +410,148 @@
             let sortedTables = [...tableStats];
             switch(sortType) {
                 case 'revenue':
-                    sortedTables.sort((a, b) => (b.totalRevenue || b.TotalRevenue || 0) - (a.totalRevenue || a.TotalRevenue || 0));
+                    sortedTables.sort((a, b) => (b.totalRevenue || 0) - (a.totalRevenue || 0));
                     break;
                 case 'frequency':
-                    sortedTables.sort((a, b) => (b.orderCount || b.OrderCount || 0) - (a.orderCount || a.OrderCount || 0));
+                    sortedTables.sort((a, b) => (b.orderCount || 0) - (a.orderCount || 0));
                     break;
                 case 'customers':
-                    sortedTables.sort((a, b) => (b.uniqueCustomers || b.UniqueCustomers || 0) - (a.uniqueCustomers || a.UniqueCustomers || 0));
+                    sortedTables.sort((a, b) => (b.performanceScore || 0) - (a.performanceScore || 0));
                     break;
             }
 
-            let html = `
-                <table class="table table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th width="50">🔥</th>
-                            <th>Masa</th>
-                            <th>Kategori</th>
-                            <th class="text-end">Ciro</th>
-                            <th class="text-end">Sipariş</th>
-                            <th class="text-end">Müşteri</th>
-                            <th class="text-end">Ort. Sipariş</th>
-                            <th class="text-end">Performans</th>
-                            <th width="100">Detay</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-
-            const maxRevenue = Math.max(...sortedTables.map(t => t.totalRevenue || t.TotalRevenue || 0));
+            let html = '';
 
             sortedTables.forEach((table, index) => {
-                const tableName = table.tableName || table.TableName || 'Bilinmeyen';
-                const category = table.category || table.Category || 'Diğer';
-                const totalRevenue = table.totalRevenue || table.TotalRevenue || 0;
-                const orderCount = table.orderCount || table.OrderCount || 0;
-                const uniqueCustomers = table.uniqueCustomers || table.UniqueCustomers || 0;
-                const avgOrderValue = table.avgOrderValue || table.AvgOrderValue || 0;
-                const tableId = table.tableId || table.TableId || '';
+                const tableName = table.tableName || 'Bilinmeyen';
+                const category = table.category || 'Diğer';
+                const totalRevenue = table.totalRevenue || 0;
+                const orderCount = table.orderCount || 0;
+                const uniqueCustomers = table.uniqueCustomers || 0;
+                const avgOrderValue = table.avgOrderValue || 0;
+                const performanceScore = table.performanceScore || 0;
+                const isUsed = table.isUsed || false;
+                const suggestions = table.suggestions || [];
 
-                const heatLevel = maxRevenue > 0 ? (totalRevenue / maxRevenue * 100) : 0;
-                const heatClass = heatLevel > 80 ? 'text-danger' : 
-                                heatLevel > 60 ? 'text-warning' : 
-                                heatLevel > 30 ? 'text-info' : 'text-muted';
-                
-                const heatIcon = heatLevel > 80 ? '🔥🔥🔥' : 
-                               heatLevel > 60 ? '🔥🔥' : 
-                               heatLevel > 30 ? '🔥' : '❄️';
+                // Kart renk ve icon belirleme
+                let cardClass, iconClass, heatIcon, badgeClass;
 
-                const rankClass = index < 3 ? 'fw-bold' : '';
-                const rowClass = index === 0 ? 'table-danger' : 
-                               index === 1 ? 'table-warning' : 
-                               index === 2 ? 'table-info' : '';
+                if (!isUsed) {
+                    cardClass = 'border-secondary bg-light';
+                    iconClass = 'text-secondary';
+                    heatIcon = '❄️';
+                    badgeClass = 'bg-secondary';
+                } else if (performanceScore >= 80) {
+                    cardClass = 'border-success bg-success bg-opacity-10';
+                    iconClass = 'text-success';
+                    heatIcon = '🔥🔥🔥';
+                    badgeClass = 'bg-success';
+                } else if (performanceScore >= 60) {
+                    cardClass = 'border-warning bg-warning bg-opacity-10';
+                    iconClass = 'text-warning';
+                    heatIcon = '🔥🔥';
+                    badgeClass = 'bg-warning';
+                } else if (performanceScore >= 30) {
+                    cardClass = 'border-info bg-info bg-opacity-10';
+                    iconClass = 'text-info';
+                    heatIcon = '🔥';
+                    badgeClass = 'bg-info';
+                } else {
+                    cardClass = 'border-danger bg-danger bg-opacity-10';
+                    iconClass = 'text-danger';
+                    heatIcon = '❄️';
+                    badgeClass = 'bg-danger';
+                }
 
                 html += `
-                    <tr class="${rowClass}">
-                        <td class="text-center">
-                            <span class="${heatClass} fs-4">${heatIcon}</span>
-                        </td>
-                        <td>
-                            <strong class="${rankClass}">${tableName}</strong>
-                            ${index < 3 ? `<br><small class="badge bg-success">Top ${index + 1}</small>` : ''}
-                        </td>
-                        <td>
-                            <span class="badge bg-secondary">${category}</span>
-                        </td>
-                        <td class="text-end">
-                            <strong class="text-success">${safeFormatCurrency(totalRevenue)}</strong>
-                        </td>
-                        <td class="text-end">
-                            <span class="badge bg-primary">${orderCount}</span>
-                        </td>
-                        <td class="text-end">
-                            <span class="badge bg-info">${uniqueCustomers}</span>
-                        </td>
-                        <td class="text-end">
-                            ${safeFormatCurrency(avgOrderValue)}
-                        </td>
-                        <td class="text-end">
-                            <div class="progress" style="height: 20px;">
-                                <div class="progress-bar ${heatLevel > 80 ? 'bg-danger' : heatLevel > 60 ? 'bg-warning' : heatLevel > 30 ? 'bg-info' : 'bg-light'}" 
-                                     style="width: ${heatLevel}%">
-                                    ${heatLevel.toFixed(0)}%
+                    <div class="col-xl-3 col-lg-4 col-md-6">
+                        <div class="card ${cardClass} h-100 table-performance-card" style="transition: all 0.3s ease;">
+                            <div class="card-header d-flex justify-content-between align-items-center py-2">
+                                <h6 class="mb-0 fw-bold ${iconClass}">${tableName}</h6>
+                                <div class="d-flex align-items-center">
+                                    <span class="me-2 fs-4">${heatIcon}</span>
+                                    ${index < 3 && isUsed ? `<span class="badge bg-gold">Top ${index + 1}</span>` : ''}
                                 </div>
                             </div>
-                        </td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-warning" onclick="showTableDetail('${tableId}', '${tableName}')">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </td>
-                    </tr>
+
+                            <div class="card-body py-2">
+                                <!-- Kategori -->
+                                <div class="mb-2">
+                                    <span class="badge bg-secondary">${category}</span>
+                                    <span class="badge ${badgeClass} ms-1">${performanceScore} puan</span>
+                                </div>
+
+                                <!-- Ana Metrikler -->
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <div class="text-center p-2 rounded bg-white bg-opacity-50">
+                                            <div class="fw-bold text-success">${safeFormatCurrency(totalRevenue)}</div>
+                                            <small class="text-muted">Ciro</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="text-center p-2 rounded bg-white bg-opacity-50">
+                                            <div class="fw-bold text-primary">${orderCount}</div>
+                                            <small class="text-muted">Sipariş</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Ek Bilgiler -->
+                                ${isUsed ? `
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <div class="text-center">
+                                                <small class="text-muted">Müşteri</small>
+                                                <div class="fw-bold">${uniqueCustomers}</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="text-center">
+                                                <small class="text-muted">Ort. Sipariş</small>
+                                                <div class="fw-bold">${safeFormatCurrency(avgOrderValue)}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ` : `
+                                    <div class="text-center py-2 mb-3">
+                                        <i class="fas fa-exclamation-triangle text-warning fa-2x"></i>
+                                        <div class="text-muted mt-1">Kullanılmamış</div>
+                                    </div>
+                                `}
+
+                                <!-- Öneriler -->
+                                <div class="suggestions-container">
+                                    <h6 class="mb-2">
+                                        <i class="fas fa-lightbulb me-1 text-warning"></i>
+                                        <small>Öneriler:</small>
+                                    </h6>
+                                    <div class="suggestions-list" style="max-height: 120px; overflow-y: auto;">
+                                        ${suggestions.map(suggestion => `
+                                            <div class="suggestion-item mb-1">
+                                                <small class="text-muted">• ${suggestion}</small>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card-footer py-2 bg-transparent">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <button class="btn btn-outline-warning btn-sm" onclick="showTableDetail('${table.tableId}', '${tableName}')">
+                                        <i class="fas fa-eye me-1"></i>Detay
+                                    </button>
+                                    <small class="text-muted">
+                                        ${isUsed ? `Performans: ${performanceScore}/100` : 'Hiç kullanılmamış'}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 `;
             });
 
-            html += '</tbody></table>';
-            $('#heatmapTableContainer').html(html);
+            $('#heatmapCardsContainer').html(html);
         }
 
         // Devam eden fonksiyonlar...

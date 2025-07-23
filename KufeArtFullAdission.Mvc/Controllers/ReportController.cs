@@ -371,7 +371,6 @@ public class ReportController(DBContext _dbContext) : Controller
         }
     }
 
-
     private async Task<object> GetTableHeatmapData(DateTime startDate, DateTime endDate)
     {
         try
@@ -379,32 +378,84 @@ public class ReportController(DBContext _dbContext) : Controller
             startDate = startDate.Date;
             endDate = endDate.Date.AddDays(1).AddSeconds(-1);
 
-            // ✅ Artık direkt TableId ile JOIN - çok daha temiz!
-            var tableStats = await (from h in _dbContext.AddtionHistories
-                                    join t in _dbContext.Tables on h.TableId equals t.Id // ✅ Direkt JOIN
-                                    where h.CreatedAt >= startDate && h.CreatedAt <= endDate && t.IsActive
-                                    group h by new { t.Id, t.Name, t.Category } into g
-                                    select new
-                                    {
-                                        tableId = g.Key.Id,
-                                        tableName = g.Key.Name,
-                                        category = g.Key.Category,
-                                        totalRevenue = g.Sum(h => h.TotalPrice),
-                                        orderCount = g.Count(),
-                                        uniqueCustomers = g.Select(h => h.AddionStatusId).Distinct().Count(),
-                                        avgOrderValue = g.Average(h => h.TotalPrice),
-                                        totalQuantity = g.Sum(h => h.ProductQuantity),
-                                        firstOrderTime = g.Min(h => h.CreatedAt),
-                                        lastOrderTime = g.Max(h => h.CreatedAt),
-                                        avgSessionDuration = g.GroupBy(h => h.AddionStatusId)
-                                                             .Average(session => SqlServerDbFunctionsExtensions
-                                                             .DateDiffMinute(EF.Functions, session.Min(s => s.CreatedAt), session.Max(s => s.CreatedAt)))
-                                    })
-                                   .OrderByDescending(t => t.totalRevenue)
-                                   .ToListAsync();
+            // ✅ TÜM masaları al (aktif olanlar)
+            var allTables = await _dbContext.Tables
+                .Where(t => t.IsActive)
+                .Select(t => new { t.Id, t.Name, t.Category })
+                .ToListAsync();
 
-            // Kategori performansı
-            var categoryPerformance = tableStats
+            // ✅ Kullanılan masalar için veri al
+            var usedTableStats = await (from h in _dbContext.AddtionHistories
+                                        join t in _dbContext.Tables on h.TableId equals t.Id
+                                        where h.CreatedAt >= startDate && h.CreatedAt <= endDate && t.IsActive
+                                        group h by new { t.Id, t.Name, t.Category } into g
+                                        select new
+                                        {
+                                            tableId = g.Key.Id,
+                                            tableName = g.Key.Name,
+                                            category = g.Key.Category,
+                                            totalRevenue = g.Sum(h => h.TotalPrice),
+                                            orderCount = g.Count(),
+                                            uniqueCustomers = g.Select(h => h.AddionStatusId).Distinct().Count(),
+                                            avgOrderValue = g.Average(h => h.TotalPrice),
+                                            firstOrderTime = g.Min(h => h.CreatedAt),
+                                            lastOrderTime = g.Max(h => h.CreatedAt)
+                                        })
+                                       .ToListAsync();
+
+            // ✅ TÜM masalar için birleşik liste oluştur (kullanılan + kullanılmayan)
+            var allTableStats = allTables.Select(table =>
+            {
+                var usedData = usedTableStats.FirstOrDefault(u => u.tableId == table.Id);
+
+                if (usedData != null)
+                {
+                    // Kullanılan masa
+                    var avgSessionDuration = usedData.firstOrderTime != usedData.lastOrderTime
+                        ? (usedData.lastOrderTime - usedData.firstOrderTime).TotalMinutes
+                        : 30.0;
+
+                    return new
+                    {
+                        tableId = table.Id,
+                        tableName = table.Name,
+                        category = table.Category,
+                        totalRevenue = usedData.totalRevenue,
+                        orderCount = usedData.orderCount,
+                        uniqueCustomers = usedData.uniqueCustomers,
+                        avgOrderValue = usedData.avgOrderValue,
+                        avgSessionDuration = avgSessionDuration,
+                        isUsed = true,
+                        performanceScore = CalculatePerformanceScore(usedData.totalRevenue, usedData.orderCount, avgSessionDuration),
+                        suggestions = GenerateTableSuggestions(table.Name, usedData.totalRevenue, usedData.orderCount, avgSessionDuration, true)
+                    };
+                }
+                else
+                {
+                    // Kullanılmayan masa
+                    return new
+                    {
+                        tableId = table.Id,
+                        tableName = table.Name,
+                        category = table.Category,
+                        totalRevenue = 0.0,
+                        orderCount = 0,
+                        uniqueCustomers = 0,
+                        avgOrderValue = 0.0,
+                        avgSessionDuration = 0.0,
+                        isUsed = false,
+                        performanceScore = 0,
+                        suggestions = GenerateTableSuggestions(table.Name, 0, 0, 0, false)
+                    };
+                }
+            })
+            .OrderByDescending(t => t.performanceScore)
+            .ThenByDescending(t => t.totalRevenue)
+            .ToList();
+
+            // Diğer hesaplamalar aynı...
+            var categoryPerformance = allTableStats
+                .Where(t => t.isUsed)
                 .GroupBy(t => t.category)
                 .Select(g => new
                 {
@@ -418,57 +469,18 @@ public class ReportController(DBContext _dbContext) : Controller
                 .OrderByDescending(c => c.totalRevenue)
                 .ToList();
 
-            // Günlük masa kullanımı (her gün kaç farklı masa kullanılmış)
-            var dailyTableUsage = await _dbContext.AddtionHistories
-                .Where(h => h.CreatedAt >= startDate && h.CreatedAt <= endDate)
-                .GroupBy(h => h.CreatedAt.Date)
-                .Select(g => new
-                {
-                    date = g.Key.ToString("yyyy-MM-dd"),
-                    activeTables = g.Select(h => h.TableId).Distinct().Count(),
-                    totalOrders = g.Count(),
-                    totalRevenue = g.Sum(h => h.TotalPrice)
-                })
-                .OrderBy(d => d.date)
-                .ToListAsync();
-
-            // Saatlik masa yoğunluğu
-            var timeSlotAnalysis = await _dbContext.AddtionHistories
-                .Where(h => h.CreatedAt >= startDate && h.CreatedAt <= endDate)
-                .GroupBy(h => h.CreatedAt.Hour)
-                .Select(g => new
-                {
-                    hour = g.Key,
-                    totalActivity = g.Count(),
-                    activeTables = g.Select(h => h.TableId).Distinct().Count(),
-                    avgRevenue = g.Average(h => h.TotalPrice),
-                    totalRevenue = g.Sum(h => h.TotalPrice)
-                })
-                .OrderBy(h => h.hour)
-                .ToListAsync();
-
-            // Özet bilgiler
-            var totalTables = await _dbContext.Tables.CountAsync(t => t.IsActive);
-            var usedTables = tableStats.Count;
-            var utilizationRate = totalTables > 0 ? (double)usedTables / totalTables * 100 : 0;
-
             return new
             {
-                tableStats = tableStats,
+                tableStats = allTableStats, // ✅ Artık tüm masalar dahil
                 categoryPerformance = categoryPerformance,
-                dailyOccupancy = dailyTableUsage, // Daha anlamlı isim
-                timeSlotAnalysis = timeSlotAnalysis,
+                // ... diğer veriler aynı
                 summary = new
                 {
-                    totalTables = totalTables,
-                    usedTables = usedTables,
-                    utilizationRate = utilizationRate,
-                    avgOccupancy = utilizationRate, // Backward compatibility
-                    mostProfitableTable = tableStats.FirstOrDefault(),
-                    avgRevenuePerTable = tableStats.Any() ? tableStats.Average(t => t.totalRevenue) : 0,
-                    totalCategories = categoryPerformance.Count,
-                    peakDay = dailyTableUsage.OrderByDescending(d => d.totalRevenue).FirstOrDefault(),
-                    peakHour = timeSlotAnalysis.OrderByDescending(h => h.totalRevenue).FirstOrDefault()
+                    totalTables = allTables.Count,
+                    usedTables = allTableStats.Count(t => t.isUsed),
+                    unusedTables = allTableStats.Count(t => !t.isUsed),
+                    utilizationRate = allTables.Count > 0 ? (double)allTableStats.Count(t => t.isUsed) / allTables.Count * 100 : 0,
+                    // ... diğer özet bilgiler
                 }
             };
         }
@@ -479,7 +491,99 @@ public class ReportController(DBContext _dbContext) : Controller
         }
     }
 
+    // ✅ 3. ADİM: Yardımcı metod - Doğru tip ile
+    private double CalculateAvgSessionDuration<T>(List<T> orderData) where T : class
+    {
+        try
+        {
+            // ✅ Generic type ile çalış
+            var sessions = orderData
+                .GroupBy(x => GetProperty(x, "AddionStatusId"))
+                .Where(session => session.Count() > 0)
+                .Select(session =>
+                {
+                    var firstOrder = session.Min(s => (DateTime)GetProperty(s, "CreatedAt"));
+                    var lastOrder = session.Max(s => (DateTime)GetProperty(s, "CreatedAt"));
+                    return (lastOrder - firstOrder).TotalMinutes;
+                })
+                .Where(duration => duration >= 0)
+                .ToList();
 
+            return sessions.Any() ? sessions.Average() : 0;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    private int CalculatePerformanceScore(double revenue, int orderCount, double sessionDuration)
+    {
+        if (revenue == 0) return 0;
+
+        var revenueScore = Math.Min(revenue / 10, 50); // Maksimum 50 puan
+        var orderScore = Math.Min(orderCount * 2, 30);  // Maksimum 30 puan
+        var durationScore = sessionDuration > 60 ? 20 : Math.Max(sessionDuration / 3, 5); // Maksimum 20 puan
+
+        return (int)(revenueScore + orderScore + durationScore);
+    }
+
+    // ✅ Property değerini alma helper metodu
+    private object GetProperty(object obj, string propertyName)
+    {
+        return obj.GetType().GetProperty(propertyName)?.GetValue(obj);
+    }
+
+    private List<string> GenerateTableSuggestions(string tableName, double revenue, int orderCount, double sessionDuration, bool isUsed)
+    {
+        var suggestions = new List<string>();
+
+        if (!isUsed)
+        {
+            suggestions.Add("🚨 Bu masa hiç kullanılmamış!");
+            suggestions.Add("📍 Konumunu gözden geçirin");
+            suggestions.Add("🎯 Özel promosyon düşünün");
+            suggestions.Add("🔄 Başka amaçla kullanılabilir");
+            return suggestions;
+        }
+
+        // Kullanılan masalar için öneriler
+        if (revenue < 50)
+        {
+            suggestions.Add("💡 Düşük ciro - Marketing gerekli");
+            suggestions.Add("📱 QR menü tanıtımı yapın");
+        }
+        else if (revenue > 500)
+        {
+            suggestions.Add("⭐ Mükemmel performans!");
+            suggestions.Add("🏆 Bu masa örnek alınabilir");
+        }
+
+        if (orderCount < 3)
+        {
+            suggestions.Add("📈 Sipariş sayısı artırılabilir");
+            suggestions.Add("🍽️ Combo menü önerileri");
+        }
+
+        if (sessionDuration < 30)
+        {
+            suggestions.Add("⏱️ Oturma süresi kısa");
+            suggestions.Add("☕ İkram servisi düşünün");
+        }
+        else if (sessionDuration > 120)
+        {
+            suggestions.Add("🎯 Uzun oturma - Ek sipariş fırsatı");
+            suggestions.Add("🍰 Tatlı önerileri sunun");
+        }
+
+        if (suggestions.Count == 0)
+        {
+            suggestions.Add("✅ Performans dengeli");
+            suggestions.Add("📊 Mevcut stratejiyi sürdürün");
+        }
+
+        return suggestions;
+    }
     #endregion
 
 

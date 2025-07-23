@@ -33,3 +33,37 @@
 .toast-icon {
     font-size: 1.2rem;
 }
+/* Masa Performans Kartları */
+.table-performance-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+}
+
+.suggestions-container {
+    border-top: 1px solid rgba(0,0,0,0.1);
+    padding-top: 8px;
+}
+
+.suggestion-item {
+    padding: 2px 0;
+    font-size: 0.8rem;
+}
+
+.badge.bg-gold {
+    background-color: #ffd700 !important;
+    color: #000 !important;
+}
+
+.suggestions-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.suggestions-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 2px;
+}
+
+.suggestions-list::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 2px;
+}
