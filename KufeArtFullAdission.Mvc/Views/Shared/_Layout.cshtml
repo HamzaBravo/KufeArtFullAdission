@@ -114,13 +114,13 @@
                                         <a class="dropdown-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "TableHeatmap" ? "active" : "")"
                                            asp-controller="Report" asp-action="TableHeatmap">
                                             <i class="fas fa-fire me-2"></i>Masa Isı Haritası
-                                            <span class="badge bg-warning ms-2">Yoğunluk</span>
+                                            <span class="badge bg-warning ms-2">🔥 HOT</span>
                                         </a>
                                     </li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
                                         <h6 class="dropdown-header">
-                                            <i class="fas fa-calendar me-1"></i>Zaman Bazlı Raporlar
+                                            <i class="fas fa-calendar me-1"></i>Hızlı Raporlar
                                         </h6>
                                     </li>
                                     <li>
@@ -140,9 +140,15 @@
                                     </li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
-                                        <a class="dropdown-item" href="#" onclick="openCustomReport()">
+                                        <a class="dropdown-item" href="#" onclick="ToastHelper.info('Gelişmiş özellikler yakında!')">
                                             <i class="fas fa-cog me-2"></i>Özel Rapor Oluştur
                                             <span class="badge bg-primary ms-2">Pro</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="ToastHelper.info('Excel export yakında!')">
+                                            <i class="fas fa-file-excel me-2"></i>Excel Raporu
+                                            <span class="badge bg-success ms-2">Excel</span>
                                         </a>
                                     </li>
                                 </ul>

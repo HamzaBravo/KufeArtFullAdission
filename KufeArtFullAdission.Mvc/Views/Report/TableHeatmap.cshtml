@@ -1,0 +1,1077 @@
+﻿@* Views/Report/TableHeatmap.cshtml *@
+@{
+    ViewData["Title"] = "Masa Isı Haritası";
+}
+
+<div class="container-fluid">
+    <!-- Başlık -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="fw-bold text-dark">
+                <i class="fas fa-fire me-2"></i>Masa Isı Haritası
+                <small class="text-muted fs-6">Masa performansı ve doluluk analizi</small>
+            </h2>
+        </div>
+        <div class="col-md-4">
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Raporlara Dön
+            </a>
+        </div>
+    </div>
+
+    <!-- Tarih Filtreleri -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form id="heatmapDateFilterForm" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Başlangıç Tarihi</label>
+                    <input type="date" class="form-control" id="heatmapStartDate" value="@ViewBag.StartDate">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Bitiş Tarihi</label>
+                    <input type="date" class="form-control" id="heatmapEndDate" value="@ViewBag.EndDate">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Analiz Türü</label>
+                    <select class="form-select" id="heatmapAnalysisType">
+                        <option value="revenue">Ciro Bazlı</option>
+                        <option value="frequency">Kullanım Sıklığı</option>
+                        <option value="duration">Oturma Süresi</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-warning w-100">
+                        <i class="fas fa-fire me-2"></i>Analiz Et
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Özet Kartları -->
+    <div class="row g-3 mb-4" id="heatmapSummaryCards">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm heatmap-summary-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted mb-1">En Popüler Masa</h6>
+                            <h3 class="mb-0 fw-bold text-danger" id="hotestTable">-</h3>
+                            <small class="text-muted" id="hotestTableRevenue">₺0</small>
+                        </div>
+                        <div class="text-danger opacity-75">
+                            <i class="fas fa-fire fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm heatmap-summary-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted mb-1">Ortalama Doluluk</h6>
+                            <h3 class="mb-0 fw-bold text-warning" id="avgOccupancy">0%</h3>
+                            <small class="text-muted" id="occupancyTrend">-</small>
+                        </div>
+                        <div class="text-warning opacity-75">
+                            <i class="fas fa-chart-pie fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm heatmap-summary-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted mb-1">En İyi Kategori</h6>
+                            <h3 class="mb-0 fw-bold text-success" id="bestCategory">-</h3>
+                            <small class="text-muted" id="bestCategoryMetric">₺0</small>
+                        </div>
+                        <div class="text-success opacity-75">
+                            <i class="fas fa-trophy fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm heatmap-summary-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted mb-1">Yoğun Saat</h6>
+                            <h3 class="mb-0 fw-bold text-info" id="peakHour">-</h3>
+                            <small class="text-muted" id="peakHourActivity">0 aktivite</small>
+                        </div>
+                        <div class="text-info opacity-75">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Ana Isı Haritası -->
+        <div class="col-lg-8">
+            <!-- Masa Performans Tablosu -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-table me-2"></i>Masa Performans Sıralaması
+                    </h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <input type="radio" class="btn-check" name="sortType" id="sortByRevenue" value="revenue" checked>
+                        <label class="btn btn-outline-warning" for="sortByRevenue">Ciro</label>
+
+                        <input type="radio" class="btn-check" name="sortType" id="sortByFreq" value="frequency">
+                        <label class="btn btn-outline-warning" for="sortByFreq">Sıklık</label>
+
+                        <input type="radio" class="btn-check" name="sortType" id="sortByCustomers" value="customers">
+                        <label class="btn btn-outline-warning" for="sortByCustomers">Müşteri</label>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive" id="heatmapTableContainer">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-warning"></div>
+                            <p class="mt-2 text-muted">Masa verileri yükleniyor...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Saatlik Yoğunluk Haritası -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>Saatlik Yoğunluk Haritası
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="timeHeatmapChart" height="120"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Yan Panel -->
+        <div class="col-lg-4">
+            <!-- Kategori Performansı -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-layer-group me-2"></i>Kategori Performansı
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="categoryPerformanceChart" height="250"></canvas>
+                </div>
+            </div>
+
+            <!-- Günlük Doluluk Trendi -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>Doluluk Trendi
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="occupancyTrendChart" height="200"></canvas>
+                </div>
+            </div>
+
+            <!-- Optimizasyon Önerileri -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>Optimizasyon Önerileri
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="optimizationSuggestions">
+                        <div class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detaylı İstatistikler -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Detaylı Masa İstatistikleri
+                    </h5>
+                    <button class="btn btn-outline-warning btn-sm" onclick="exportHeatmapData()">
+                        <i class="fas fa-download me-1"></i>Rapor İndir
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive" id="detailedStatsContainer">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-warning"></div>
+                            <p class="mt-2 text-muted">Detaylı istatistikler yükleniyor...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Masa Detay Modal -->
+<div class="modal fade" id="tableDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-chair me-2"></i>
+                    <span id="modalTableName">Masa Detayı</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalTableContent">
+                <!-- Detay içerik AJAX ile yüklenecek -->
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        // ✅ SAFE FORMATTING FONKSİYONLARI
+        function safeFormatNumber(value, decimals = 2, locale = 'tr-TR') {
+            if (value === null || value === undefined || isNaN(value)) {
+                return '0' + (decimals > 0 ? '.' + '0'.repeat(decimals) : '');
+            }
+            
+            const num = parseFloat(value);
+            if (isNaN(num)) {
+                return '0' + (decimals > 0 ? '.' + '0'.repeat(decimals) : '');
+            }
+            
+            return num.toLocaleString(locale, { 
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals 
+            });
+        }
+
+        function safeFormatCurrency(value, locale = 'tr-TR') {
+            return '₺' + safeFormatNumber(value, 2, locale);
+        }
+
+        // Global değişkenler
+        let timeHeatmapChart = null;
+        let categoryPerformanceChart = null;
+        let occupancyTrendChart = null;
+        let currentHeatmapData = null;
+
+        $(document).ready(function() {
+            loadTableHeatmapData();
+            
+            $('#heatmapDateFilterForm').on('submit', function(e) {
+                e.preventDefault();
+                loadTableHeatmapData();
+            });
+
+            // Sıralama türü değişikliği
+            $('input[name="sortType"]').on('change', function() {
+                if (currentHeatmapData) {
+                    renderTableHeatmap(currentHeatmapData.tableStats || [], $(this).val());
+                }
+            });
+        });
+
+        function loadTableHeatmapData() {
+            const startDate = $('#heatmapStartDate').val();
+            const endDate = $('#heatmapEndDate').val();
+            
+            console.log('🔍 Loading heatmap data with dates:', startDate, endDate);
+            
+            if (!startDate || !endDate) {
+                ToastHelper.warning('Lütfen tarih aralığını seçin!');
+                return;
+            }
+
+            LoaderHelper.show('Masa verileri analiz ediliyor...');
+
+            $.ajax({
+                url: '@Url.Action("GetTableHeatmapApi", "Report")',
+                method: 'GET',
+                data: { startDate, endDate },
+                success: function(response) {
+                    LoaderHelper.hide();
+                    
+                    console.log('🔍 Heatmap API Response:', response);
+                    console.log('🔍 Heatmap Response Keys:', Object.keys(response.data || {}));
+                    
+                    if (response && response.success && response.data) {
+                        currentHeatmapData = response.data;
+                        
+                        // ✅ Safe property access
+                        const tableStats = response.data.tableStats || response.data.TableStats || [];
+                        const categoryPerformance = response.data.categoryPerformance || response.data.CategoryPerformance || [];
+                        const dailyOccupancy = response.data.dailyOccupancy || response.data.DailyOccupancy || [];
+                        const timeSlotAnalysis = response.data.timeSlotAnalysis || response.data.TimeSlotAnalysis || [];
+                        
+                        updateHeatmapSummaryCards(response.data);
+                        renderTableHeatmap(tableStats, 'revenue');
+                        renderTimeHeatmapChart(timeSlotAnalysis);
+                        renderCategoryPerformanceChart(categoryPerformance);
+                        renderOccupancyTrendChart(dailyOccupancy);
+                        renderOptimizationSuggestions(response.data);
+                        renderDetailedStats(tableStats);
+                        
+                        ToastHelper.success(`Masa verileri yüklendi! ${tableStats.length} masa analiz edildi`);
+                    } else {
+                        console.error('❌ Heatmap API Error:', response);
+                        ToastHelper.error('Veriler yüklenemedi: ' + (response?.message || 'Bilinmeyen hata'));
+                    }
+                },
+                error: function(xhr, status, error) {
+                    LoaderHelper.hide();
+                    console.error('❌ Heatmap AJAX Error:', { xhr, status, error });
+                    ToastHelper.error('Bağlantı hatası: ' + error);
+                }
+            });
+        }
+
+        function updateHeatmapSummaryCards(data) {
+            console.log('🔍 updateHeatmapSummaryCards called with:', data);
+            
+            const summary = data?.summary || data?.Summary || {};
+            const tableStats = data?.tableStats || data?.TableStats || [];
+            const timeSlotAnalysis = data?.timeSlotAnalysis || data?.TimeSlotAnalysis || [];
+            const categoryPerformance = data?.categoryPerformance || data?.CategoryPerformance || [];
+
+            // En popüler masa
+            const hotestTable = tableStats.length > 0 ? tableStats[0] : null;
+            if (hotestTable) {
+                $('#hotestTable').text(hotestTable.tableName || hotestTable.TableName || 'Bilinmeyen');
+                $('#hotestTableRevenue').text(safeFormatCurrency(hotestTable.totalRevenue || hotestTable.TotalRevenue || 0));
+            } else {
+                $('#hotestTable').text('Veri yok');
+                $('#hotestTableRevenue').text('₺0');
+            }
+
+            // Ortalama doluluk (basit hesaplama)
+            const avgOccupancy = summary?.avgOccupancy || 0;
+            $('#avgOccupancy').text(avgOccupancy.toFixed(1) + '%');
+
+            // En iyi kategori
+            const bestCategory = categoryPerformance.length > 0 ? categoryPerformance[0] : null;
+            if (bestCategory) {
+                $('#bestCategory').text(bestCategory.category || bestCategory.Category || 'Bilinmeyen');
+                $('#bestCategoryMetric').text(safeFormatCurrency(bestCategory.totalRevenue || bestCategory.TotalRevenue || 0));
+            } else {
+                $('#bestCategory').text('Veri yok');
+                $('#bestCategoryMetric').text('₺0');
+            }
+
+            // Yoğun saat
+            const peakHour = timeSlotAnalysis.length > 0 ? 
+                timeSlotAnalysis.sort((a, b) => (b.totalActivity || b.TotalActivity || 0) - (a.totalActivity || a.TotalActivity || 0))[0] : null;
+            if (peakHour) {
+                const hour = peakHour.hour || peakHour.Hour || 0;
+                $('#peakHour').text(hour + ':00');
+                $('#peakHourActivity').text((peakHour.totalActivity || peakHour.TotalActivity || 0) + ' aktivite');
+            } else {
+                $('#peakHour').text('Veri yok');
+                $('#peakHourActivity').text('0 aktivite');
+            }
+        }
+
+        function renderTableHeatmap(tableStats, sortType = 'revenue') {
+            if (!tableStats || tableStats.length === 0) {
+                $('#heatmapTableContainer').html(`
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-table fa-3x mb-3 opacity-25"></i>
+                        <p>Seçilen tarih aralığında masa verisi bulunamadı</p>
+                    </div>
+                `);
+                return;
+            }
+
+            // Sıralamaya göre düzenle
+            let sortedTables = [...tableStats];
+            switch(sortType) {
+                case 'revenue':
+                    sortedTables.sort((a, b) => (b.totalRevenue || b.TotalRevenue || 0) - (a.totalRevenue || a.TotalRevenue || 0));
+                    break;
+                case 'frequency':
+                    sortedTables.sort((a, b) => (b.orderCount || b.OrderCount || 0) - (a.orderCount || a.OrderCount || 0));
+                    break;
+                case 'customers':
+                    sortedTables.sort((a, b) => (b.uniqueCustomers || b.UniqueCustomers || 0) - (a.uniqueCustomers || a.UniqueCustomers || 0));
+                    break;
+            }
+
+            let html = `
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th width="50">🔥</th>
+                            <th>Masa</th>
+                            <th>Kategori</th>
+                            <th class="text-end">Ciro</th>
+                            <th class="text-end">Sipariş</th>
+                            <th class="text-end">Müşteri</th>
+                            <th class="text-end">Ort. Sipariş</th>
+                            <th class="text-end">Performans</th>
+                            <th width="100">Detay</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            const maxRevenue = Math.max(...sortedTables.map(t => t.totalRevenue || t.TotalRevenue || 0));
+
+            sortedTables.forEach((table, index) => {
+                const tableName = table.tableName || table.TableName || 'Bilinmeyen';
+                const category = table.category || table.Category || 'Diğer';
+                const totalRevenue = table.totalRevenue || table.TotalRevenue || 0;
+                const orderCount = table.orderCount || table.OrderCount || 0;
+                const uniqueCustomers = table.uniqueCustomers || table.UniqueCustomers || 0;
+                const avgOrderValue = table.avgOrderValue || table.AvgOrderValue || 0;
+                const tableId = table.tableId || table.TableId || '';
+
+                const heatLevel = maxRevenue > 0 ? (totalRevenue / maxRevenue * 100) : 0;
+                const heatClass = heatLevel > 80 ? 'text-danger' : 
+                                heatLevel > 60 ? 'text-warning' : 
+                                heatLevel > 30 ? 'text-info' : 'text-muted';
+                
+                const heatIcon = heatLevel > 80 ? '🔥🔥🔥' : 
+                               heatLevel > 60 ? '🔥🔥' : 
+                               heatLevel > 30 ? '🔥' : '❄️';
+
+                const rankClass = index < 3 ? 'fw-bold' : '';
+                const rowClass = index === 0 ? 'table-danger' : 
+                               index === 1 ? 'table-warning' : 
+                               index === 2 ? 'table-info' : '';
+
+                html += `
+                    <tr class="${rowClass}">
+                        <td class="text-center">
+                            <span class="${heatClass} fs-4">${heatIcon}</span>
+                        </td>
+                        <td>
+                            <strong class="${rankClass}">${tableName}</strong>
+                            ${index < 3 ? `<br><small class="badge bg-success">Top ${index + 1}</small>` : ''}
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">${category}</span>
+                        </td>
+                        <td class="text-end">
+                            <strong class="text-success">${safeFormatCurrency(totalRevenue)}</strong>
+                        </td>
+                        <td class="text-end">
+                            <span class="badge bg-primary">${orderCount}</span>
+                        </td>
+                        <td class="text-end">
+                            <span class="badge bg-info">${uniqueCustomers}</span>
+                        </td>
+                        <td class="text-end">
+                            ${safeFormatCurrency(avgOrderValue)}
+                        </td>
+                        <td class="text-end">
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar ${heatLevel > 80 ? 'bg-danger' : heatLevel > 60 ? 'bg-warning' : heatLevel > 30 ? 'bg-info' : 'bg-light'}" 
+                                     style="width: ${heatLevel}%">
+                                    ${heatLevel.toFixed(0)}%
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-warning" onclick="showTableDetail('${tableId}', '${tableName}')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            $('#heatmapTableContainer').html(html);
+        }
+
+        // Devam eden fonksiyonlar...
+        function renderTimeHeatmapChart(timeSlotData) {
+            const ctx = document.getElementById('timeHeatmapChart').getContext('2d');
+            
+            if (timeHeatmapChart) {
+                timeHeatmapChart.destroy();
+            }
+
+            if (!timeSlotData || timeSlotData.length === 0) {
+                console.warn('No time slot data available');
+                return;
+            }
+
+            // 24 saatlik tam veri oluştur
+            const fullTimeSlotData = Array.from({length: 24}, (_, i) => {
+                const hourData = timeSlotData.find(h => (h.hour || h.Hour) === i);
+                return {
+                    Hour: i,
+                    TotalActivity: hourData ? (hourData.totalActivity || hourData.TotalActivity || 0) : 0
+                };
+            });
+
+            timeHeatmapChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: fullTimeSlotData.map(h => h.Hour + ':00'),
+                    datasets: [{
+                        label: 'Masa Aktivitesi',
+                        data: fullTimeSlotData.map(h => h.TotalActivity),
+                        backgroundColor: fullTimeSlotData.map(h => {
+                            if (h.TotalActivity === 0) return 'rgba(200, 200, 200, 0.3)';
+                            if (h.TotalActivity < 5) return 'rgba(54, 162, 235, 0.6)';
+                            if (h.TotalActivity < 15) return 'rgba(255, 206, 86, 0.8)';
+                            return 'rgba(255, 99, 132, 0.8)';
+                        }),
+                        borderColor: 'rgba(255, 193, 7, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Saatlik Masa Aktivite Yoğunluğu'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + ' aktivite';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderCategoryPerformanceChart(categoryData) {
+            const ctx = document.getElementById('categoryPerformanceChart').getContext('2d');
+            
+            if (categoryPerformanceChart) {
+                categoryPerformanceChart.destroy();
+            }
+
+            if (!categoryData || categoryData.length === 0) {
+                console.warn('No category performance data available');
+                return;
+            }
+
+            categoryPerformanceChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: categoryData.map(c => c.category || c.Category || 'Bilinmeyen'),
+                    datasets: [{
+                        data: categoryData.map(c => c.totalRevenue || c.TotalRevenue || 0),
+                        backgroundColor: [
+                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+                            '#9966FF', '#FF9F40'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.raw / total) * 100).toFixed(1);
+                                    return `${context.label}: ${safeFormatCurrency(context.raw)} (%${percentage})`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderOccupancyTrendChart(dailyOccupancyData) {
+            const ctx = document.getElementById('occupancyTrendChart').getContext('2d');
+            
+            if (occupancyTrendChart) {
+                occupancyTrendChart.destroy();
+            }
+
+            if (!dailyOccupancyData || dailyOccupancyData.length === 0) {
+                console.warn('No daily occupancy data available');
+                return;
+            }
+
+            occupancyTrendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dailyOccupancyData.map(d => {
+                        const dateStr = d.date || d.Date;
+                        try {
+                            return new Date(dateStr).toLocaleDateString('tr-TR', { month: 'short', day: 'numeric' });
+                        } catch (error) {
+                            return dateStr;
+                        }
+                    }),
+                    datasets: [{
+                        label: 'Aktif Masa Sayısı',
+                        data: dailyOccupancyData.map(d => d.activeTables || d.ActiveTables || 0),
+                        borderColor: 'rgba(255, 193, 7, 1)',
+                        backgroundColor: 'rgba(255, 193, 7, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                             display: false},
+                        title: {
+                            display: true,
+                            text: 'Günlük Masa Doluluk Trendi'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + ' masa';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderOptimizationSuggestions(data) {
+            const tableStats = data?.tableStats || data?.TableStats || [];
+            const timeSlotAnalysis = data?.timeSlotAnalysis || data?.TimeSlotAnalysis || [];
+            const categoryPerformance = data?.categoryPerformance || data?.CategoryPerformance || [];
+
+            if (tableStats.length === 0) {
+                $('#optimizationSuggestions').html('<p class="text-muted text-center">Yeterli veri yok</p>');
+                return;
+            }
+
+            let suggestions = [];
+
+            // En düşük performanslı masaları bul
+            const sortedTables = [...tableStats].sort((a, b) =>
+                (a.totalRevenue || a.TotalRevenue || 0) - (b.totalRevenue || b.TotalRevenue || 0));
+
+            if (sortedTables.length > 0) {
+                const worstTable = sortedTables[0];
+                const worstTableRevenue = worstTable.totalRevenue || worstTable.TotalRevenue || 0;
+
+                if (worstTableRevenue < 100) {
+                    suggestions.push({
+                        type: 'warning',
+                        icon: 'fa-exclamation-triangle',
+                        title: 'Düşük Performans',
+                        text: `${worstTable.tableName || worstTable.TableName} masası çok az kullanılıyor. Konumunu değiştirmeyi düşünün.`
+                    });
+                }
+            }
+
+            // Yoğun saatleri analiz et
+            if (timeSlotAnalysis.length > 0) {
+                const peakHours = timeSlotAnalysis
+                    .filter(t => (t.totalActivity || t.TotalActivity || 0) > 10)
+                    .sort((a, b) => (b.totalActivity || b.TotalActivity || 0) - (a.totalActivity || a.TotalActivity || 0));
+
+                if (peakHours.length > 0) {
+                    const peakHour = peakHours[0];
+                    suggestions.push({
+                        type: 'info',
+                        icon: 'fa-clock',
+                        title: 'Yoğun Saat',
+                        text: `${peakHour.hour || peakHour.Hour}:00 saatinde en yoğun. Bu saatte ekstra personel düşünün.`
+                    });
+                }
+            }
+
+            // Kategori analizi
+            if (categoryPerformance.length > 1) {
+                const bestCategory = categoryPerformance[0];
+                const worstCategory = categoryPerformance[categoryPerformance.length - 1];
+
+                const bestRevenue = bestCategory.totalRevenue || bestCategory.TotalRevenue || 0;
+                const worstRevenue = worstCategory.totalRevenue || worstCategory.TotalRevenue || 0;
+
+                if (bestRevenue > worstRevenue * 2) {
+                    suggestions.push({
+                        type: 'success',
+                        icon: 'fa-lightbulb',
+                        title: 'Kategori Optimizasyonu',
+                        text: `${bestCategory.category || bestCategory.Category} kategorisi çok başarılı. ${worstCategory.category || worstCategory.Category} kategorisindeki masaları buraya yaklaştırın.`
+                    });
+                }
+            }
+
+            // Genel öneriler
+            const totalTables = tableStats.length;
+            const activeTables = tableStats.filter(t => (t.orderCount || t.OrderCount || 0) > 0).length;
+            const utilizationRate = totalTables > 0 ? (activeTables / totalTables * 100) : 0;
+
+            if (utilizationRate < 50) {
+                suggestions.push({
+                    type: 'warning',
+                    icon: 'fa-chart-line',
+                    title: 'Düşük Kullanım',
+                    text: `Masa kullanım oranı %${utilizationRate.toFixed(0)}. Bazı masaları kaldırıp alan genişletmeyi düşünün.`
+                });
+            } else if (utilizationRate > 90) {
+                suggestions.push({
+                    type: 'danger',
+                    icon: 'fa-plus-circle',
+                    title: 'Yüksek Talep',
+                    text: `Masa kullanım oranı %${utilizationRate.toFixed(0)}. Ek masa eklemeyi değerlendirin.`
+                });
+            }
+
+            // Önerileri render et
+            let html = '';
+            if (suggestions.length === 0) {
+                html = '<div class="alert alert-success"><i class="fas fa-check me-2"></i>Masa düzeniniz optimal görünüyor!</div>';
+            } else {
+                suggestions.forEach(suggestion => {
+                    const alertClass = suggestion.type === 'success' ? 'alert-success' :
+                                     suggestion.type === 'warning' ? 'alert-warning' :
+                                     suggestion.type === 'danger' ? 'alert-danger' : 'alert-info';
+
+                    html += `
+                        <div class="alert ${alertClass} alert-dismissible">
+                            <i class="fas ${suggestion.icon} me-2"></i>
+                            <strong>${suggestion.title}:</strong><br>
+                            <small>${suggestion.text}</small>
+                        </div>
+                    `;
+                });
+            }
+
+            $('#optimizationSuggestions').html(html);
+        }
+
+        function renderDetailedStats(tableStats) {
+            if (!tableStats || tableStats.length === 0) {
+                $('#detailedStatsContainer').html(`
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-table fa-3x mb-3 opacity-25"></i>
+                        <p>Seçilen tarih aralığında masa verisi bulunamadı</p>
+                    </div>
+                `);
+                return;
+            }
+
+            let html = `
+                <table class="table table-sm table-striped">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Masa</th>
+                            <th>Kategori</th>
+                            <th class="text-end">Toplam Ciro</th>
+                            <th class="text-end">Sipariş Sayısı</th>
+                            <th class="text-end">Ortalama Sipariş</th>
+                            <th class="text-end">Müşteri Sayısı</th>
+                            <th class="text-end">Müşteri/Sipariş</th>
+                            <th class="text-end">Ciro/Müşteri</th>
+                            <th class="text-end">Verimlilik</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            const sortedStats = [...tableStats].sort((a, b) =>
+                (b.totalRevenue || b.TotalRevenue || 0) - (a.totalRevenue || a.TotalRevenue || 0));
+
+            sortedStats.forEach(table => {
+                const tableName = table.tableName || table.TableName || 'Bilinmeyen';
+                const category = table.category || table.Category || 'Diğer';
+                const totalRevenue = table.totalRevenue || table.TotalRevenue || 0;
+                const orderCount = table.orderCount || table.OrderCount || 0;
+                const uniqueCustomers = table.uniqueCustomers || table.UniqueCustomers || 0;
+                const avgOrderValue = table.avgOrderValue || table.AvgOrderValue || 0;
+
+                const customerPerOrder = orderCount > 0 ? (uniqueCustomers / orderCount) : 0;
+                const revenuePerCustomer = uniqueCustomers > 0 ? (totalRevenue / uniqueCustomers) : 0;
+                const efficiency = orderCount > 0 ? (totalRevenue / orderCount) : 0;
+
+                html += `
+                    <tr>
+                        <td><strong>${tableName}</strong></td>
+                        <td><span class="badge bg-secondary">${category}</span></td>
+                        <td class="text-end fw-bold text-success">${safeFormatCurrency(totalRevenue)}</td>
+                        <td class="text-end">${orderCount}</td>
+                        <td class="text-end">${safeFormatCurrency(avgOrderValue)}</td>
+                        <td class="text-end">${uniqueCustomers}</td>
+                        <td class="text-end">${customerPerOrder.toFixed(2)}</td>
+                        <td class="text-end">${safeFormatCurrency(revenuePerCustomer)}</td>
+                        <td class="text-end">
+                            <span class="badge ${efficiency > 100 ? 'bg-success' : efficiency > 50 ? 'bg-warning' : 'bg-danger'}">
+                                ${efficiency.toFixed(0)}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            $('#detailedStatsContainer').html(html);
+        }
+
+        function showTableDetail(tableId, tableName) {
+            $('#modalTableName').text(tableName + ' - Detaylı Analiz');
+            $('#modalTableContent').html(`
+                <div class="text-center py-4">
+                    <div class="spinner-border"></div>
+                    <p class="mt-2">Masa detayları yükleniyor...</p>
+                </div>
+            `);
+
+            const modal = new bootstrap.Modal(document.getElementById('tableDetailModal'));
+            modal.show();
+
+            // Masa detay verilerini getir
+            loadTableDetailData(tableId, tableName);
+        }
+
+        function loadTableDetailData(tableId, tableName) {
+            const tableData = currentHeatmapData?.tableStats?.find(t =>
+                (t.tableId || t.TableId) === tableId) ||
+                currentHeatmapData?.TableStats?.find(t =>
+                (t.tableId || t.TableId) === tableId);
+
+            if (!tableData) {
+                $('#modalTableContent').html('<div class="alert alert-warning">Masa verisi bulunamadı</div>');
+                return;
+            }
+
+            const totalRevenue = tableData.totalRevenue || tableData.TotalRevenue || 0;
+            const orderCount = tableData.orderCount || tableData.OrderCount || 0;
+            const uniqueCustomers = tableData.uniqueCustomers || tableData.UniqueCustomers || 0;
+            const avgOrderValue = tableData.avgOrderValue || tableData.AvgOrderValue || 0;
+            const category = tableData.category || tableData.Category || 'Bilinmeyen';
+
+            const efficiency = orderCount > 0 ? (totalRevenue / orderCount) : 0;
+            const customerSatisfaction = uniqueCustomers > 0 ? (totalRevenue / uniqueCustomers) : 0;
+
+            let html = `
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h3>${safeFormatCurrency(totalRevenue)}</h3>
+                                <p class="mb-0">Toplam Ciro</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h3>${orderCount}</h3>
+                                <p class="mb-0">Toplam Sipariş</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h4 class="text-info">${uniqueCustomers}</h4>
+                                <p class="mb-0 text-muted">Müşteri Sayısı</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h4 class="text-warning">${safeFormatCurrency(avgOrderValue)}</h4>
+                                <p class="mb-0 text-muted">Ortalama Sipariş</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h4 class="text-danger">${category}</h4>
+                                <p class="mb-0 text-muted">Kategori</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Performans Metrikleri</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Masa Verimliliği:</strong><br>
+                                <div class="progress mt-2 mb-3">
+                                    <div class="progress-bar ${efficiency > 100 ? 'bg-success' : efficiency > 50 ? 'bg-warning' : 'bg-danger'}"
+                                         style="width: ${Math.min(efficiency, 200)}%">
+                                        ${efficiency.toFixed(0)}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Müşteri Memnuniyeti:</strong><br>
+                                <div class="progress mt-2 mb-3">
+                                    <div class="progress-bar bg-info"
+                                         style="width: ${Math.min(customerSatisfaction / 2, 100)}%">
+                                        ${safeFormatCurrency(customerSatisfaction)}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <strong>Öneriler:</strong><br>
+                            ${efficiency < 50 ? '• Bu masa için tanıtım yapılabilir<br>' : ''}
+                            ${orderCount < 5 ? '• Masa konumu gözden geçirilebilir<br>' : ''}
+                            ${uniqueCustomers < 3 ? '• Müşteri çekim stratejileri uygulanabilir<br>' : ''}
+                            ${efficiency > 100 ? '• Mükemmel performans! Bu masa örnek alınabilir<br>' : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            $('#modalTableContent').html(html);
+        }
+
+        function exportHeatmapData() {
+            if (!currentHeatmapData) {
+                ToastHelper.warning('Önce veri yükleyin!');
+                return;
+            }
+
+            const tableStats = currentHeatmapData.tableStats || currentHeatmapData.TableStats || [];
+
+            if (tableStats.length === 0) {
+                ToastHelper.warning('İhraç edilecek masa verisi bulunamadı!');
+                return;
+            }
+
+            // CSV oluştur
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Masa,Kategori,Toplam Ciro,Sipariş Sayısı,Ortalama Sipariş,Müşteri Sayısı,Verimlilik\n";
+
+            tableStats.forEach(table => {
+                const tableName = table.tableName || table.TableName || 'Bilinmeyen';
+                const category = table.category || table.Category || 'Diğer';
+                const totalRevenue = table.totalRevenue || table.TotalRevenue || 0;
+                const orderCount = table.orderCount || table.OrderCount || 0;
+                const avgOrderValue = table.avgOrderValue || table.AvgOrderValue || 0;
+                const uniqueCustomers = table.uniqueCustomers || table.UniqueCustomers || 0;
+                const efficiency = orderCount > 0 ? (totalRevenue / orderCount) : 0;
+
+                csvContent += `${tableName},${category},${totalRevenue},${orderCount},${avgOrderValue},${uniqueCustomers},${efficiency.toFixed(2)}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `masa_isi_haritasi_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            ToastHelper.success('Masa raporu indirildi!');
+        }
+    </script>
+}
+
+<style>
+    .heatmap-summary-card {
+        border-left: 4px solid #ffc107;
+        transition: all 0.3s ease;
+    }
+
+        .heatmap-summary-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+    .btn-check:checked + .btn-outline-warning {
+        background-color: #ffc107;
+        border-color: #ffc107;
+        color: #212529;
+    }
+
+    .progress {
+        height: 8px;
+    }
+
+    .table-danger {
+        background-color: rgba(220, 53, 69, 0.1);
+    }
+
+    .table-warning {
+        background-color: rgba(255, 193, 7, 0.1);
+    }
+
+    .table-info {
+        background-color: rgba(13, 202, 240, 0.1);
+    }
+
+    .heat-indicator {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        margin-right: 5px;
+    }
+
+    .heat-high {
+        background-color: #dc3545;
+    }
+
+    .heat-medium {
+        background-color: #ffc107;
+    }
+
+    .heat-low {
+        background-color: #17a2b8;
+    }
+
+    .heat-none {
+        background-color: #6c757d;
+    }
+</style>

@@ -1,5 +1,6 @@
 ﻿using AppDbContext;
 using KufeArtFullAdission.Entity;
+using KufeArtFullAdission.Mvc.Extensions;
 using KufeArtFullAdission.Mvc.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -101,6 +102,8 @@ public class HomeController(DBContext _dbContext) : Controller
     [HttpGet]
     public async Task<IActionResult> GetTableDetails(Guid tableId)
     {
+        var currentUsername = User.GetFullName();
+
         try
         {
             var table = await _dbContext.Tables.FindAsync(tableId);
@@ -163,7 +166,7 @@ public class HomeController(DBContext _dbContext) : Controller
                     amount = p.Amount,
                     shortLabel = p.ShortLabel,
                     createdAt = p.CreatedAt,
-                    personFullName = "Garson" // TODO: Person tablosundan join edilecek
+                    personFullName = currentUsername // TODO: Person tablosundan join edilecek
                 })
                 .ToListAsync();
 
@@ -305,6 +308,7 @@ public class HomeController(DBContext _dbContext) : Controller
     [HttpPost]
     public async Task<IActionResult> SubmitOrder([FromBody] OrderSubmissionDto orderDto)
     {
+       
         try
         {
             if (orderDto?.Items == null || !orderDto.Items.Any())
@@ -333,8 +337,8 @@ public class HomeController(DBContext _dbContext) : Controller
 
             // Sipariş batch ID'si oluştur
             var batchId = Guid.NewGuid();
-            var currentUserId = Guid.NewGuid(); // TODO: Login sisteminden gelecek
-            var currentUser = "Garson"; // TODO: Login sisteminden gelecek
+            var currentUserId = User.GetUserId(); 
+            var currentUser = User.GetFullName(); 
 
             // Her ürün için sipariş kaydı oluştur
             foreach (var item in orderDto.Items)
@@ -344,7 +348,8 @@ public class HomeController(DBContext _dbContext) : Controller
 
                 var orderHistory = new AddtionHistoryDbEntity
                 {
-                    AddionStatusId = addionStatusId, // ← DOĞRU: AddionStatus kullan
+                    TableId = orderDto.TableId,
+                    AddionStatusId = addionStatusId,
                     OrderBatchId = batchId,
                     ShorLabel = orderDto.WaiterNote,
                     ProductName = product.Name,

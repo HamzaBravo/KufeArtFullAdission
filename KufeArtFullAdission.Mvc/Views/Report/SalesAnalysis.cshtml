@@ -214,10 +214,35 @@
     </div>
 </div>
 
+// Views/Report/SalesAnalysis.cshtml - Script section'ın başına ekleyin
+
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
+        // ✅ SAFE FORMATTING FONKSİYONLARI EKLE
+        function safeFormatNumber(value, decimals = 2, locale = 'tr-TR') {
+            // Güvenli sayı kontrolü
+            if (value === null || value === undefined || isNaN(value)) {
+                return '0' + (decimals > 0 ? '.' + '0'.repeat(decimals) : '');
+            }
+
+            const num = parseFloat(value);
+            if (isNaN(num)) {
+                return '0' + (decimals > 0 ? '.' + '0'.repeat(decimals) : '');
+            }
+
+            return num.toLocaleString(locale, {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals
+            });
+        }
+
+        function safeFormatCurrency(value, locale = 'tr-TR') {
+            return '₺' + safeFormatNumber(value, 2, locale);
+        }
+
+        // Global değişkenler
         let salesTrendChart = null;
         let categoryChart = null;
         let hourlySalesChart = null;
@@ -234,7 +259,7 @@
             // Chart type değişikliği
             $('input[name="chartType"]').on('change', function() {
                 if (currentSalesData) {
-                    renderSalesTrendChart(currentSalesData.DailySales, $(this).val());
+                    renderSalesTrendChart(currentSalesData.dailySales || currentSalesData.DailySales || [], $(this).val());
                 }
             });
         });
@@ -242,6 +267,8 @@
         function loadSalesAnalysisData() {
             const startDate = $('#salesStartDate').val();
             const endDate = $('#salesEndDate').val();
+
+            console.log('🔍 Loading sales data with dates:', startDate, endDate);
 
             if (!startDate || !endDate) {
                 ToastHelper.warning('Lütfen tarih aralığını seçin!');
@@ -257,33 +284,77 @@
                 success: function(response) {
                     LoaderHelper.hide();
 
-                    if (response.success) {
+                    console.log('🔍 Sales API Response:', response);
+                    console.log('🔍 Sales Response Keys:', Object.keys(response.data || {}));
+                    console.log('🔍 Sales Response Data:', JSON.stringify(response.data, null, 2));
+
+                    if (response && response.success && response.data) {
                         currentSalesData = response.data;
+
+                        // ✅ Safe property access
+                        const dailySales = response.data.dailySales || response.data.DailySales || [];
+                        const categoryBreakdown = response.data.categoryBreakdown || response.data.CategoryBreakdown || [];
+                        const topProducts = response.data.topProducts || response.data.TopProducts || [];
+                        const hourlySales = response.data.hourlySales || response.data.HourlySales || [];
+
                         updateSalesSummaryCards(response.data);
-                        renderSalesTrendChart(response.data.DailySales, 'line');
-                        renderCategoryChart(response.data.CategoryBreakdown);
-                        renderHourlySalesChart(response.data.HourlySales);
-                        renderTopProductsList(response.data.TopProducts);
-                        renderSalesTable(response.data.DailySales);
+                        renderSalesTrendChart(dailySales, 'line');
+                        renderCategoryChart(categoryBreakdown);
+                        renderHourlySalesChart(hourlySales);
+                        renderTopProductsList(topProducts);
+                        renderSalesTable(dailySales);
+
+                        ToastHelper.success(`Ciro verileri yüklendi! ${dailySales.length} günlük kayıt`);
                     } else {
-                        ToastHelper.error('Veriler yüklenemedi: ' + response.message);
+                        console.error('❌ Sales API Error:', response);
+                        ToastHelper.error('Veriler yüklenemedi: ' + (response?.message || 'Bilinmeyen hata'));
                     }
                 },
-                error: function() {
+                error: function(xhr, status, error) {
                     LoaderHelper.hide();
-                    ToastHelper.error('Bağlantı hatası!');
+                    console.error('❌ Sales AJAX Error:', { xhr, status, error });
+                    ToastHelper.error('Bağlantı hatası: ' + error);
                 }
             });
         }
 
         function updateSalesSummaryCards(data) {
-            $('#totalRevenueSummary').text('₺' + (data.Summary.TotalRevenue || 0).toLocaleString('tr-TR', {minimumFractionDigits: 2}));
-            $('#totalOrdersSummary').text((data.Summary.TotalOrders || 0).toLocaleString('tr-TR'));
-            $('#avgOrderValue').text('₺' + (data.Summary.TotalRevenue / data.Summary.TotalOrders || 0).toLocaleString('tr-TR', {minimumFractionDigits: 2}));
+            console.log('🔍 updateSalesSummaryCards called with:', data);
 
-            if (data.Summary.BestDay) {
-                $('#bestDay').text(new Date(data.Summary.BestDay.Date).toLocaleDateString('tr-TR', { weekday: 'long' }));
-                $('#bestDayAmount').text('₺' + data.Summary.BestDay.TotalSales.toLocaleString('tr-TR'));
+            // ✅ Safe property access - farklı isimleri dene
+            const summary = data?.summary || data?.Summary || {};
+
+            const totalRevenue = summary?.totalRevenue || summary?.TotalRevenue || 0;
+            const totalOrders = summary?.totalOrders || summary?.TotalOrders || 0;
+            const avgDailyRevenue = summary?.avgDailyRevenue || summary?.AvgDailyRevenue || 0;
+            const bestDay = summary?.bestDay || summary?.BestDay || null;
+
+            console.log('🔍 Summary data:', { totalRevenue, totalOrders, avgDailyRevenue, bestDay });
+
+            $('#totalRevenueSummary').text(safeFormatCurrency(totalRevenue));
+            $('#totalOrdersSummary').text(safeFormatNumber(totalOrders, 0));
+
+            const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+            $('#avgOrderValue').text(safeFormatCurrency(avgOrderValue));
+
+            if (bestDay) {
+                const bestDayDate = bestDay.date || bestDay.Date;
+                const bestDayAmount = bestDay.totalSales || bestDay.TotalSales || 0;
+
+                if (bestDayDate) {
+                    try {
+                        const dayName = new Date(bestDayDate).toLocaleDateString('tr-TR', { weekday: 'long' });
+                        $('#bestDay').text(dayName);
+                        $('#bestDayAmount').text(safeFormatCurrency(bestDayAmount));
+                    } catch (error) {
+                        console.warn('Date parsing error:', bestDayDate);
+                        $('#bestDay').text('Veri hatası');
+                        $('#bestDayAmount').text('₺0');
+                    }
+                }
+            } else {
+                $('#bestDay').text('Veri yok');
+                $('#bestDayAmount').text('₺0');
             }
         }
 
@@ -294,72 +365,107 @@
                 salesTrendChart.destroy();
             }
 
-            if (!dailyData || dailyData.length === 0) return;
+            console.log('🔍 Sales Daily Data:', dailyData);
 
-            const config = {
-                type: chartType === 'area' ? 'line' : chartType,
-                data: {
-                    labels: dailyData.map(d => new Date(d.Date).toLocaleDateString('tr-TR')),
-                    datasets: [{
-                        label: 'Günlük Ciro',
-                        data: dailyData.map(d => d.TotalSales),
-                        backgroundColor: chartType === 'area' ? 'rgba(54, 162, 235, 0.2)' : 'rgba(54, 162, 235, 0.8)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        borderWidth: 2,
-                        fill: chartType === 'area',
-                        tension: 0.4
-                    }, {
-                        label: 'Sipariş Sayısı',
-                        data: dailyData.map(d => d.OrderCount * 10), // Scale için x10
-                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                        borderColor: 'rgba(255, 99, 132, 1)',
-                        borderWidth: 2,
-                        yAxisID: 'y1',
-                        type: 'line',
-                        fill: false
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Günlük Satış Trendi'
-                        },
-                        legend: {
-                            position: 'top'
-                        }
+            if (!dailyData || !Array.isArray(dailyData) || dailyData.length === 0) {
+                console.warn('No sales daily data available');
+
+                salesTrendChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: []
                     },
-                    scales: {
-                        y: {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            ticks: {
-                                callback: function(value) {
-                                    return '₺' + value.toLocaleString('tr-TR');
-                                }
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Günlük Satış Trendi - Veri Bulunamadı'
+                            }
+                        }
+                    }
+                });
+                return;
+            }
+
+            try {
+                const config = {
+                    type: chartType === 'area' ? 'line' : chartType,
+                    data: {
+                        labels: dailyData.map(d => {
+                            const dateStr = d.date || d.Date;
+                            try {
+                                return new Date(dateStr).toLocaleDateString('tr-TR');
+                            } catch (error) {
+                                return dateStr;
+                            }
+                        }),
+                        datasets: [{
+                            label: 'Günlük Ciro',
+                            data: dailyData.map(d => d.totalSales || d.TotalSales || 0),
+                            backgroundColor: chartType === 'area' ? 'rgba(54, 162, 235, 0.2)' : 'rgba(54, 162, 235, 0.8)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 2,
+                            fill: chartType === 'area',
+                            tension: 0.4
+                        }, {
+                            label: 'Sipariş Sayısı',
+                            data: dailyData.map(d => (d.orderCount || d.OrderCount || 0) * 10),
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 2,
+                            yAxisID: 'y1',
+                            type: 'line',
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Günlük Satış Trendi'
+                            },
+                            legend: {
+                                position: 'top'
                             }
                         },
-                        y1: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            grid: {
-                                drawOnChartArea: false,
+                        scales: {
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                ticks: {
+                                    callback: function(value) {
+                                        return safeFormatCurrency(value);
+                                    }
+                                }
                             },
-                            ticks: {
-                                callback: function(value) {
-                                    return Math.round(value / 10) + ' sipariş';
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                grid: {
+                                    drawOnChartArea: false,
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return Math.round(value / 10) + ' sipariş';
+                                    }
                                 }
                             }
                         }
                     }
-                }
-            };
+                };
 
-            salesTrendChart = new Chart(ctx, config);
+                salesTrendChart = new Chart(ctx, config);
+            } catch (error) {
+                console.error('❌ Sales chart error:', error);
+                ToastHelper.error('Grafik oluşturulurken hata oluştu!');
+            }
         }
 
         function renderCategoryChart(categoryData) {
@@ -369,14 +475,17 @@
                 categoryChart.destroy();
             }
 
-            if (!categoryData || categoryData.length === 0) return;
+            if (!categoryData || categoryData.length === 0) {
+                console.warn('No category data available');
+                return;
+            }
 
             categoryChart = new Chart(ctx, {
                 type: 'pie',
                 data: {
-                    labels: categoryData.map(c => c.Category),
+                    labels: categoryData.map(c => c.category || c.Category || 'Bilinmeyen'),
                     datasets: [{
-                        data: categoryData.map(c => c.TotalSales),
+                        data: categoryData.map(c => c.totalSales || c.TotalSales || 0),
                         backgroundColor: [
                             '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
                             '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
@@ -395,7 +504,7 @@
                                 label: function(context) {
                                     const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                     const percentage = ((context.raw / total) * 100).toFixed(1);
-                                    return `${context.label}: ₺${context.raw.toLocaleString('tr-TR')} (%${percentage})`;
+                                    return `${context.label}: ${safeFormatCurrency(context.raw)} (%${percentage})`;
                                 }
                             }
                         }
@@ -411,15 +520,18 @@
                 hourlySalesChart.destroy();
             }
 
-            if (!hourlyData || hourlyData.length === 0) return;
+            if (!hourlyData || hourlyData.length === 0) {
+                console.warn('No hourly data available');
+                return;
+            }
 
             // 24 saatlik tam veri oluştur
             const fullHourlyData = Array.from({length: 24}, (_, i) => {
-                const hourData = hourlyData.find(h => h.Hour === i);
+                const hourData = hourlyData.find(h => (h.hour || h.Hour) === i);
                 return {
                     Hour: i,
-                    TotalSales: hourData ? hourData.TotalSales : 0,
-                    OrderCount: hourData ? hourData.OrderCount : 0
+                    TotalSales: hourData ? (hourData.totalSales || hourData.TotalSales || 0) : 0,
+                    OrderCount: hourData ? (hourData.orderCount || hourData.OrderCount || 0) : 0
                 };
             });
 
@@ -431,7 +543,6 @@
                         label: 'Saatlik Ciro',
                         data: fullHourlyData.map(h => h.TotalSales),
                         backgroundColor: fullHourlyData.map(h => {
-                            // Yoğunluğa göre renk
                             if (h.TotalSales === 0) return 'rgba(200, 200, 200, 0.3)';
                             if (h.TotalSales < 100) return 'rgba(54, 162, 235, 0.6)';
                             if (h.TotalSales < 500) return 'rgba(255, 206, 86, 0.8)';
@@ -454,7 +565,7 @@
                             beginAtZero: true,
                             ticks: {
                                 callback: function(value) {
-                                    return '₺' + value.toLocaleString('tr-TR');
+                                    return safeFormatCurrency(value);
                                 }
                             }
                         }
@@ -474,6 +585,11 @@
                 const rankClass = index < 3 ? 'text-warning' : 'text-muted';
                 const rankIcon = index === 0 ? 'fa-trophy' : (index === 1 ? 'fa-medal' : (index === 2 ? 'fa-award' : 'fa-star'));
 
+                const productName = product.productName || product.ProductName || 'Bilinmeyen';
+                const quantity = product.quantity || product.Quantity || 0;
+                const avgPrice = product.avgPrice || product.AvgPrice || 0;
+                const totalSales = product.totalSales || product.TotalSales || 0;
+
                 html += `
                     <div class="d-flex align-items-center mb-3 p-2 rounded ${index < 3 ? 'bg-light' : ''}">
                         <div class="me-3">
@@ -481,11 +597,11 @@
                             <span class="fw-bold ${rankClass}">${index + 1}</span>
                         </div>
                         <div class="flex-grow-1">
-                            <h6 class="mb-0">${product.ProductName}</h6>
-                            <small class="text-muted">${product.Quantity} adet • ₺${product.AvgPrice.toFixed(2)} ortalama</small>
+                            <h6 class="mb-0">${productName}</h6>
+                            <small class="text-muted">${quantity} adet • ${safeFormatCurrency(avgPrice)} ortalama</small>
                         </div>
                         <div class="text-end">
-                            <strong class="text-success">₺${product.TotalSales.toLocaleString('tr-TR')}</strong>
+                            <strong class="text-success">${safeFormatCurrency(totalSales)}</strong>
                         </div>
                     </div>
                 `;
@@ -520,17 +636,23 @@
                     <tbody>
             `;
 
-            const maxSales = Math.max(...dailyData.map(d => d.TotalSales));
+            const maxSales = Math.max(...dailyData.map(d => d.totalSales || d.TotalSales || 0));
 
             dailyData.forEach(day => {
-                const performancePercentage = (day.TotalSales / maxSales * 100).toFixed(1);
+                const totalSales = day.totalSales || day.TotalSales || 0;
+                const orderCount = day.orderCount || day.OrderCount || 0;
+                const avgOrderValue = day.avgOrderValue || day.AvgOrderValue || 0;
+                const uniqueCustomers = day.uniqueCustomers || day.UniqueCustomers || 0;
+                const dayDate = day.date || day.Date;
+
+                const performancePercentage = maxSales > 0 ? (totalSales / maxSales * 100).toFixed(1) : 0;
                 const performanceClass = performancePercentage > 80 ? 'text-success' :
                                        performancePercentage > 50 ? 'text-warning' : 'text-danger';
 
                 html += `
                     <tr>
                         <td>
-                            <strong>${new Date(day.Date).toLocaleDateString('tr-TR', {
+                            <strong>${new Date(dayDate).toLocaleDateString('tr-TR', {
                                 weekday: 'long',
                                 year: 'numeric',
                                 month: 'long',
@@ -538,16 +660,16 @@
                             })}</strong>
                         </td>
                         <td class="text-end">
-                            <strong class="text-success">₺${day.TotalSales.toLocaleString('tr-TR', {minimumFractionDigits: 2})}</strong>
+                            <strong class="text-success">${safeFormatCurrency(totalSales)}</strong>
                         </td>
                         <td class="text-end">
-                            <span class="badge bg-primary">${day.OrderCount}</span>
+                            <span class="badge bg-primary">${orderCount}</span>
                         </td>
                         <td class="text-end">
-                            ₺${day.AvgOrderValue.toLocaleString('tr-TR', {minimumFractionDigits: 2})}
+                            ${safeFormatCurrency(avgOrderValue)}
                         </td>
                         <td class="text-end">
-                            <span class="badge bg-info">${day.UniqueCustomers}</span>
+                            <span class="badge bg-info">${uniqueCustomers}</span>
                         </td>
                         <td class="text-end">
                             <span class="${performanceClass} fw-bold">${performancePercentage}%</span>
@@ -566,12 +688,25 @@
                 return;
             }
 
+            const dailySales = currentSalesData.dailySales || currentSalesData.DailySales || [];
+
+            if (dailySales.length === 0) {
+                ToastHelper.warning('İhraç edilecek veri bulunamadı!');
+                return;
+            }
+
             // Excel export için basit CSV oluştur
             let csvContent = "data:text/csv;charset=utf-8,";
             csvContent += "Tarih,Ciro,Sipariş Sayısı,Ortalama Sipariş,Müşteri Sayısı\n";
 
-            currentSalesData.DailySales.forEach(day => {
-                csvContent += `${new Date(day.Date).toLocaleDateString('tr-TR')},${day.TotalSales},${day.OrderCount},${day.AvgOrderValue},${day.UniqueCustomers}\n`;
+            dailySales.forEach(day => {
+                const date = day.date || day.Date;
+                const totalSales = day.totalSales || day.TotalSales || 0;
+                const orderCount = day.orderCount || day.OrderCount || 0;
+                const avgOrderValue = day.avgOrderValue || day.AvgOrderValue || 0;
+                const uniqueCustomers = day.uniqueCustomers || day.UniqueCustomers || 0;
+
+                csvContent += `${new Date(date).toLocaleDateString('tr-TR')},${totalSales},${orderCount},${avgOrderValue},${uniqueCustomers}\n`;
             });
 
             const encodedUri = encodeURI(csvContent);

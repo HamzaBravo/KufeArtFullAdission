@@ -143,8 +143,21 @@
         });
 
         function loadQuickStats() {
-            // AJAX ile hızlı istatistikler
-            // Bu API'ları controller'a ekleyeceğiz
+            $.ajax({
+                url: '@Url.Action("GetQuickStatsApi", "Report")',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success && response.data) {
+                        $('#monthlyRevenue').text('₺' + (response.data.monthlyRevenue || 0).toLocaleString('tr-TR'));
+                        $('#activeStaff').text(response.data.activeStaff || 0);
+                        $('#topProduct').text(response.data.topProduct || 'Veri yok');
+                        $('#occupancyRate').text((response.data.occupancyRate || 0) + '%');
+                    }
+                },
+                error: function() {
+                    console.log('Quick stats could not be loaded');
+                }
+            });
         }
     </script>
 }
