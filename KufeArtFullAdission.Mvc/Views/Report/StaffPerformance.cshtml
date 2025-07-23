@@ -1,0 +1,648 @@
+﻿@* Views/Report/StaffPerformance.cshtml *@
+@{
+    ViewData["Title"] = "Personel Performans Analizi";
+}
+
+<div class="container-fluid">
+    <!-- Başlık ve Filtreler -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="fw-bold text-dark">
+                <i class="fas fa-users me-2"></i>Personel Performans Analizi
+                <small class="text-muted fs-6">Garson bazlı satış ve prim hesaplaması</small>
+            </h2>
+        </div>
+        <div class="col-md-4">
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Raporlara Dön
+            </a>
+        </div>
+    </div>
+
+    <!-- Tarih Filtreleri -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form id="dateFilterForm" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Başlangıç Tarihi</label>
+                    <input type="date" class="form-control" id="startDate" value="@ViewBag.StartDate">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Bitiş Tarihi</label>
+                    <input type="date" class="form-control" id="endDate" value="@ViewBag.EndDate">
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter me-2"></i>Filtrele
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Özet Kartları -->
+    <div class="row g-3 mb-4" id="summaryCards">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted mb-1">Toplam Personel</h6>
+                            <h3 class="mb-0 fw-bold text-primary" id="totalStaff">-</h3>
+                        </div>
+                        <div class="text-primary opacity-75">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted mb-1">Toplam Ciro</h6>
+                            <h3 class="mb-0 fw-bold text-success" id="totalRevenue">₺0</h3>
+                        </div>
+                        <div class="text-success opacity-75">
+                            <i class="fas fa-lira-sign fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted mb-1">Ortalama Sipariş/Kişi</h6>
+                            <h3 class="mb-0 fw-bold text-info" id="avgOrdersPerStaff">0</h3>
+                        </div>
+                        <div class="text-info opacity-75">
+                            <i class="fas fa-chart-bar fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted mb-1">En Yüksek Satış</h6>
+                            <h3 class="mb-0 fw-bold text-warning" id="topPerformer">-</h3>
+                        </div>
+                        <div class="text-warning opacity-75">
+                            <i class="fas fa-trophy fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Sol Kolon: Personel Listesi ve Prim Hesaplaması -->
+        <div class="col-lg-8">
+            <!-- Personel Performans Tablosu -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-ranking-star me-2"></i>Personel Sıralaması
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive" id="staffTableContainer">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary"></div>
+                            <p class="mt-2 text-muted">Veriler yükleniyor...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Günlük Trend Grafiği -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>Günlük Satış Trendi
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="dailyTrendChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sağ Kolon: Grafikler -->
+        <div class="col-lg-4">
+            <!-- Personel Dağılım Grafiği -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>Satış Dağılımı
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="staffDistributionChart" height="250"></canvas>
+                </div>
+            </div>
+
+            <!-- En Çok Satan Ürünler (Personel Bazlı) -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-medal me-2"></i>Top Performanslar
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="topPerformances">
+                        <div class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Personel Detay Modal -->
+<div class="modal fade" id="staffDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-circle me-2"></i>
+                    <span id="modalStaffName">Personel Detayı</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalStaffContent">
+                <!-- Detay içerik AJAX ile yüklenecek -->
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+
+    <script>
+        let dailyTrendChart = null;
+        let distributionChart = null;
+        let currentData = null;
+
+        $(document).ready(function() {
+            loadStaffPerformanceData();
+
+            // Form submit
+            $('#dateFilterForm').on('submit', function(e) {
+                e.preventDefault();
+                loadStaffPerformanceData();
+            });
+        });
+
+        function loadStaffPerformanceData() {
+            const startDate = $('#startDate').val();
+            const endDate = $('#endDate').val();
+
+            if (!startDate || !endDate) {
+                ToastHelper.warning('Lütfen tarih aralığını seçin!');
+                return;
+            }
+
+            LoaderHelper.show('Performans verileri analiz ediliyor...');
+
+            $.ajax({
+                url: '@Url.Action("GetStaffPerformanceApi", "Report")',
+                method: 'GET',
+                data: { startDate, endDate },
+                success: function(response) {
+                    LoaderHelper.hide();
+
+                    if (response.success) {
+                        currentData = response.data;
+                        updateSummaryCards(response.data);
+                        renderStaffTable(response.data.StaffSummary);
+                        renderDailyTrendChart(response.data.DailyTrends);
+                        renderDistributionChart(response.data.StaffSummary);
+                        renderTopPerformances(response.data.StaffSummary);
+                    } else {
+                        ToastHelper.error('Veriler yüklenemedi: ' + response.message);
+                    }
+                },
+                error: function() {
+                    LoaderHelper.hide();
+                    ToastHelper.error('Bağlantı hatası!');
+                }
+            });
+        }
+
+        function updateSummaryCards(data) {
+            $('#totalStaff').text(data.TotalStaff || 0);
+            $('#totalRevenue').text('₺' + (data.TotalRevenue || 0).toLocaleString('tr-TR', {minimumFractionDigits: 2}));
+            $('#avgOrdersPerStaff').text(Math.round(data.AvgOrdersPerStaff || 0));
+
+            if (data.StaffSummary && data.StaffSummary.length > 0) {
+                $('#topPerformer').text(data.StaffSummary[0].PersonName);
+            }
+        }
+
+        function renderStaffTable(staffData) {
+            if (!staffData || staffData.length === 0) {
+                $('#staffTableContainer').html(`
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-users fa-3x mb-3 opacity-25"></i>
+                        <p>Seçilen tarih aralığında veri bulunamadı</p>
+                    </div>
+                `);
+                return;
+            }
+
+            let html = `
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th width="50">#</th>
+                            <th>Personel</th>
+                            <th class="text-end">Sipariş</th>
+                            <th class="text-end">Satış</th>
+                            <th class="text-end">Ort. Sipariş</th>
+                            <th class="text-end">Müşteri</th>
+                            <th class="text-end">Prim (%5)</th>
+                            <th width="100">Detay</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            staffData.forEach((staff, index) => {
+                const commission = staff.TotalSales * 0.05; // %5 prim
+                const rankClass = index === 0 ? 'text-warning' : (index === 1 ? 'text-info' : 'text-muted');
+                const rankIcon = index === 0 ? 'fa-trophy' : (index === 1 ? 'fa-medal' : 'fa-award');
+
+                html += `
+                    <tr>
+                        <td>
+                            <i class="fas ${rankIcon} ${rankClass}"></i>
+                            <strong class="${rankClass}">${index + 1}</strong>
+                        </td>
+                        <td>
+                            <strong>${staff.PersonName}</strong>
+                            ${staff.TopSellingProduct ? `<br><small class="text-muted">En çok: ${staff.TopSellingProduct}</small>` : ''}
+                        </td>
+                        <td class="text-end">
+                            <span class="badge bg-primary">${staff.TotalOrders}</span>
+                        </td>
+                        <td class="text-end">
+                            <strong class="text-success">₺${staff.TotalSales.toLocaleString('tr-TR', {minimumFractionDigits: 2})}</strong>
+                        </td>
+                        <td class="text-end">
+                            ₺${staff.AverageOrderValue.toLocaleString('tr-TR', {minimumFractionDigits: 2})}
+                        </td>
+                        <td class="text-end">
+                            <span class="badge bg-info">${staff.UniqueCustomers}</span>
+                        </td>
+                        <td class="text-end">
+                            <strong class="text-warning">₺${commission.toLocaleString('tr-TR', {minimumFractionDigits: 2})}</strong>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="showStaffDetail('${staff.PersonId}', '${staff.PersonName}')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            $('#staffTableContainer').html(html);
+        }
+
+              // Views/Report/StaffPerformance.cshtml içindeki renderDailyTrendChart fonksiyonunu değiştirin
+
+        function renderDailyTrendChart(dailyData) {
+            const ctx = document.getElementById('dailyTrendChart').getContext('2d');
+
+            if (dailyTrendChart) {
+                dailyTrendChart.destroy();
+            }
+
+            // 🔥 VERİ KONTROLÜ EKLE
+            console.log('Daily Data received:', dailyData); // Debug için
+
+            if (!dailyData || !Array.isArray(dailyData) || dailyData.length === 0) {
+                console.warn('No daily data available');
+
+                // Boş grafik göster
+                dailyTrendChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: []
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Günlük Satış Performansı - Veri Bulunamadı'
+                            }
+                        }
+                    }
+                });
+                return;
+            }
+
+            // 🔥 SAFE VERİ İŞLEME
+            try {
+                // Personel isimlerini güvenli şekilde al
+                const staffNames = [...new Set(dailyData
+                    .filter(d => d && d.PersonName) // null/undefined kontrolü
+                    .map(d => d.PersonName))];
+
+                // Tarihleri güvenli şekilde al ve sırala
+                const dates = [...new Set(dailyData
+                    .filter(d => d && d.Date) // null/undefined kontrolü
+                    .map(d => d.Date))]
+                    .sort();
+
+                console.log('Staff Names:', staffNames);
+                console.log('Dates:', dates);
+
+                if (staffNames.length === 0 || dates.length === 0) {
+                    console.warn('No valid staff names or dates found');
+                    return;
+                }
+
+                const datasets = staffNames.map((name, index) => {
+                    const colors = [
+                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+                        '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+                    ];
+
+                    const staffData = dates.map(date => {
+                        const dayData = dailyData.find(d =>
+                            d && d.Date === date && d.PersonName === name
+                        );
+                        return dayData ? (dayData.DailySales || 0) : 0;
+                    });
+
+                    return {
+                        label: name,
+                        data: staffData,
+                        borderColor: colors[index % colors.length],
+                        backgroundColor: colors[index % colors.length] + '20',
+                        fill: false,
+                        tension: 0.4
+                    };
+                });
+
+                // Tarihleri formatla
+                const formattedDates = dates.map(date => {
+                    try {
+                        return new Date(date).toLocaleDateString('tr-TR');
+                    } catch (error) {
+                        console.warn('Date parsing error:', date);
+                        return date; // Fallback olarak string döndür
+                    }
+                });
+
+                dailyTrendChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: formattedDates,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Günlük Satış Performansı'
+                            },
+                            legend: {
+                                position: 'bottom'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '₺' + value.toLocaleString('tr-TR');
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error('Chart rendering error:', error);
+                ToastHelper.error('Grafik oluşturulurken hata oluştu!');
+            }
+        }
+
+        function renderDistributionChart(staffData) {
+            const ctx = document.getElementById('staffDistributionChart').getContext('2d');
+
+            if (distributionChart) {
+                distributionChart.destroy();
+            }
+
+            if (!staffData || staffData.length === 0) return;
+
+            const top5Staff = staffData.slice(0, 5);
+            const others = staffData.slice(5);
+            const othersTotal = others.reduce((sum, staff) => sum + staff.TotalSales, 0);
+
+            const labels = top5Staff.map(s => s.PersonName);
+            const data = top5Staff.map(s => s.TotalSales);
+
+            if (othersTotal > 0) {
+                labels.push('Diğerleri');
+                data.push(othersTotal);
+            }
+
+            distributionChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: [
+                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+                            '#9966FF', '#FF9F40'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.raw / total) * 100).toFixed(1);
+                                    return `${context.label}: ₺${context.raw.toLocaleString('tr-TR')} (%${percentage})`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTopPerformances(staffData) {
+            if (!staffData || staffData.length === 0) {
+                $('#topPerformances').html('<p class="text-muted text-center">Veri bulunamadı</p>');
+                return;
+            }
+
+            const top3 = staffData.slice(0, 3);
+            let html = '';
+
+            top3.forEach((staff, index) => {
+                const badgeClass = index === 0 ? 'bg-warning' : (index === 1 ? 'bg-info' : 'bg-success');
+                const iconClass = index === 0 ? 'fa-trophy' : (index === 1 ? 'fa-medal' : 'fa-award');
+
+                html += `
+                    <div class="d-flex align-items-center mb-3 p-2 rounded bg-light">
+                        <div class="me-3">
+                            <span class="badge ${badgeClass} p-2">
+                                <i class="fas ${iconClass}"></i>
+                            </span>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-0">${staff.PersonName}</h6>
+                            <small class="text-muted">${staff.TotalOrders} sipariş</small>
+                        </div>
+                        <div class="text-end">
+                            <strong class="text-success">₺${staff.TotalSales.toLocaleString('tr-TR')}</strong>
+                        </div>
+                    </div>
+                `;
+            });
+
+            $('#topPerformances').html(html);
+        }
+
+        function showStaffDetail(personId, personName) {
+            $('#modalStaffName').text(personName + ' - Detaylı Analiz');
+            $('#modalStaffContent').html(`
+                <div class="text-center py-4">
+                    <div class="spinner-border"></div>
+                    <p class="mt-2">Detaylar yükleniyor...</p>
+                </div>
+            `);
+
+            const modal = new bootstrap.Modal(document.getElementById('staffDetailModal'));
+            modal.show();
+
+            // Personel detay verilerini getir (bu API'yi controller'a ekleyeceğiz)
+            loadStaffDetailData(personId, personName);
+        }
+
+        function loadStaffDetailData(personId, personName) {
+            const startDate = $('#startDate').val();
+            const endDate = $('#endDate').val();
+
+            // Personel detay verileri için basit bir analiz
+            const staffData = currentData.StaffSummary.find(s => s.PersonId === personId);
+            const dailyData = currentData.DailyTrends.filter(d => d.PersonId === personId);
+
+            if (!staffData) {
+                $('#modalStaffContent').html('<div class="alert alert-warning">Veri bulunamadı</div>');
+                return;
+            }
+
+            const commission = staffData.TotalSales * 0.05;
+            const avgDailySales = dailyData.length > 0 ? staffData.TotalSales / dailyData.length : 0;
+
+            let html = `
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h3>₺${staffData.TotalSales.toLocaleString('tr-TR')}</h3>
+                                <p class="mb-0">Toplam Satış</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h3>₺${commission.toLocaleString('tr-TR')}</h3>
+                                <p class="mb-0">Hesaplanan Prim (%5)</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h4 class="text-info">${staffData.TotalOrders}</h4>
+                                <p class="mb-0 text-muted">Toplam Sipariş</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h4 class="text-warning">${staffData.UniqueCustomers}</h4>
+                                <p class="mb-0 text-muted">Müşteri Sayısı</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h4 class="text-danger">₺${avgDailySales.toLocaleString('tr-TR')}</h4>
+                                <p class="mb-0 text-muted">Günlük Ortalama</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <h6>En Çok Satan Ürün</h6>
+                    <div class="alert alert-info">
+                        <i class="fas fa-star me-2"></i>
+                        ${staffData.TopSellingProduct || 'Veri bulunamadı'}
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <h6>Performans Notları</h6>
+                    <ul class="list-group">
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Sipariş Başına Ortalama</span>
+                            <strong>₺${staffData.AverageOrderValue.toLocaleString('tr-TR')}</strong>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Müşteri Başına Ortalama</span>
+                            <strong>₺${(staffData.TotalSales / staffData.UniqueCustomers).toLocaleString('tr-TR')}</strong>
+                        </li>
+                    </ul>
+                </div>
+            `;
+
+            $('#modalStaffContent').html(html);
+        }
+    </script>
+}

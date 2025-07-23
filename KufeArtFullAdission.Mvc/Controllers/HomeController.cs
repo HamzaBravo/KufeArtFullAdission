@@ -243,13 +243,6 @@ public class HomeController(DBContext _dbContext) : Controller
             if (table == null)
                 return Json(new { success = false, message = "Masa bulunamadı!" });
 
-            // Eski siparişleri sil
-            var existingOrders = await _dbContext.AddtionHistories
-                .Where(h => h.AddionStatusId == tableId)
-                .ToListAsync();
-
-            _dbContext.AddtionHistories.RemoveRange(existingOrders);
-
             // Masa durumunu sıfırla
             table.AddionStatus = null;
 
@@ -492,13 +485,12 @@ public class HomeController(DBContext _dbContext) : Controller
             // Yeni kalan tutarı hesapla
             var newTotalPaid = existingPayments + paymentAmount;
             var newRemainingAmount = Math.Max(0, totalOrderAmount - newTotalPaid);
-            var isFullyPaid = newRemainingAmount <= 0.01; // Küsurat toleransı
+            var isFullyPaid = newRemainingAmount <= 0; // Küsurat toleransı
 
             var shouldCloseAccount = paymentDto.PaymentMode == "full" || isFullyPaid;
 
             if (shouldCloseAccount)
-            {
-                _dbContext.AddtionHistories.RemoveRange(orders);
+            { 
                 table.AddionStatus = null;
                 await _dbContext.SaveChangesAsync();
             }

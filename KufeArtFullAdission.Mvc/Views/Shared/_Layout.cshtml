@@ -27,153 +27,138 @@
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
+                @* Views/Shared/_Layout.cshtml - Navbar menü kısmını değiştirin *@
+
                 <div class="collapse navbar-collapse" id="navbarNav">
                     @if (User.Identity.IsAuthenticated)
                     {
                         <!-- Giriş yapmış kullanıcılar için menü -->
                         <ul class="navbar-nav me-auto">
                             <li class="nav-item">
-                                <a class="nav-link active" asp-controller="Home" asp-action="Index">
-                                    <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" ? "active" : "")"
+                                   asp-controller="Home" asp-action="Index">
+                                    <i class="fas fa-tachometer-alt me-1"></i>Kasa Paneli
                                 </a>
                             </li>
 
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-cogs me-1"></i>Yönetim
-                                </a>
-                                <ul class="dropdown-menu">
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="Table" asp-action="Index">
-                                            <i class="fas fa-chair me-2"></i>Masa Yönetimi
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="Product" asp-action="Index">
-                                            <i class="fas fa-box me-2"></i>Ürün Yönetimi
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="Person" asp-action="Index">
-                                            <i class="fas fa-users me-2"></i>Personel Yönetimi
-                                        </a>
-                                    </li>
-                                </ul>
-                            </li>
+                                <a class="nav-link dropdown-toggle @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Table" ||
+                                                      ViewContext.RouteData.Values["Controller"]?.ToString() == "Product" ||
+                                                      ViewContext.RouteData.Values["Controller"]?.ToString() == "Person" ? "active" : "")"
+                               href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-cogs me-1"></i>Yönetim
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Table" ? "active" : "")"
+                                       asp-controller="Table" asp-action="Index">
+                                        <i class="fas fa-chair me-2"></i>Masa Yönetimi
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Product" ? "active" : "")"
+                                       asp-controller="Product" asp-action="Index">
+                                        <i class="fas fa-box me-2"></i>Ürün Yönetimi
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Person" ? "active" : "")"
+                                       asp-controller="Person" asp-action="Index">
+                                        <i class="fas fa-users me-2"></i>Personel Yönetimi
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="#">
+                                        <i class="fas fa-cog me-2"></i>Sistem Ayarları
+                                        <span class="badge bg-secondary ms-2">Yakında</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
 
+                            <!-- 🎯 YENİ RAPORLAR MENÜSÜ -->
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-chart-bar me-1"></i>Raporlar
+                                <a class="nav-link dropdown-toggle @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Report" ? "active" : "")"
+                                   href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-chart-line me-1"></i>Raporlar & Analiz
                                 </a>
                                 <ul class="dropdown-menu">
                                     <li>
-                                        <a class="dropdown-item" asp-controller="Report" asp-action="Daily">
+                                        <a class="dropdown-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Index" && ViewContext.RouteData.Values["Controller"]?.ToString() == "Report" ? "active" : "")"
+                                           asp-controller="Report" asp-action="Index">
+                                            <i class="fas fa-home me-2"></i>Rapor Dashboard
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <h6 class="dropdown-header">
+                                            <i class="fas fa-chart-bar me-1"></i>Performans Analizi
+                                        </h6>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "StaffPerformance" ? "active" : "")"
+                                           asp-controller="Report" asp-action="StaffPerformance">
+                                            <i class="fas fa-users me-2"></i>Personel Performansı
+                                            <span class="badge bg-success ms-2">Prim</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "SalesAnalysis" ? "active" : "")"
+                                           asp-controller="Report" asp-action="SalesAnalysis">
+                                            <i class="fas fa-chart-area me-2"></i>Ciro Analizi
+                                            <span class="badge bg-info ms-2">Trend</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "TableHeatmap" ? "active" : "")"
+                                           asp-controller="Report" asp-action="TableHeatmap">
+                                            <i class="fas fa-fire me-2"></i>Masa Isı Haritası
+                                            <span class="badge bg-warning ms-2">Yoğunluk</span>
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <h6 class="dropdown-header">
+                                            <i class="fas fa-calendar me-1"></i>Zaman Bazlı Raporlar
+                                        </h6>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="openQuickReport('daily')">
                                             <i class="fas fa-calendar-day me-2"></i>Günlük Rapor
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item" asp-controller="Report" asp-action="Sales">
-                                            <i class="fas fa-chart-line me-2"></i>Satış Raporu
+                                        <a class="dropdown-item" href="#" onclick="openQuickReport('weekly')">
+                                            <i class="fas fa-calendar-week me-2"></i>Haftalık Rapor
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item" asp-controller="Report" asp-action="Tables">
-                                            <i class="fas fa-table me-2"></i>Masa Raporu
+                                        <a class="dropdown-item" href="#" onclick="openQuickReport('monthly')">
+                                            <i class="fas fa-calendar-alt me-2"></i>Aylık Rapor
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="openCustomReport()">
+                                            <i class="fas fa-cog me-2"></i>Özel Rapor Oluştur
+                                            <span class="badge bg-primary ms-2">Pro</span>
                                         </a>
                                     </li>
                                 </ul>
                             </li>
+
+                            <!-- Diğer menüler... -->
                         </ul>
 
-                        <!-- Kullanıcı Menüsü -->
+                        <!-- Kullanıcı Menüsü aynı kalacak -->
                         <ul class="navbar-nav">
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
-                                    @if (!string.IsNullOrEmpty(User.GetProfileImage()))
-                                    {
-                                        <img src="@User.GetProfileImage()" class="rounded-circle me-2"
-                                             style="width: 32px; height: 32px; object-fit: cover;" alt="@User.GetFullName()" />
-                                    }
-                                    else
-                                    {
-                                        <div class="rounded-circle bg-secondary me-2 d-flex align-items-center justify-content-center"
-                                             style="width: 32px; height: 32px;">
-                                            <i class="fas fa-user text-white" style="font-size: 14px;"></i>
-                                        </div>
-                                    }
-                                    <span class="d-none d-md-inline">@User.GetFullName()</span>
-                                    @if (User.IsAdmin())
-                                    {
-                                        <i class="fas fa-crown text-warning ms-1" title="Admin"></i>
-                                    }
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li>
-                                        <div class="dropdown-item-text">
-                                            <div class="d-flex align-items-center">
-                                                @if (!string.IsNullOrEmpty(User.GetProfileImage()))
-                                                {
-                                                    <img src="@User.GetProfileImage()" class="rounded-circle me-3"
-                                                         style="width: 40px; height: 40px; object-fit: cover;" alt="@User.GetFullName()" />
-                                                }
-                                                else
-                                                {
-                                                    <div class="rounded-circle bg-secondary me-3 d-flex align-items-center justify-content-center"
-                                                         style="width: 40px; height: 40px;">
-                                                        <i class="fas fa-user text-white"></i>
-                                                    </div>
-                                                }
-                                                <div>
-                                                    <div class="fw-bold">@User.GetFullName()</div>
-                                                    <small class="text-muted">@User.GetUsername()</small>
-                                                    <br>
-                                                    @if (User.IsAdmin())
-                                                    {
-                                                        <span class="badge bg-danger">
-                                                            <i class="fas fa-crown me-1"></i>Admin
-                                                        </span>
-                                                    }
-                                                    else
-                                                    {
-                                                        <span class="badge bg-primary">
-                                                            <i class="fas fa-user-tie me-1"></i>Garson
-                                                        </span>
-                                                    }
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="Person" asp-action="Edit" asp-route-id="@User.GetUserId()">
-                                            <i class="fas fa-user-edit me-2"></i>Profili Düzenle
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="#">
-                                            <i class="fas fa-cog me-2"></i>Ayarlar
-                                        </a>
-                                    </li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <a class="dropdown-item text-danger" asp-controller="Auth" asp-action="Logout">
-                                            <i class="fas fa-sign-out-alt me-2"></i>Çıkış Yap
-                                        </a>
-                                    </li>
-                                </ul>
-                            </li>
+                            <!-- Mevcut kullanıcı menünüz... -->
                         </ul>
-                    }
+                                        }
                     else
                     {
-                        <!-- Giriş yapmamış kullanıcılar için -->
-                        <ul class="navbar-nav ms-auto">
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Auth" asp-action="Login">
-                                    <i class="fas fa-sign-in-alt me-1"></i>Giriş Yap
-                                </a>
-                            </li>
-                        </ul>
+                        <!-- Giriş yapmamış kullanıcılar için aynı -->
                     }
                 </div>
             </div>
@@ -413,4 +398,37 @@
             });
         </script>
     }
+
+
+    <script>
+        // Hızlı rapor açma fonksiyonları
+        function openQuickReport(type) {
+            const today = new Date();
+            let startDate, endDate;
+
+            switch(type) {
+                case 'daily':
+                    startDate = endDate = today.toISOString().split('T')[0];
+                    break;
+                case 'weekly':
+                    const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
+                    startDate = weekStart.toISOString().split('T')[0];
+                    endDate = new Date().toISOString().split('T')[0];
+                    break;
+                case 'monthly':
+                    startDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+                    endDate = new Date().toISOString().split('T')[0];
+                    break;
+            }
+
+            // Ciro analizi sayfasına git
+            window.location.href = `@Url.Action("SalesAnalysis", "Report")?startDate=${startDate}&endDate=${endDate}`;
+        }
+
+        function openCustomReport() {
+            ToastHelper.info('Özel rapor oluşturucu yakında geliyor!');
+            // Modal açılacak veya yeni sayfaya yönlendirilecek
+        }
+    </script>
 }
+

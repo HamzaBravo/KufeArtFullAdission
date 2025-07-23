@@ -330,3 +330,71 @@ input[list] {
         text-shadow: 0 0 10px #ffc107, 0 0 15px #ffc107;
     }
 }
+
+/* Reports sayfasý için ek stiller */
+.card-hover {
+    transition: all 0.3s ease;
+}
+
+    .card-hover:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+
+/* Chart container responsive */
+.chart-container {
+    position: relative;
+    height: 300px;
+}
+
+/* Modal responsive */
+@media (max-width: 768px) {
+    .modal-lg {
+        max-width: 95%;
+    }
+}
+
+/* Loading states */
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Performance cards */
+.performance-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+}
+
+    .performance-card .card-body {
+        padding: 1.5rem;
+    }
+
+/* Staff ranking */
+.staff-rank-1 {
+    background: linear-gradient(45deg, #FFD700, #FFA500);
+}
+
+.staff-rank-2 {
+    background: linear-gradient(45deg, #C0C0C0, #A0A0A0);
+}
+
+.staff-rank-3 {
+    background: linear-gradient(45deg, #CD7F32, #B8860B);
+}
+
+.staff-rank-1, .staff-rank-2, .staff-rank-3 {
+    color: white;
+    font-weight: bold;
+}

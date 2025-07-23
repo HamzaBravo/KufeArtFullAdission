@@ -1,0 +1,161 @@
+﻿@* Views/Report/Index.cshtml *@
+@{
+    ViewData["Title"] = "Raporlar";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="fw-bold text-dark">
+                <i class="fas fa-chart-line me-2"></i>Raporlar ve Analiz
+                <small class="text-muted fs-6">Detaylı performans analizi</small>
+            </h2>
+        </div>
+    </div>
+
+    <!-- Hızlı Erişim Kartları -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-4 col-md-6">
+            <div class="card border-0 shadow-sm h-100 card-hover">
+                <div class="card-body text-center p-4">
+                    <div class="text-primary mb-3">
+                        <i class="fas fa-users fa-3x"></i>
+                    </div>
+                    <h5 class="card-title">Personel Performansı</h5>
+                    <p class="card-text text-muted">
+                        Garson bazlı satış analizi, prim hesaplamaları ve performans karşılaştırması
+                    </p>
+                    <a asp-action="StaffPerformance" class="btn btn-primary">
+                        <i class="fas fa-chart-bar me-2"></i>Analiz Et
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-6">
+            <div class="card border-0 shadow-sm h-100 card-hover">
+                <div class="card-body text-center p-4">
+                    <div class="text-success mb-3">
+                        <i class="fas fa-chart-line fa-3x"></i>
+                    </div>
+                    <h5 class="card-title">Ciro Analizi</h5>
+                    <p class="card-text text-muted">
+                        Günlük/haftalık ciro, ürün bazlı satışlar ve trend analizi
+                    </p>
+                    <a asp-action="SalesAnalysis" class="btn btn-success">
+                        <i class="fas fa-lira-sign me-2"></i>İncele
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-6">
+            <div class="card border-0 shadow-sm h-100 card-hover">
+                <div class="card-body text-center p-4">
+                    <div class="text-warning mb-3">
+                        <i class="fas fa-fire fa-3x"></i>
+                    </div>
+                    <h5 class="card-title">Masa Isı Haritası</h5>
+                    <p class="card-text text-muted">
+                        Masa performansları, doluluk oranları ve optimizasyon önerileri
+                    </p>
+                    <a asp-action="TableHeatmap" class="btn btn-warning">
+                        <i class="fas fa-table me-2"></i>Görüntüle
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hızlı Özetler -->
+    <div class="row g-3">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Bu Ay Ciro</h6>
+                            <h4 id="monthlyRevenue">₺0</h4>
+                        </div>
+                        <div class="opacity-75">
+                            <i class="fas fa-chart-line fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Aktif Personel</h6>
+                            <h4 id="activeStaff">0</h4>
+                        </div>
+                        <div class="opacity-75">
+                            <i class="fas fa-user-tie fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">En Popüler Ürün</h6>
+                            <h6 id="topProduct">-</h6>
+                        </div>
+                        <div class="opacity-75">
+                            <i class="fas fa-star fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Masa Doluluk</h6>
+                            <h4 id="occupancyRate">0%</h4>
+                        </div>
+                        <div class="opacity-75">
+                            <i class="fas fa-percentage fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Sayfa yüklendiğinde özet verileri getir
+        $(document).ready(function() {
+            loadQuickStats();
+        });
+
+        function loadQuickStats() {
+            // AJAX ile hızlı istatistikler
+            // Bu API'ları controller'a ekleyeceğiz
+        }
+    </script>
+}
+
+<style>
+    .card-hover {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+</style>
