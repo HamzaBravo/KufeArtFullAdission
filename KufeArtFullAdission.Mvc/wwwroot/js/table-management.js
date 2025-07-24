@@ -163,6 +163,10 @@ window.TableManager = {
     },
 
     openTableModal: function (tableId, tableName, isOccupied) {
+        // 🎯 YENİ: TableId'yi modal'a kaydet (sadece bu satırı ekleyin)
+        $('#tableModal').data('current-table-id', tableId);
+
+        // ✅ Gerisi AYNI kalacak - hiçbir değişiklik yapmayın
         $('#modalTableName').text(tableName);
 
         const statusBadge = $('#modalTableStatus');
@@ -258,67 +262,67 @@ window.TableManager = {
         });
 
         let html = `
-        <!-- 🎯 YENİ: Küfe Point Bölümü (Siparişler tab'ının en üstünde) -->
-        <div class="card mb-3 kufe-point-section">
-            <div class="card-header bg-warning text-dark">
-                <h6 class="mb-0">🏆 Küfe Point Sistemi</h6>
-            </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <label class="form-label">Müşteri Telefon Numarası (Opsiyonel)</label>
-                    <div class="input-group">
-                        <input type="tel" id="customerPhoneInput" class="form-control" 
-                               placeholder="05XX XXX XX XX" maxlength="11">
-                        <button type="button" class="btn btn-outline-primary" 
-                                onclick="PaymentManager.checkCustomerPoints()">
-                            Sorgula
-                        </button>
-                    </div>
-                </div>
-                
-                <div id="customerPointsResult" style="display:none;">
-                    <div class="alert alert-info">
-                        <div class="row">
-                            <div class="col-6">
-                                <strong>Mevcut Puan:</strong><br>
-                                <span id="currentPoints" class="text-primary fs-5">0</span>
+                        <!-- 🎯 YENİ: Küfe Point Bölümü (Siparişler tab'ının en üstünde) -->
+                        <div class="card mb-3 kufe-point-section">
+                            <div class="card-header bg-warning text-dark">
+                                <h6 class="mb-0">🏆 Küfe Point Sistemi</h6>
                             </div>
-                            <div class="col-6">
-                                <strong>Kazanacağı Puan:</strong><br>
-                                <span id="willEarnPoints" class="text-success fs-5">0</span>
-                            </div>
-                        </div>
-                        
-                        <div id="pointDiscountSection" style="display:none;" class="mt-3">
-                            <div class="form-check mb-2">
-                                <input type="checkbox" id="usePointsCheckbox" class="form-check-input">
-                                <label for="usePointsCheckbox" class="form-check-label">
-                                    Puan indirimi uygula (Min 5000 puan)
-                                </label>
-                            </div>
-                            
-                            <div id="pointAmountSection" style="display:none;">
-                                <label class="form-label">Kullanılacak Puan:</label>
-                                <input type="number" id="pointsToUse" class="form-control" 
-                                       min="5000" step="100" placeholder="Minimum 5000">
-                                <small class="text-muted">100 puan = 1 TL</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Müşteri Telefon Numarası (Opsiyonel)</label>
+                                    <div class="input-group">
+                                        <input type="tel" id="customerPhoneInput" class="form-control"
+                                               placeholder="05XX XXX XX XX" maxlength="11">
+                                        <button type="button" class="btn btn-outline-primary"
+                                                onclick="PaymentManager.checkCustomerPoints()">
+                                            Sorgula
+                                        </button>
+                                    </div>
+                                </div>
 
-        <!-- ❌ ESKİ: Bu 3 kart'ı KALDIR (açılış zamanı, ürün sayısı, toplam tutar)
-        <div class="row mb-4">
-            <div class="col-md-4">
-                <div class="card bg-warning bg-opacity-10 border-warning">
-                    ...
-                </div>
-            </div>
-            ...
-        </div>
-        -->
+                                <div id="customerPointsResult" style="display:none;">
+                                    <div class="alert alert-info">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <strong>Mevcut Puan:</strong><br>
+                                                <span id="currentPoints" class="text-primary fs-5">0</span>
+                                            </div>
+                                            <div class="col-6">
+                                                <strong>Kazanacağı Puan:</strong><br>
+                                                <span id="willEarnPoints" class="text-success fs-5">0</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- 🎯 YENİ: Basitleştirilmiş indirim butonu -->
+                                        <div id="pointDiscountSection" style="display:none;" class="mt-3">
+                                            <div class="d-grid">
+                                                <button type="button" id="applyPointDiscountBtn" class="btn btn-success">
+                                                    <i class="fas fa-percent me-2"></i>
+                                                    <span id="discountButtonText">Tüm Puanları İndirim Olarak Uygula</span>
+                                                    <br><small id="discountAmount">₺0.00 indirim</small>
+                                                </button>
+                                            </div>
+                                            <div class="text-center mt-2">
+                                                <small class="text-muted">İndirim uygulanırsa tüm mevcut puanlarınız harcanacak</small>
+                                            </div>
+                                        </div>
+
+                                        <!-- 🎯 YENİ: İndirim durumu göstergesi -->
+                                        <div id="discountAppliedIndicator" style="display:none;" class="mt-3">
+                                            <div class="alert alert-success mb-0">
+                                                <i class="fas fa-check-circle me-2"></i>
+                                                <strong>İndirim Uygulandı!</strong><br>
+                                                <span id="appliedDiscountText">0 puan kullanıldı (₺0.00)</span>
+                                                <button type="button" class="btn btn-sm btn-outline-danger float-end"
+                                                        onclick="PaymentManager.cancelPointDiscount()">
+                                                    İptali Et
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
         <!-- ✅ Siparişler listesi (aynı kalacak) -->
     `;

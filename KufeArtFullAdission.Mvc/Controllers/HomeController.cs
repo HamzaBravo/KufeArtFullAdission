@@ -1,5 +1,6 @@
 ﻿using AppDbContext;
 using KufeArtFullAdission.Entity;
+using KufeArtFullAdission.Enums;
 using KufeArtFullAdission.Mvc.Extensions;
 using KufeArtFullAdission.Mvc.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -308,7 +309,7 @@ public class HomeController(DBContext _dbContext) : Controller
     [HttpPost]
     public async Task<IActionResult> SubmitOrder([FromBody] OrderSubmissionDto orderDto)
     {
-       
+
         try
         {
             if (orderDto?.Items == null || !orderDto.Items.Any())
@@ -337,8 +338,8 @@ public class HomeController(DBContext _dbContext) : Controller
 
             // Sipariş batch ID'si oluştur
             var batchId = Guid.NewGuid();
-            var currentUserId = User.GetUserId(); 
-            var currentUser = User.GetFullName(); 
+            var currentUserId = User.GetUserId();
+            var currentUser = User.GetFullName();
 
             // Her ürün için sipariş kaydı oluştur
             foreach (var item in orderDto.Items)
@@ -421,6 +422,8 @@ public class HomeController(DBContext _dbContext) : Controller
     {
         try
         {
+            Console.WriteLine($"🎯 ProcessQuickPayment başladı - Phone: {paymentDto.CustomerPhone}, UsePoints: {paymentDto.UseKufePoints}, RequestedPoints: {paymentDto.RequestedPoints}");
+
             var table = await _dbContext.Tables.FindAsync(paymentDto.TableId);
             if (table == null || !table.AddionStatus.HasValue)
                 return Json(new { success = false, message = "Masa bulunamadı!" });
@@ -432,7 +435,7 @@ public class HomeController(DBContext _dbContext) : Controller
             if (!orders.Any())
                 return Json(new { success = false, message = "Sipariş bulunamadı!" });
 
-            // ✅ MEVCUT ÖDEMELERİ HESAPLA
+            // Mevcut ödemeler ve kalan tutar hesaplaması
             var existingPayments = await _dbContext.Payments
                 .Where(p => p.AddionStatusId == table.AddionStatus)
                 .SumAsync(p => p.Amount);
@@ -440,38 +443,121 @@ public class HomeController(DBContext _dbContext) : Controller
             var totalOrderAmount = orders.Sum(o => o.TotalPrice);
             var remainingAmount = totalOrderAmount - existingPayments;
 
-            // ✅ FAZLA ÖDEME KONTROLÜ
             if (remainingAmount <= 0)
-            {
                 return Json(new { success = false, message = "Bu hesap zaten tamamen ödenmiş!" });
-            }
 
+            // Ödeme tutarı hesaplaması
             double paymentAmount = 0;
-
             if (paymentDto.PaymentMode == "full")
-            {
-                paymentAmount = remainingAmount; // ✅ Kalan tutarı öde (fazlasını değil)
-            }
+                paymentAmount = remainingAmount;
             else if (paymentDto.PaymentMode == "partial")
-            {
                 paymentAmount = paymentDto.CustomAmount;
 
-                // ✅ PARÇALI ÖDEME KONTROLÜ
-                if (paymentAmount > remainingAmount)
+            if (paymentAmount <= 0 || paymentAmount > remainingAmount)
+                return Json(new { success = false, message = "Geçersiz ödeme tutarı!" });
+
+            // 🎯 YENİ: KÜFE POINT İŞLEMLERİ
+            Guid? customerId = null;
+            int totalEarnedPoints = 0;
+            int spentPoints = 0;
+            double pointDiscountAmount = 0;
+            string customerMessage = "";
+
+            // Telefon numarası ile müşteriyi bul (OLUŞTURMA YOK)
+            if (!string.IsNullOrEmpty(paymentDto.CustomerPhone))
+            {
+                Console.WriteLine($"🔍 Müşteri aranıyor: {paymentDto.CustomerPhone}");
+
+                var customer = await _dbContext.Customers
+                    .FirstOrDefaultAsync(c => c.PhoneNumber == paymentDto.CustomerPhone && c.IsActive);
+
+                if (customer == null)
                 {
-                    return Json(new
+                    Console.WriteLine("❌ Müşteri bulunamadı - QR menüden kayıt olmalı");
+                    // Müşteri yoksa sadece sipariş işlemi yapılır, puan işlemi YAPILMAZ
+                    customerMessage = " | Müşteri kayıtlı değil (QR menüden kayıt olabilir)";
+                }
+                else
+                {
+                    Console.WriteLine($"✅ Müşteri bulundu: {customer.Fullname}");
+
+                    // Mevcut müşteri ziyaret sayısını artır
+
+                    customerId = customer.Id;
+
+                    // Bu siparişten kazanılacak puanları hesapla
+                    Console.WriteLine("🎁 Kazanılacak puanlar hesaplanıyor...");
+                    foreach (var order in orders)
                     {
-                        success = false,
-                        message = $"Ödeme tutarı (₺{paymentAmount:F2}) kalan borcu (₺{remainingAmount:F2}) aşıyor!"
-                    });
+                        var product = await _dbContext.Products
+                            .Where(p => p.Name == order.ProductName && p.IsActive)
+                            .FirstOrDefaultAsync();
+
+                        if (product != null && product.HasKufePoints && product.KufePoints > 0)
+                        {
+                            int orderPoints = product.KufePoints * order.ProductQuantity;
+                            totalEarnedPoints += orderPoints;
+                            Console.WriteLine($"➕ {product.Name}: {orderPoints} puan");
+                        }
+                    }
+                    Console.WriteLine($"🎁 Toplam kazanılacak puan: {totalEarnedPoints}");
+
+                    // Puan indirimi kullanılacak mı?
+                    if (paymentDto.UseKufePoints && paymentDto.RequestedPoints > 0)
+                    {
+                        Console.WriteLine($"💰 Puan indirimi uygulanacak: {paymentDto.RequestedPoints} puan");
+
+                        var customerPoints = await _dbContext.CustomerPoints
+                            .FirstOrDefaultAsync(cp => cp.CustomerId == customerId);
+
+                        if (customerPoints != null && customerPoints.TotalPoints >= paymentDto.RequestedPoints)
+                        {
+                            spentPoints = paymentDto.RequestedPoints;
+                            pointDiscountAmount = spentPoints / 100.0; // 100 puan = 1 TL
+
+                            Console.WriteLine($"💸 {spentPoints} puan harcanacak, ₺{pointDiscountAmount:F2} indirim");
+
+                            // Ödeme tutarından düş
+                            paymentAmount = Math.Max(0, paymentAmount - pointDiscountAmount);
+
+                            // Puan bakiyesini güncelle
+                            customerPoints.TotalPoints -= spentPoints;
+
+                            // Puan harcama kaydı
+                            var spentTransaction = new KufePointTransactionDbEntity
+                            {
+                                CustomerId = customerId.Value,
+                                Type = PointType.Spent,
+                                Points = -spentPoints,
+                                Description = $"Ödeme indirimi - ₺{pointDiscountAmount:F2}"
+                            };
+                            await _dbContext.KufePointTransactions.AddAsync(spentTransaction);
+
+                            customerMessage += $" | {spentPoints} puan kullandı (₺{pointDiscountAmount:F2})";
+                        }
+                        else
+                        {
+                            Console.WriteLine("⚠️ Yetersiz puan veya müşteri puan hesabı yok");
+                            customerMessage += " | Yetersiz puan";
+                        }
+                    }
+
+                    // Kazanılan puanları ekle (sadece kayıtlı müşteriler için)
+                    if (totalEarnedPoints > 0)
+                    {
+                        Console.WriteLine($"➕ {totalEarnedPoints} puan hesaba ekleniyor");
+                        await UpdateCustomerPoints(customerId.Value, table.AddionStatus, totalEarnedPoints, "Sipariş puanı");
+                        customerMessage += $" | {totalEarnedPoints} puan kazandı";
+                    }
                 }
             }
-
-            // ✅ GÜVENLİK KONTROLÜ
-            if (paymentAmount <= 0)
+            else
             {
-                return Json(new { success = false, message = "Ödeme tutarı sıfırdan büyük olmalıdır!" });
+                Console.WriteLine("📞 Telefon numarası girilmedi - Normal ödeme");
+                customerMessage = " | Telefon numarası girilmedi";
             }
+
+            Console.WriteLine($"💳 Final ödeme tutarı: ₺{paymentAmount:F2}");
 
             // Ödeme kaydı oluştur
             var payment = new PaymentDbEntity
@@ -481,45 +567,95 @@ public class HomeController(DBContext _dbContext) : Controller
                 PaymentType = paymentDto.PaymentType,
                 Amount = paymentAmount,
                 ShortLabel = paymentDto.PaymentLabel,
-                PersonId = Guid.NewGuid()
+                PersonId = Guid.NewGuid() // TODO: Session'dan al
             };
 
             _dbContext.Payments.Add(payment);
-            await _dbContext.SaveChangesAsync();
 
-            // Yeni kalan tutarı hesapla
+            // Hesap kapanış kontrolü
             var newTotalPaid = existingPayments + paymentAmount;
             var newRemainingAmount = Math.Max(0, totalOrderAmount - newTotalPaid);
-            var isFullyPaid = newRemainingAmount <= 0; // Küsurat toleransı
-
-            var shouldCloseAccount = paymentDto.PaymentMode == "full" || isFullyPaid;
+            var shouldCloseAccount = paymentDto.PaymentMode == "full" || newRemainingAmount <= 0;
 
             if (shouldCloseAccount)
-            { 
+            {
                 table.AddionStatus = null;
-                await _dbContext.SaveChangesAsync();
+                Console.WriteLine("🔒 Hesap kapatıldı");
             }
+
+            await _dbContext.SaveChangesAsync();
+
+            // Mesaj oluştur
+            string message = shouldCloseAccount
+                ? $"Hesap kapatıldı! ₺{paymentAmount:F2}"
+                : $"Parçalı ödeme alındı: ₺{paymentAmount:F2} - Kalan: ₺{newRemainingAmount:F2}";
+
+            message += customerMessage;
+
+            Console.WriteLine($"✅ İşlem tamamlandı: {message}");
 
             return Json(new
             {
                 success = true,
-                message = shouldCloseAccount
-                    ? $"Hesap kapatıldı! ₺{paymentAmount:F2}"
-                    : $"Parçalı ödeme alındı: ₺{paymentAmount:F2} - Kalan: ₺{newRemainingAmount:F2}",
+                message = message,
                 data = new
                 {
                     paidAmount = paymentAmount,
                     remainingAmount = newRemainingAmount,
-                    accountClosed = shouldCloseAccount
+                    accountClosed = shouldCloseAccount,
+                    earnedPoints = totalEarnedPoints,
+                    spentPoints = spentPoints,
+                    discountAmount = pointDiscountAmount
                 }
             });
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"💥 Hata: {ex.Message}");
             return Json(new { success = false, message = ex.Message });
         }
     }
 
+    // 🎯 YENİ: UpdateCustomerPoints helper metodu (eğer yoksa ekleyin)
+    private async Task UpdateCustomerPoints(Guid customerId, Guid? productId, int points, string description)
+    {
+        Console.WriteLine($"🎁 UpdateCustomerPoints: {customerId} için {points} puan");
+
+        // Müşteri puan bakiyesi var mı kontrol et
+        var customerPoints = await _dbContext.CustomerPoints
+            .FirstOrDefaultAsync(cp => cp.CustomerId == customerId);
+
+        if (customerPoints == null)
+        {
+            Console.WriteLine("➕ İlk puan hesabı oluşturuluyor");
+            // İlk kez puan kazanıyor
+            customerPoints = new CustomerPointsDbEntity
+            {
+                CustomerId = customerId,
+                TotalPoints = points
+            };
+            await _dbContext.CustomerPoints.AddAsync(customerPoints);
+        }
+        else
+        {
+            Console.WriteLine($"➕ Mevcut puana ekleniyor: {customerPoints.TotalPoints} + {points}");
+            // Mevcut puana ekle
+            customerPoints.TotalPoints += points;
+        }
+
+        // Puan işlem kaydı
+        var transaction = new KufePointTransactionDbEntity
+        {
+            ProductId = productId ?? Guid.Empty,
+            CustomerId = customerId,
+            Type = PointType.Earned,
+            Points = points,
+            Description = description
+        };
+        await _dbContext.KufePointTransactions.AddAsync(transaction);
+
+        Console.WriteLine("✅ Puan işlemi kaydedildi");
+    }
 
     [HttpGet]
     public async Task<IActionResult> GetCustomerPoints(string phoneNumber, Guid? tableId = null)
@@ -665,7 +801,8 @@ public class HomeController(DBContext _dbContext) : Controller
         // 1. Masa bilgilerini al
         var tables = await _dbContext.Tables
             .Where(x => x.IsActive)
-            .Select(x => new {
+            .Select(x => new
+            {
                 x.Id,
                 x.Name,
                 x.Category,

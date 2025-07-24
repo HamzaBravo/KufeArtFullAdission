@@ -1,5 +1,13 @@
-﻿// wwwroot/js/payment-manager.js
+﻿PaymentManager.currentCustomerData = null;
+PaymentManager.pointDiscountApplied = false;
+PaymentManager.appliedDiscountAmount = 0;
+PaymentManager.appliedDiscountPoints = 0;
+
+
+// wwwroot/js/payment-manager.js
 window.PaymentManager = {
+
+
 
     processFullPayment: function (tableId, paymentType) {
         if (App.isPaymentProcessing) {
@@ -260,17 +268,14 @@ window.PaymentManager = {
 
         // 🎯 YENİ: Küfe Point bilgilerini ekle
         const phoneInput = document.getElementById('customerPhoneInput');
-        const usePointsCheckbox = document.getElementById('usePointsCheckbox');
-        const pointsToUseInput = document.getElementById('pointsToUse');
 
         // Puan bilgilerini paymentData'ya ekle
         paymentData.customerPhone = phoneInput ? phoneInput.value.trim() : '';
-        paymentData.customerName = ''; // İsteğe bağlı, boş bırakabilir
-        paymentData.useKufePoints = usePointsCheckbox ? usePointsCheckbox.checked : false;
-        paymentData.requestedPoints = pointsToUseInput && paymentData.useKufePoints ?
-            parseInt(pointsToUseInput.value) || 0 : 0;
+        paymentData.customerName = '';
+        paymentData.useKufePoints = PaymentManager.pointDiscountApplied;
+        paymentData.requestedPoints = PaymentManager.appliedDiscountPoints;
 
-        console.log('🎯 Gönderilen ödeme verisi:', paymentData); // Debug için
+        console.log('🎯 Gönderilen ödeme verisi:', paymentData);
 
         $.ajax({
             url: App.endpoints.processQuickPayment,
@@ -283,6 +288,11 @@ window.PaymentManager = {
 
                 if (response.success) {
                     ToastHelper.success(response.message);
+
+                    // Puan durumunu sıfırla
+                    PaymentManager.pointDiscountApplied = false;
+                    PaymentManager.appliedDiscountAmount = 0;
+                    PaymentManager.appliedDiscountPoints = 0;
 
                     if (response.data.accountClosed) {
                         $('#tableModal').modal('hide');
@@ -333,9 +343,10 @@ window.PaymentManager = {
             return;
         }
 
-        // 🎯 YENİ: Mevcut tableId'yi al
-        const currentTableId = $('#tableModal').data('current-table-id') ||
-            $('#partialPaymentModal').data('current-table-id');
+        // 🔧 BASİTLEŞTİRİLDİ: TableId'yi modal'dan al
+        const currentTableId = $('#tableModal').data('current-table-id');
+
+        console.log('🔍 Bulunan TableId:', currentTableId); // Debug
 
         LoaderHelper.show('Müşteri puanları sorgulanıyor...');
 
@@ -344,7 +355,7 @@ window.PaymentManager = {
             method: 'GET',
             data: {
                 phoneNumber: phoneNumber,
-                tableId: currentTableId  // 🎯 TableId'yi gönder
+                tableId: currentTableId
             },
             success: function (response) {
                 LoaderHelper.hide();
@@ -353,12 +364,12 @@ window.PaymentManager = {
                     PaymentManager.displayCustomerPoints(response.data);
                 } else {
                     ToastHelper.info(response.message || 'Müşteri bulunamadı, yeni üye olarak kaydedilecek!');
-                    // Yeni müşteri bile olsa puan bölümünü göster
                     PaymentManager.displayNewCustomerPoints(phoneNumber);
                 }
             },
-            error: function () {
+            error: function (xhr, status, error) {
                 LoaderHelper.hide();
+                console.error('AJAX Error:', xhr.responseText); // Debug
                 ToastHelper.error('Bağlantı hatası!');
             }
         });
@@ -373,25 +384,106 @@ window.PaymentManager = {
         $('#customerPointsResult').show();
 
         ToastHelper.info('Yeni müşteri olarak kaydedilecek ve puanlar hesabına eklenecek!');
-    }
+    },
 
-    // 🎯 YENİ: Puan bilgilerini göster
     displayCustomerPoints: function (data) {
+        PaymentManager.currentCustomerData = data;
+
         $('#currentPoints').text(data.currentPoints || 0);
         $('#willEarnPoints').text(data.willEarnPoints || 0);
 
-        // Puan indirimi bölümünü göster/gizle
+        // İndirim bölümünü göster/gizle
         if (data.currentPoints >= 5000) {
+            const maxDiscountAmount = Math.min(data.currentPoints / 100, App.currentTableRemainingAmount || 0);
+            const maxDiscountPoints = Math.floor(maxDiscountAmount * 100);
+
+            $('#discountButtonText').text(`${data.currentPoints} Puan Kullan`);
+            $('#discountAmount').text(`₺${maxDiscountAmount.toFixed(2)} indirim`);
             $('#pointDiscountSection').show();
-            $('#pointsToUse').attr('max', data.currentPoints);
+
+            // Buton event'ini kur
+            $('#applyPointDiscountBtn').off('click').on('click', function () {
+                PaymentManager.applyPointDiscount();
+            });
+
         } else {
             $('#pointDiscountSection').hide();
             ToastHelper.info('Puan indirimi için minimum 5000 puan gerekli!');
         }
 
         $('#customerPointsResult').show();
+    },
 
-        // Global değişkene kaydet (ödeme sırasında kullanmak için)
-        PaymentManager.currentCustomerData = data;
+    // 🎯 YENİ: Puan indirimi uygula
+    applyPointDiscount: function () {
+        if (!PaymentManager.currentCustomerData) return;
+
+        const currentPoints = PaymentManager.currentCustomerData.currentPoints;
+        const remainingAmount = App.currentTableRemainingAmount || 0;
+
+        // Maksimum indirim hesapla (puan miktarı veya kalan tutar, hangisi düşükse)
+        const maxDiscountAmount = Math.min(currentPoints / 100, remainingAmount);
+        const pointsToUse = Math.floor(maxDiscountAmount * 100);
+
+        if (maxDiscountAmount <= 0) {
+            ToastHelper.warning('İndirim uygulanacak tutar yok!');
+            return;
+        }
+
+        if (!confirm(`${pointsToUse} puan kullanarak ₺${maxDiscountAmount.toFixed(2)} indirim uygulamak istediğinizden emin misiniz?\n\nBu işlem sonrası puan bakiyeniz: ${currentPoints - pointsToUse}`)) {
+            return;
+        }
+
+        // İndirim durumunu kaydet
+        PaymentManager.pointDiscountApplied = true;
+        PaymentManager.appliedDiscountAmount = maxDiscountAmount;
+        PaymentManager.appliedDiscountPoints = pointsToUse;
+
+        // Kalan tutarı güncelle
+        App.currentTableRemainingAmount -= maxDiscountAmount;
+
+        // UI'yi güncelle
+        $('#pointDiscountSection').hide();
+        $('#appliedDiscountText').text(`${pointsToUse} puan kullanıldı (₺${maxDiscountAmount.toFixed(2)})`);
+        $('#discountAppliedIndicator').show();
+
+        // Ödeme durumu bilgilerini güncelle
+        PaymentManager.updatePaymentAmounts();
+
+        ToastHelper.success(`₺${maxDiscountAmount.toFixed(2)} indirim uygulandı!`);
+    },
+
+    // 🎯 YENİ: Puan indirimi iptal et
+    cancelPointDiscount: function () {
+        if (!PaymentManager.pointDiscountApplied) return;
+
+        // Kalan tutarı geri yükle
+        App.currentTableRemainingAmount += PaymentManager.appliedDiscountAmount;
+
+        // Durumu sıfırla
+        PaymentManager.pointDiscountApplied = false;
+        PaymentManager.appliedDiscountAmount = 0;
+        PaymentManager.appliedDiscountPoints = 0;
+
+        // UI'yi geri yükle
+        $('#discountAppliedIndicator').hide();
+        $('#pointDiscountSection').show();
+
+        // Ödeme durumu bilgilerini güncelle
+        PaymentManager.updatePaymentAmounts();
+
+        ToastHelper.info('Puan indirimi iptal edildi.');
+    },
+
+    // 🎯 YENİ: Ödeme tutarlarını güncelle
+    updatePaymentAmounts: function () {
+        // Ödeme durumu bilgilerini güncelle (footer'daki alert'i bul ve güncelle)
+        const paymentAlert = $('.alert-info:contains("Kalan:")');
+        if (paymentAlert.length > 0) {
+            const remainingAmount = App.currentTableRemainingAmount || 0;
+            // İçeriği güncelle
+            paymentAlert.find('strong:contains("Kalan:")').parent()
+                .html(`<strong class="text-warning">₺${remainingAmount.toFixed(2)}</strong>`);
+        }
     }
 };

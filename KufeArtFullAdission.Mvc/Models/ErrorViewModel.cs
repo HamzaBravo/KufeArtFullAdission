@@ -85,5 +85,10 @@ namespace KufeArtFullAdission.Mvc.Models
         public PaymentType PaymentType { get; set; } // 0=Nakit, 1=Kart
         public string PaymentLabel { get; set; } // Açýklama için
         public double CustomAmount { get; set; } // Parçalý ödeme tutarý
+
+        public string CustomerPhone { get; set; } = "";
+        public string CustomerName { get; set; } = "";
+        public bool UseKufePoints { get; set; } = false;
+        public int RequestedPoints { get; set; } = 0;
     }
 }
