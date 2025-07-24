@@ -258,6 +258,20 @@ window.PaymentManager = {
         App.isPaymentProcessing = true;
         LoaderHelper.show('Ödeme işleniyor...');
 
+        // 🎯 YENİ: Küfe Point bilgilerini ekle
+        const phoneInput = document.getElementById('customerPhoneInput');
+        const usePointsCheckbox = document.getElementById('usePointsCheckbox');
+        const pointsToUseInput = document.getElementById('pointsToUse');
+
+        // Puan bilgilerini paymentData'ya ekle
+        paymentData.customerPhone = phoneInput ? phoneInput.value.trim() : '';
+        paymentData.customerName = ''; // İsteğe bağlı, boş bırakabilir
+        paymentData.useKufePoints = usePointsCheckbox ? usePointsCheckbox.checked : false;
+        paymentData.requestedPoints = pointsToUseInput && paymentData.useKufePoints ?
+            parseInt(pointsToUseInput.value) || 0 : 0;
+
+        console.log('🎯 Gönderilen ödeme verisi:', paymentData); // Debug için
+
         $.ajax({
             url: App.endpoints.processQuickPayment,
             method: 'POST',
@@ -271,11 +285,9 @@ window.PaymentManager = {
                     ToastHelper.success(response.message);
 
                     if (response.data.accountClosed) {
-                        // Hesap kapatıldı - dashboard'a dön
                         $('#tableModal').modal('hide');
                         TableManager.loadTables();
                     } else {
-                        // Parçalı ödeme - masa detayını yenile
                         PaymentManager.updateAfterPartialPayment(paymentData.tableId);
                     }
                 } else {
@@ -305,13 +317,11 @@ window.PaymentManager = {
         }, 1000);
     },
 
-    // 🎯 YENİ: Müşteri puan sorgulama
-    // 🎯 DÜZELTİLMİŞ: Müşteri puan sorgulama
     checkCustomerPoints: function () {
         const phoneNumberInput = document.getElementById('customerPhoneInput');
         const phoneNumber = phoneNumberInput ? phoneNumberInput.value.trim() : '';
 
-        console.log('Girilen telefon:', phoneNumber); // Debug için
+        console.log('Girilen telefon:', phoneNumber);
 
         if (!phoneNumber || phoneNumber === '') {
             ToastHelper.warning('Lütfen telefon numarası girin!');
@@ -323,19 +333,28 @@ window.PaymentManager = {
             return;
         }
 
+        // 🎯 YENİ: Mevcut tableId'yi al
+        const currentTableId = $('#tableModal').data('current-table-id') ||
+            $('#partialPaymentModal').data('current-table-id');
+
         LoaderHelper.show('Müşteri puanları sorgulanıyor...');
 
         $.ajax({
             url: '/Home/GetCustomerPoints',
             method: 'GET',
-            data: { phoneNumber: phoneNumber },
+            data: {
+                phoneNumber: phoneNumber,
+                tableId: currentTableId  // 🎯 TableId'yi gönder
+            },
             success: function (response) {
                 LoaderHelper.hide();
 
                 if (response.success) {
                     PaymentManager.displayCustomerPoints(response.data);
                 } else {
-                    ToastHelper.error(response.message || 'Müşteri bulunamadı!');
+                    ToastHelper.info(response.message || 'Müşteri bulunamadı, yeni üye olarak kaydedilecek!');
+                    // Yeni müşteri bile olsa puan bölümünü göster
+                    PaymentManager.displayNewCustomerPoints(phoneNumber);
                 }
             },
             error: function () {
@@ -344,6 +363,17 @@ window.PaymentManager = {
             }
         });
     },
+
+    // 🎯 YENİ: Yeni müşteri için puan gösterimi
+    displayNewCustomerPoints: function (phoneNumber) {
+        $('#currentPoints').text('0');
+        $('#willEarnPoints').text('Hesaplanıyor...');
+
+        $('#pointDiscountSection').hide(); // Puan yok, indirim yok
+        $('#customerPointsResult').show();
+
+        ToastHelper.info('Yeni müşteri olarak kaydedilecek ve puanlar hesabına eklenecek!');
+    }
 
     // 🎯 YENİ: Puan bilgilerini göster
     displayCustomerPoints: function (data) {

@@ -522,16 +522,13 @@ public class HomeController(DBContext _dbContext) : Controller
 
 
     [HttpGet]
-    public async Task<IActionResult> GetCustomerPoints(string phoneNumber)
+    public async Task<IActionResult> GetCustomerPoints(string phoneNumber, Guid? tableId = null)
     {
         try
         {
             if (string.IsNullOrEmpty(phoneNumber))
-            {
                 return Json(new { success = false, message = "Telefon numarası gerekli!" });
-            }
 
-            // Müşteriyi bul
             var customer = await _dbContext.Customers
                 .FirstOrDefaultAsync(c => c.PhoneNumber == phoneNumber && c.IsActive);
 
@@ -540,7 +537,7 @@ public class HomeController(DBContext _dbContext) : Controller
                 return Json(new
                 {
                     success = false,
-                    message = "Bu telefon numarasına kayıtlı müşteri bulunamadı!"
+                    message = "Bu telefon numarasına kayıtlı müşteri bulunamadı! Ödeme sırasında yeni üye olarak kaydedilecek."
                 });
             }
 
@@ -550,9 +547,34 @@ public class HomeController(DBContext _dbContext) : Controller
 
             int currentPoints = customerPoints?.TotalPoints ?? 0;
 
-            // Şu anki sepetteki siparişlerden kazanacağı puanları hesapla
-            // (Bu kısmı sonra yapacağız çünkü şu an için sipariş-puan bağlantısı yok)
-            int willEarnPoints = 0; // Şimdilik 0, sonra hesaplayacağız
+            // 🎯 YENİ: Mevcut siparişlerden kazanılacak puanları hesapla
+            int willEarnPoints = 0;
+
+            if (tableId.HasValue)
+            {
+                // Masa bilgisini al
+                var table = await _dbContext.Tables.FindAsync(tableId.Value);
+                if (table?.AddionStatus != null)
+                {
+                    // Siparişleri al
+                    var orders = await _dbContext.AddtionHistories
+                        .Where(h => h.AddionStatusId == table.AddionStatus)
+                        .ToListAsync();
+
+                    // Her sipariş için puan hesapla
+                    foreach (var order in orders)
+                    {
+                        var product = await _dbContext.Products
+                            .Where(p => p.Name == order.ProductName && p.IsActive && p.HasKufePoints)
+                            .FirstOrDefaultAsync();
+
+                        if (product != null && product.KufePoints > 0)
+                        {
+                            willEarnPoints += product.KufePoints * order.ProductQuantity;
+                        }
+                    }
+                }
+            }
 
             return Json(new
             {
@@ -564,7 +586,7 @@ public class HomeController(DBContext _dbContext) : Controller
                     phoneNumber = customer.PhoneNumber,
                     currentPoints = currentPoints,
                     willEarnPoints = willEarnPoints,
-                    canUseDiscount = currentPoints >= 5000
+                    canUseDiscount = currentPoints >= 5000,
                 }
             });
         }
