@@ -1705,3 +1705,385 @@ body {
         position: relative !important;
     }
 }
+
+/* ===== CUSTOMER AREA STYLES ===== */
+.customer-area {
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.login-prompt .btn {
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.customer-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.customer-greeting {
+    text-align: right;
+    line-height: 1.2;
+}
+
+.customer-name {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: white;
+}
+
+.customer-points {
+    font-size: 0.8rem;
+    color: var(--cream);
+    margin-top: 2px;
+}
+
+.points-value {
+    font-weight: 600;
+    color: #FFD700;
+}
+
+.time-weather {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.8rem;
+    color: var(--cream);
+}
+
+/* ===== MODAL STYLES ===== */
+.profile-avatar {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+}
+
+.points-card {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border: 1px solid #dee2e6;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+}
+
+.points-main {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.points-current {
+    color: var(--primary-color);
+    font-size: 2rem;
+}
+
+.recent-transactions {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.transaction-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f1f1f1;
+}
+
+.transaction-type.earned {
+    color: #28a745;
+}
+
+.transaction-type.spent {
+    color: #dc3545;
+}
+
+.transaction-date {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+/* ===== RESPONSIVE CUSTOMER AREA ===== */
+@media (max-width: 576px) {
+    .customer-name {
+        font-size: 0.8rem;
+    }
+
+    .customer-points {
+        font-size: 0.7rem;
+    }
+
+    .time-weather {
+        font-size: 0.7rem;
+        gap: 8px;
+    }
+
+    .login-prompt .btn {
+        font-size: 0.8rem;
+        padding: 5px 10px;
+    }
+}
+/* ===== POINTS BADGE STYLES ===== */
+.points-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: #333;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+    animation: pointsBadgePulse 3s infinite;
+    z-index: 2;
+}
+
+    .points-badge i {
+        font-size: 0.8rem;
+        color: #FF6B00;
+    }
+
+@keyframes pointsBadgePulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+    }
+
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 3px 12px rgba(255, 215, 0, 0.6);
+    }
+}
+
+/* ===== PRODUCT POINTS INFO ===== */
+.product-points-info {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border: 1px solid #FFD700;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin: 8px 0;
+    font-size: 0.8rem;
+    color: #495057;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+    .product-points-info::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.2), transparent);
+        animation: pointsShimmer 3s infinite;
+    }
+
+@keyframes pointsShimmer {
+    0% {
+        left: -100%;
+    }
+
+    100% {
+        left: 100%;
+    }
+}
+
+.product-points-info i {
+    color: #FFA500;
+}
+
+.product-points-info strong {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* ===== MODAL POINTS STYLES ===== */
+.modal-points-info {
+    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+    border: 2px solid #FFD700;
+    border-radius: 15px;
+    padding: 20px;
+    margin: 20px 0;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+    .modal-points-info::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #FFD700, #FFA500, #FFD700);
+        animation: modalPointsGlow 2s infinite;
+    }
+
+@keyframes modalPointsGlow {
+    0%, 100% {
+        opacity: 0.6;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+.points-highlight {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+    .points-highlight i {
+        color: #FFA500;
+        font-size: 1.4rem;
+        animation: starSpin 4s infinite linear;
+    }
+
+@keyframes starSpin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.points-value {
+    color: var(--primary-color);
+    font-size: 1.8rem;
+    font-weight: 700;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+.points-text {
+    color: #6c757d;
+    font-size: 1rem;
+}
+
+.points-explanation {
+    color: #495057;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    padding: 8px 15px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 8px;
+    border: 1px dashed #FFA500;
+}
+
+/* ===== RESPONSIVE POINTS STYLES ===== */
+@media (max-width: 576px) {
+    .points-badge {
+        font-size: 0.6rem;
+        padding: 3px 6px;
+        gap: 2px;
+    }
+
+    .product-points-info {
+        font-size: 0.75rem;
+        padding: 6px 8px;
+        margin: 6px 0;
+    }
+
+    .points-highlight {
+        font-size: 1rem;
+        gap: 6px;
+    }
+
+    .points-value {
+        font-size: 1.5rem;
+    }
+
+    .points-explanation {
+        font-size: 0.8rem;
+        padding: 6px 10px;
+    }
+}
+
+/* ===== CAMPAIGN BADGE POSITIONING ===== */
+.product-image-container {
+    position: relative;
+}
+
+/* Campaign badge sağ üstte, points badge sol üstte */
+.campaign-badge {
+    right: 8px;
+    z-index: 2;
+}
+
+.points-badge {
+    left: 8px;
+    z-index: 2;
+}
+
+/* İkisi de varsa overlap olmasın */
+.product-image-container .campaign-badge + .points-badge,
+.product-image-container .points-badge + .campaign-badge {
+    top: 35px; /* İkinci badge biraz aşağıda */
+}
+
+/* ===== ENHANCED PRODUCT INFO LAYOUT ===== */
+.product-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.product-price {
+    margin-top: auto; /* Price'ı en alta it */
+    align-self: flex-end;
+}
+
+/* ===== POINTS AWARENESS ANIMATION ===== */
+.product-card:hover .points-badge {
+    animation: pointsAttention 1s ease-in-out;
+}
+
+@keyframes pointsAttention {
+    0%, 100% {
+        transform: scale(1) rotate(0deg);
+    }
+
+    25% {
+        transform: scale(1.1) rotate(-5deg);
+    }
+
+    75% {
+        transform: scale(1.1) rotate(5deg);
+    }
+}
+
+/* ===== NO POINTS MESSAGE ===== */
+.no-points-message {
+    color: #6c757d;
+    font-size: 0.75rem;
+    text-align: center;
+    padding: 5px;
+    font-style: italic;
+}

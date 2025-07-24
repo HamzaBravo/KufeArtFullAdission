@@ -1,5 +1,16 @@
 namespace KufeArtFullAdission.QrMenuMvc.Models
 {
+    public class CustomerRegistrationDto
+    {
+        public string Fullname { get; set; }
+        public string PhoneNumber { get; set; }
+    }
+
+    public class CustomerLoginDto
+    {
+        public string PhoneNumber { get; set; }
+    }
+
     public class ErrorViewModel
     {
         public string? RequestId { get; set; }

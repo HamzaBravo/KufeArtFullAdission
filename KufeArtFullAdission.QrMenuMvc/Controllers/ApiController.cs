@@ -28,12 +28,14 @@ namespace KufeArtFullAdission.QrMenuMvc.Controllers
                         Description = p.Description,
                         Price = p.Price,
                         CategoryName = p.CategoryName,
-                        // ✅ Normalize edilmiş kategori adını da gönder
                         CategoryNameNormalized = NormalizeCategoryName(p.CategoryName),
                         HasCampaign = p.HasCampaign,
                         CampaignCaption = p.CampaignCaption,
                         CampaignDetail = p.CampaignDetail,
                         Type = p.Type.ToString(),
+                        // 🎯 YENİ: Küfe Point Bilgileri
+                        HasKufePoints = p.HasKufePoints,
+                        KufePoints = p.KufePoints,
                         Images = _context.ProductImages
                             .Where(pi => pi.ProductId == p.Id)
                             .Select(pi => pi.ImagePath)
@@ -52,8 +54,8 @@ namespace KufeArtFullAdission.QrMenuMvc.Controllers
 
                 var categories = distinctCategories.Select(categoryName => new
                 {
-                    Name = NormalizeCategoryName(categoryName), // ✅ Normalize edilmiş isim
-                    DisplayName = categoryName, // ✅ Orijinal görünen isim
+                    Name = NormalizeCategoryName(categoryName),
+                    DisplayName = categoryName,
                     ProductCount = products.Count(p => p.CategoryName == categoryName),
                     Icon = GetCategoryIcon(categoryName)
                 })
@@ -269,5 +271,216 @@ namespace KufeArtFullAdission.QrMenuMvc.Controllers
 
             return ipAddress ?? "unknown";
         }
+
+
+
+        #region Customer Management APIs
+
+        [HttpPost("customer/register")]
+        public async Task<IActionResult> RegisterCustomer([FromBody] CustomerRegistrationDto dto)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(dto.PhoneNumber) || string.IsNullOrEmpty(dto.Fullname))
+                    return BadRequest(new { success = false, message = "Telefon numarası ve ad soyad gerekli!" });
+
+                // Telefon formatını kontrol et
+                if (dto.PhoneNumber.Length != 11 || !dto.PhoneNumber.StartsWith("0"))
+                    return BadRequest(new { success = false, message = "Geçerli bir telefon numarası girin! (05XX XXX XX XX)" });
+
+                // Müşteri zaten kayıtlı mı?
+                var existingCustomer = await _context.Customers
+                    .FirstOrDefaultAsync(c => c.PhoneNumber == dto.PhoneNumber);
+
+                if (existingCustomer != null)
+                {
+                    if (!existingCustomer.IsActive)
+                    {
+                        // Pasif müşteriyi aktif et
+                        existingCustomer.IsActive = true;
+                        existingCustomer.Fullname = dto.Fullname; // Adını güncelleyebilir
+                        await _context.SaveChangesAsync();
+
+                        return Ok(new
+                        {
+                            success = true,
+                            message = "Hesabınız yeniden aktif edildi!",
+                            customer = new
+                            {
+                                id = existingCustomer.Id,
+                                fullname = existingCustomer.Fullname,
+                                phoneNumber = existingCustomer.PhoneNumber
+                            }
+                        });
+                    }
+
+                    return BadRequest(new { success = false, message = "Bu telefon numarası zaten kayıtlı!" });
+                }
+
+                // Yeni müşteri oluştur
+                var newCustomer = new CustomerDbEntity
+                {
+                    Fullname = dto.Fullname.Trim(),
+                    PhoneNumber = dto.PhoneNumber.Trim(),
+                    IsActive = true
+                };
+
+                await _context.Customers.AddAsync(newCustomer);
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Kayıt başarılı! Artık puan kazanabilirsiniz.",
+                    customer = new
+                    {
+                        id = newCustomer.Id,
+                        fullname = newCustomer.Fullname,
+                        phoneNumber = newCustomer.PhoneNumber
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Kayıt sırasında hata oluştu",
+                    error = ex.Message
+                });
+            }
+        }
+
+        [HttpPost("customer/login")]
+        public async Task<IActionResult> LoginCustomer([FromBody] CustomerLoginDto dto)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(dto.PhoneNumber))
+                    return BadRequest(new { success = false, message = "Telefon numarası gerekli!" });
+
+                var customer = await _context.Customers
+                    .FirstOrDefaultAsync(c => c.PhoneNumber == dto.PhoneNumber && c.IsActive);
+
+                if (customer == null)
+                {
+                    return Ok(new
+                    {
+                        success = false,
+                        message = "Bu telefon numarasına kayıtlı aktif müşteri bulunamadı!",
+                        shouldRegister = true
+                    });
+                }
+
+                // Müşteri puan bakiyesini al
+                var customerPoints = await _context.CustomerPoints
+                    .FirstOrDefaultAsync(cp => cp.CustomerId == customer.Id);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Giriş başarılı!",
+                    customer = new
+                    {
+                        id = customer.Id,
+                        fullname = customer.Fullname,
+                        phoneNumber = customer.PhoneNumber,
+                        totalPoints = customerPoints?.TotalPoints ?? 0
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Giriş sırasında hata oluştu",
+                    error = ex.Message
+                });
+            }
+        }
+
+        [HttpGet("customer/{customerId}/points")]
+        public async Task<IActionResult> GetCustomerPoints(Guid customerId)
+        {
+            try
+            {
+                var customer = await _context.Customers
+                    .FirstOrDefaultAsync(c => c.Id == customerId && c.IsActive);
+
+                if (customer == null)
+                    return NotFound(new { success = false, message = "Müşteri bulunamadı!" });
+
+                var customerPoints = await _context.CustomerPoints
+                    .FirstOrDefaultAsync(cp => cp.CustomerId == customerId);
+
+                return Ok(new
+                {
+                    success = true,
+                    customer = new
+                    {
+                        id = customer.Id,
+                        fullname = customer.Fullname,
+                        phoneNumber = customer.PhoneNumber,
+                        totalPoints = customerPoints?.TotalPoints ?? 0,
+                        canUseDiscount = (customerPoints?.TotalPoints ?? 0) >= 5000 // 5000 puan = 50TL indirim
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Puan bilgisi alınırken hata oluştu",
+                    error = ex.Message
+                });
+            }
+        }
+
+        [HttpGet("customer/{customerId}/points-history")]
+        public async Task<IActionResult> GetCustomerPointsHistory(Guid customerId, int limit = 20)
+        {
+            try
+            {
+                var customer = await _context.Customers
+                    .FirstOrDefaultAsync(c => c.Id == customerId && c.IsActive);
+
+                if (customer == null)
+                    return NotFound(new { success = false, message = "Müşteri bulunamadı!" });
+
+                var pointsHistory = await _context.KufePointTransactions
+                    .Where(t => t.CustomerId == customerId)
+                    .OrderByDescending(t => t.CreatedAt)
+                    .Take(limit)
+                    .Select(t => new
+                    {
+                        id = t.Id,
+                        type = t.Type.ToString(),
+                        points = t.Points,
+                        description = t.Description,
+                        date = t.CreatedAt.ToString("dd.MM.yyyy HH:mm")
+                    })
+                    .ToListAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    history = pointsHistory,
+                    totalRecords = pointsHistory.Count
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Puan geçmişi alınırken hata oluştu",
+                    error = ex.Message
+                });
+            }
+        }
+
+        #endregion
     }
 }

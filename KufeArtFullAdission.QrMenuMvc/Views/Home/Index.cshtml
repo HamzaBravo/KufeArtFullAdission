@@ -41,20 +41,49 @@
     <div id="qrMenuApp" class="qr-menu-app" style="display: none;">
 
         <!-- 🏠 HEADER - ✅ sticky-top class'ı kaldırıldı -->
+        <!-- 🏠 HEADER -->
         <header class="menu-header">
             <div class="container-fluid">
                 <div class="row align-items-center py-3">
-                    <div class="col-8">
+                    <div class="col-6">
                         <h1 class="cafe-title mb-0">
                             <i class="fas fa-coffee me-2"></i>
                             Küfe Art
                         </h1>
                         <small class="cafe-subtitle">Bursa'nın kahve durağı</small>
                     </div>
-                    <div class="col-4 text-end">
-                        <div class="current-time" id="currentTime"></div>
-                        <div class="weather-mini" id="weatherMini">
-                            <i class="fas fa-sun"></i> --°
+                    <div class="col-6 text-end">
+                        <!-- 🎯 YENİ: Müşteri Alanı -->
+                        <div id="customerArea" class="customer-area">
+                            <!-- Giriş yapılmamış durum -->
+                            <div id="loginPrompt" class="login-prompt">
+                                <button class="btn btn-sm btn-outline-light" onclick="QRMenu.showLoginModal()">
+                                    <i class="fas fa-user me-1"></i>
+                                    Puan Kazan
+                                </button>
+                            </div>
+
+                            <!-- Giriş yapılmış durum -->
+                            <div id="customerInfo" class="customer-info" style="display: none;">
+                                <div class="customer-greeting">
+                                    <span class="customer-name" id="customerName">Hoşgeldin!</span>
+                                    <div class="customer-points" id="customerPoints">
+                                        <i class="fas fa-star me-1"></i>
+                                        <span class="points-value">0</span> puan
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-light ms-2" onclick="QRMenu.showCustomerModal()">
+                                    <i class="fas fa-cog"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- ⏰ Saat ve Hava Durumu -->
+                        <div class="time-weather mt-2">
+                            <div class="current-time" id="currentTime"></div>
+                            <div class="weather-mini" id="weatherMini">
+                                <i class="fas fa-sun"></i> --°
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -65,6 +94,143 @@
         <main id="mainContent" class="main-content">
             <!-- Categories and Products will be rendered here dynamically -->
         </main>
+        <!-- 🔐 CUSTOMER LOGIN/REGISTER MODAL -->
+        <div class="modal fade" id="customerLoginModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-star me-2"></i>
+                            Puan Hesabı
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Login Form -->
+                        <div id="loginForm">
+                            <div class="text-center mb-3">
+                                <h6>Puan kazanmak için giriş yapın</h6>
+                                <small class="text-muted">Her alışverişte puan kazanın, indirimlerin keyfini çıkarın!</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Telefon Numarası</label>
+                                <input type="tel" class="form-control" id="loginPhone"
+                                       placeholder="05XX XXX XX XX" maxlength="11">
+                                <div class="form-text">Türkiye telefon numarası formatında giriniz</div>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-primary" onclick="QRMenu.loginCustomer()">
+                                    <i class="fas fa-sign-in-alt me-2"></i>
+                                    Giriş Yap
+                                </button>
+                                <button class="btn btn-outline-success" onclick="QRMenu.showRegisterForm()">
+                                    <i class="fas fa-user-plus me-2"></i>
+                                    Yeni Üyelik
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Register Form -->
+                        <div id="registerForm" style="display: none;">
+                            <div class="text-center mb-3">
+                                <h6>Yeni Üyelik Oluştur</h6>
+                                <small class="text-muted">Kayıt olun ve ilk alışverişinizle puan kazanmaya başlayın!</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Ad Soyad</label>
+                                <input type="text" class="form-control" id="registerName"
+                                       placeholder="Adınız Soyadınız">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Telefon Numarası</label>
+                                <input type="tel" class="form-control" id="registerPhone"
+                                       placeholder="05XX XXX XX XX" maxlength="11">
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-success" onclick="QRMenu.registerCustomer()">
+                                    <i class="fas fa-user-plus me-2"></i>
+                                    Kayıt Ol
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="QRMenu.showLoginForm()">
+                                    <i class="fas fa-arrow-left me-2"></i>
+                                    Geri Dön
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 👤 CUSTOMER PROFILE MODAL -->
+        <div class="modal fade" id="customerProfileModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-user me-2"></i>
+                            Profilim
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="customer-profile-content">
+                            <!-- Müşteri Bilgileri -->
+                            <div class="customer-details mb-4">
+                                <h6 class="mb-3">Hesap Bilgileri</h6>
+                                <div class="d-flex align-items-center">
+                                    <div class="profile-avatar me-3">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold" id="profileName">-</div>
+                                        <small class="text-muted" id="profilePhone">-</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Puan Bilgileri -->
+                            <div class="points-summary mb-4">
+                                <h6 class="mb-3">Puan Durumu</h6>
+                                <div class="points-card">
+                                    <div class="points-main">
+                                        <i class="fas fa-star text-warning me-2"></i>
+                                        <span class="points-current" id="profilePoints">0</span>
+                                        <small class="text-muted">puan</small>
+                                    </div>
+                                    <div class="points-info">
+                                        <small class="text-success" id="pointsUsableInfo">5000 puana ulaştığınızda 50TL indirim!</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Son İşlemler -->
+                            <div class="recent-transactions">
+                                <h6 class="mb-3">Son Puan Hareketleri</h6>
+                                <div id="recentTransactions">
+                                    <div class="text-muted text-center py-3">
+                                        <i class="fas fa-history"></i>
+                                        <br>
+                                        İşlem geçmişi yükleniyor...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline-danger" onclick="QRMenu.logoutCustomer()">
+                            <i class="fas fa-sign-out-alt me-2"></i>
+                            Çıkış Yap
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- 👨‍💻 DEVELOPER FOOTER -->
         <footer class="developer-footer">

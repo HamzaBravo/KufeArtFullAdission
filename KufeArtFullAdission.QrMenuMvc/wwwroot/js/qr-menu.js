@@ -3,10 +3,14 @@ class QRMenuEngine {
     constructor() {
         this.products = [];
         this.categories = [];
-        this.currentView = 'categories'; // 'categories' veya 'products'
+        this.currentView = 'categories';
         this.currentCategory = null;
         this.weatherData = null;
         this.suggestionShown = false;
+        // 🎯 YENİ: Customer management
+        this.currentCustomer = null;
+        this.customerLoggedIn = false;
+
         this.loadingStates = {
             products: false,
             weather: false,
@@ -433,61 +437,80 @@ class QRMenuEngine {
     }
 
     // ✅ Çoklu resim destekli product card
+    // ✅ Çoklu resim destekli product card + PUAN BİLGİSİ
     createProductCard(product) {
         const images = product.images && product.images.length > 0 ? product.images : [''];
         const hasMultipleImages = images.length > 1 && images[0] !== '';
 
         return `
-            <div class="product-card" data-product-id="${product.id}">
-                <div class="product-image-container">
-                    ${hasMultipleImages ? `
-                        <!-- Çoklu resim carousel -->
-                        <div class="product-image-carousel" data-product-id="${product.id}">
-                            ${images.map((image, index) => `
-                                <img src="${image}" alt="${product.name}" 
-                                     class="product-image ${index === 0 ? 'active' : ''}" 
-                                     data-index="${index}">
-                            `).join('')}
-                        </div>
-                        
-                        <!-- Resim göstergeleri -->
-                        <div class="image-indicators">
-                            ${images.map((_, index) => `
-                                <div class="image-dot ${index === 0 ? 'active' : ''}" 
-                                     data-index="${index}" 
-                                     onclick="QRMenu.changeProductImage(${product.id}, ${index})"></div>
-                            `).join('')}
-                        </div>
-                        
-                        <!-- Önceki/Sonraki butonları -->
-                        <button class="carousel-btn carousel-prev" 
-                                onclick="QRMenu.previousProductImage(${product.id})">
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                        <button class="carousel-btn carousel-next" 
-                                onclick="QRMenu.nextProductImage(${product.id})">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
-                    ` : `
-                        <!-- Tek resim -->
-                        <img src="${images[0]}" alt="${product.name}" class="product-image">
-                    `}
+        <div class="product-card" data-product-id="${product.id}">
+            <div class="product-image-container">
+                ${hasMultipleImages ? `
+                    <!-- Çoklu resim carousel -->
+                    <div class="product-image-carousel" data-product-id="${product.id}">
+                        ${images.map((image, index) => `
+                            <img src="${image}" alt="${product.name}" 
+                                 class="product-image ${index === 0 ? 'active' : ''}" 
+                                 data-index="${index}">
+                        `).join('')}
+                    </div>
                     
-                    ${product.hasCampaign ? `
-                        <div class="campaign-badge">
-                            ${product.campaignCaption || '🎯 Kampanya'}
-                        </div>
-                    ` : ''}
-                </div>
-                <div class="product-info">
-                    <div class="product-name">${product.name}</div>
-                    ${product.description ? `
-                        <div class="product-description">${product.description}</div>
-                    ` : ''}
-                    <div class="product-price">₺${product.price.toFixed(2)}</div>
-                </div>
+                    <!-- Resim göstergeleri -->
+                    <div class="image-indicators">
+                        ${images.map((_, index) => `
+                            <div class="image-dot ${index === 0 ? 'active' : ''}" 
+                                 data-index="${index}" 
+                                 onclick="QRMenu.changeProductImage('${product.id}', ${index})"></div>
+                        `).join('')}
+                    </div>
+                    
+                    <!-- Önceki/Sonraki butonları -->
+                    <button class="carousel-btn carousel-prev" 
+                            onclick="QRMenu.previousProductImage('${product.id}')">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <button class="carousel-btn carousel-next" 
+                            onclick="QRMenu.nextProductImage('${product.id}')">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                ` : `
+                    <!-- Tek resim -->
+                    <img src="${images[0]}" alt="${product.name}" class="product-image">
+                `}
+                
+                ${product.hasCampaign ? `
+                    <div class="campaign-badge">
+                        ${product.campaignCaption || '🎯 Kampanya'}
+                    </div>
+                ` : ''}
+                
+                <!-- 🎯 YENİ: PUAN BADGE -->
+                ${product.hasKufePoints && product.kufePoints > 0 ? `
+                    <div class="points-badge">
+                        <i class="fas fa-star"></i>
+                        ${product.kufePoints}
+                    </div>
+                ` : ''}
             </div>
-        `;
+            
+            <div class="product-info">
+                <div class="product-name">${product.name}</div>
+                ${product.description ? `
+                    <div class="product-description">${product.description}</div>
+                ` : ''}
+                
+                <!-- 🎯 YENİ: PUAN BİLGİSİ -->
+                ${product.hasKufePoints && product.kufePoints > 0 ? `
+                    <div class="product-points-info">
+                        <i class="fas fa-gift me-1"></i>
+                        Bu ürün <strong>${product.kufePoints} puan</strong> kazandırır
+                    </div>
+                ` : ''}
+                
+                <div class="product-price">₺${product.price.toFixed(2)}</div>
+            </div>
+        </div>
+    `;
     }
 
     changeProductImage(productId, targetIndex) {
@@ -542,75 +565,85 @@ class QRMenuEngine {
 
     // ===== MODAL METHODS =====
     // ✅ Modal'da da çoklu resim desteği
+    // ===== MODAL METHODS =====
+    // ✅ Modal'da da çoklu resim desteği + PUAN BİLGİSİ
     showProductModal(productId) {
         const product = this.products.find(p => p.id == productId);
         if (!product) return;
 
-        const images = product.images && product.images.length > 0 ? product.images : [''];
+        const images = product.images && product.images.length > 0 ?
+            product.images.filter(img => img && img.trim() !== '') : [''];
+
         const hasMultipleImages = images.length > 1 && images[0] !== '';
 
         const modalHTML = `
-            <div class="product-modal" id="productModal">
-                <div class="modal-content-custom">
-                    <div class="modal-header-custom">
-                        ${hasMultipleImages ? `
-                            <!-- Modal'da da carousel -->
-                            <div class="modal-image-carousel">
-                                ${images.map((image, index) => `
-                                    <img src="${image}" alt="${product.name}" 
-                                         class="modal-image ${index === 0 ? 'active' : ''}" 
-                                         data-index="${index}">
-                                `).join('')}
-                            </div>
-                            
-                            <div class="modal-image-indicators">
-                                ${images.map((_, index) => `
-                                    <div class="modal-image-dot ${index === 0 ? 'active' : ''}" 
-                                         data-index="${index}" 
-                                         onclick="QRMenu.changeModalImage(${index})"></div>
-                                `).join('')}
-                            </div>
-                        ` : `
-                            <img src="${images[0]}" alt="${product.name}" class="modal-image">
-                        `}
-                        
-                        <button class="modal-close" onclick="QRMenu.closeProductModal()">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div class="modal-body-custom">
-                        ${product.hasCampaign ? `
-                            <div class="modal-campaign">
-                                <i class="fas fa-fire me-2"></i>
-                                ${product.campaignCaption || 'Kampanyalı Ürün!'}
-                            </div>
-                            ${product.campaignDetail ? `
-                                <div style="margin-top: 10px; font-size: 0.9rem; color: #666; text-align: center;">
-                                    ${product.campaignDetail}
-                                </div>
-                            ` : ''}
-                        ` : ''}
-                        
-                        <h2 class="modal-title">${product.name}</h2>
-                        
-                        ${product.description ? `
-                            <div class="modal-description">${product.description}</div>
-                        ` : ''}
-                        
-                        <div class="modal-price">₺${product.price.toFixed(2)}</div>
-                        
-                        <div style="margin-top: 20px; text-align: center; color: #999; font-size: 0.85rem;">
-                            <i class="fas fa-info-circle me-1"></i>
-                            Detaylı bilgi için garsonunuza danışabilirsiniz
+        <div class="product-modal" id="productModal">
+            <div class="modal-content-custom">
+                <div class="modal-header-custom">
+                    ${hasMultipleImages ? `
+                        <!-- Modal'da çoklu resim carousel -->
+                        <div class="modal-image-carousel">
+                            ${images.map((image, index) => `
+                                <img src="${image}" alt="${product.name}" 
+                                     class="modal-image ${index === 0 ? 'active' : ''}" 
+                                     data-index="${index}">
+                            `).join('')}
                         </div>
-                    </div>
+                        
+                        <!-- Modal resim göstergeleri -->
+                        <div class="modal-image-indicators">
+                            ${images.map((_, index) => `
+                                <div class="modal-image-dot ${index === 0 ? 'active' : ''}" 
+                                     data-index="${index}" 
+                                     onclick="QRMenu.changeModalImage(${index})"></div>
+                            `).join('')}
+                        </div>
+                    ` : `
+                        <img src="${images[0]}" alt="${product.name}" class="modal-image">
+                    `}
+                    
+                    <button class="modal-close" onclick="QRMenu.closeProductModal()">×</button>
+                </div>
+                
+                <div class="modal-body-custom">
+                    ${product.hasCampaign ? `
+                        <div class="modal-campaign">
+                            🎯 ${product.campaignCaption || 'Özel Kampanya'}
+                            ${product.campaignDetail ? `<br><small>${product.campaignDetail}</small>` : ''}
+                        </div>
+                    ` : ''}
+                    
+                    <h3 class="modal-title">${product.name}</h3>
+                    
+                    ${product.description ? `
+                        <p class="modal-description">${product.description}</p>
+                    ` : ''}
+                    
+                    <!-- 🎯 YENİ: MODAL'DA PUAN BİLGİSİ -->
+                    ${product.hasKufePoints && product.kufePoints > 0 ? `
+                        <div class="modal-points-info">
+                            <div class="points-highlight">
+                                <i class="fas fa-star"></i>
+                                <span class="points-value">${product.kufePoints}</span>
+                                <span class="points-text">puan kazanırsınız</span>
+                            </div>
+                            <div class="points-explanation">
+                                ${this.customerLoggedIn ?
+                    'Bu ürünü satın aldığınızda puanlarınız hesabınıza eklenecek!' :
+                    'Puan kazanmak için üye girişi yapın!'
+                }
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="modal-price">₺${product.price.toFixed(2)}</div>
                 </div>
             </div>
-        `;
+        </div>
+    `;
 
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         document.getElementById('productModal').style.display = 'flex';
-        document.body.style.overflow = 'hidden';
     }
 
     changeModalImage(targetIndex) {
@@ -810,6 +843,335 @@ class QRMenuEngine {
             });
         }
     }
+
+    // ===== CUSTOMER MANAGEMENT METHODS =====
+    showLoginModal() {
+        const modal = new bootstrap.Modal(document.getElementById('customerLoginModal'));
+        this.showLoginForm(); // Varsayılan olarak login formunu göster
+        modal.show();
+    }
+
+    showCustomerModal() {
+        if (!this.currentCustomer) return;
+
+        this.loadCustomerProfile();
+        const modal = new bootstrap.Modal(document.getElementById('customerProfileModal'));
+        modal.show();
+    }
+
+    showLoginForm() {
+        document.getElementById('loginForm').style.display = 'block';
+        document.getElementById('registerForm').style.display = 'none';
+
+        // Input'ları temizle
+        document.getElementById('loginPhone').value = '';
+    }
+
+    showRegisterForm() {
+        document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('registerForm').style.display = 'block';
+
+        // Input'ları temizle
+        document.getElementById('registerName').value = '';
+        document.getElementById('registerPhone').value = '';
+    }
+
+    async loginCustomer() {
+        const phoneInput = document.getElementById('loginPhone');
+        const phoneNumber = phoneInput.value.trim();
+
+        if (!this.validatePhoneNumber(phoneNumber)) {
+            this.showToast('Geçerli bir telefon numarası girin! (05XX XXX XX XX)', 'error');
+            return;
+        }
+
+        try {
+            this.showLoadingInModal('Giriş yapılıyor...');
+
+            const response = await fetch('/api/customer/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phoneNumber: phoneNumber })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.currentCustomer = data.customer;
+                this.customerLoggedIn = true;
+                this.updateCustomerUI();
+                this.hideModal('customerLoginModal');
+                this.showToast(`Hoşgeldiniz ${data.customer.fullname}!`, 'success');
+            } else {
+                if (data.shouldRegister) {
+                    // Telefonu register formuna aktar
+                    document.getElementById('registerPhone').value = phoneNumber;
+                    this.showRegisterForm();
+                    this.showToast('Bu numaraya kayıtlı hesap bulunamadı. Lütfen kayıt olun.', 'info');
+                } else {
+                    this.showToast(data.message, 'error');
+                }
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            this.showToast('Giriş sırasında hata oluştu!', 'error');
+        } finally {
+            this.hideLoadingInModal();
+        }
+    }
+
+    async registerCustomer() {
+        const nameInput = document.getElementById('registerName');
+        const phoneInput = document.getElementById('registerPhone');
+
+        const fullname = nameInput.value.trim();
+        const phoneNumber = phoneInput.value.trim();
+
+        if (!fullname) {
+            this.showToast('Lütfen adınızı ve soyadınızı girin!', 'error');
+            return;
+        }
+
+        if (!this.validatePhoneNumber(phoneNumber)) {
+            this.showToast('Geçerli bir telefon numarası girin! (05XX XXX XX XX)', 'error');
+            return;
+        }
+
+        try {
+            this.showLoadingInModal('Kayıt yapılıyor...');
+
+            const response = await fetch('/api/customer/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fullname: fullname,
+                    phoneNumber: phoneNumber
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.currentCustomer = data.customer;
+                this.customerLoggedIn = true;
+                this.updateCustomerUI();
+                this.hideModal('customerLoginModal');
+                this.showToast(`Kayıt başarılı! Hoşgeldiniz ${data.customer.fullname}!`, 'success');
+            } else {
+                this.showToast(data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Register error:', error);
+            this.showToast('Kayıt sırasında hata oluştu!', 'error');
+        } finally {
+            this.hideLoadingInModal();
+        }
+    }
+
+    async loadCustomerProfile() {
+        if (!this.currentCustomer) return;
+
+        try {
+            // Güncel puan bilgisini al
+            const pointsResponse = await fetch(`/api/customer/${this.currentCustomer.id}/points`);
+            const pointsData = await pointsResponse.json();
+
+            if (pointsData.success) {
+                this.currentCustomer = pointsData.customer;
+                this.updateProfileModal();
+                this.loadCustomerHistory();
+            }
+        } catch (error) {
+            console.error('Profile load error:', error);
+        }
+    }
+
+    async loadCustomerHistory() {
+        if (!this.currentCustomer) return;
+
+        try {
+            const response = await fetch(`/api/customer/${this.currentCustomer.id}/points-history?limit=10`);
+            const data = await response.json();
+
+            if (data.success) {
+                this.updateTransactionHistory(data.history);
+            }
+        } catch (error) {
+            console.error('History load error:', error);
+            document.getElementById('recentTransactions').innerHTML = `
+                <div class="text-muted text-center py-3">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <br>
+                    Geçmiş yüklenemedi
+                </div>
+            `;
+        }
+    }
+
+    updateCustomerUI() {
+        const loginPrompt = document.getElementById('loginPrompt');
+        const customerInfo = document.getElementById('customerInfo');
+
+        if (this.customerLoggedIn && this.currentCustomer) {
+            loginPrompt.style.display = 'none';
+            customerInfo.style.display = 'flex';
+
+            document.getElementById('customerName').textContent = this.currentCustomer.fullname;
+            document.getElementById('customerPoints').innerHTML = `
+                <i class="fas fa-star me-1"></i>
+                <span class="points-value">${this.currentCustomer.totalPoints}</span> puan
+            `;
+        } else {
+            loginPrompt.style.display = 'block';
+            customerInfo.style.display = 'none';
+        }
+    }
+
+    updateProfileModal() {
+        if (!this.currentCustomer) return;
+
+        document.getElementById('profileName').textContent = this.currentCustomer.fullname;
+        document.getElementById('profilePhone').textContent = this.currentCustomer.phoneNumber;
+        document.getElementById('profilePoints').textContent = this.currentCustomer.totalPoints;
+
+        const pointsInfo = document.getElementById('pointsUsableInfo');
+        if (this.currentCustomer.totalPoints >= 5000) {
+            pointsInfo.textContent = `${Math.floor(this.currentCustomer.totalPoints / 100)}TL indirim hakkınız var!`;
+            pointsInfo.className = 'text-success';
+        } else {
+            const needed = 5000 - this.currentCustomer.totalPoints;
+            pointsInfo.textContent = `${needed} puan daha toplayın, 50TL indirim kazanın!`;
+            pointsInfo.className = 'text-warning';
+        }
+    }
+
+    updateTransactionHistory(transactions) {
+        const container = document.getElementById('recentTransactions');
+
+        if (!transactions || transactions.length === 0) {
+            container.innerHTML = `
+                <div class="text-muted text-center py-3">
+                    <i class="fas fa-inbox"></i>
+                    <br>
+                    Henüz işlem geçmişi yok
+                </div>
+            `;
+            return;
+        }
+
+        const transactionsHTML = transactions.map(transaction => `
+            <div class="transaction-item">
+                <div>
+                    <div class="transaction-description">${transaction.description}</div>
+                    <div class="transaction-date">${transaction.date}</div>
+                </div>
+                <div class="transaction-type ${transaction.type.toLowerCase()}">
+                    ${transaction.type === 'Earned' ? '+' : '-'}${transaction.points} puan
+                </div>
+            </div>
+        `).join('');
+
+        container.innerHTML = transactionsHTML;
+    }
+
+    logoutCustomer() {
+        this.currentCustomer = null;
+        this.customerLoggedIn = false;
+        this.updateCustomerUI();
+        this.hideModal('customerProfileModal');
+        this.showToast('Çıkış yapıldı!', 'info');
+    }
+
+    // ===== UTILITY METHODS =====
+    validatePhoneNumber(phone) {
+        return phone && phone.length === 11 && phone.startsWith('0') && /^\d+$/.test(phone);
+    }
+
+    showLoadingInModal(message = 'Yükleniyor...') {
+        const modalBodies = document.querySelectorAll('.modal-body');
+        modalBodies.forEach(body => {
+            const loading = body.querySelector('.modal-loading');
+            if (!loading) {
+                body.insertAdjacentHTML('beforeend', `
+                    <div class="modal-loading position-absolute top-0 start-0 w-100 h-100 
+                         d-flex align-items-center justify-content-center bg-white bg-opacity-75">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary mb-2" role="status"></div>
+                            <div>${message}</div>
+                        </div>
+                    </div>
+                `);
+            }
+        });
+    }
+
+    hideLoadingInModal() {
+        const loadings = document.querySelectorAll('.modal-loading');
+        loadings.forEach(loading => loading.remove());
+    }
+
+    hideModal(modalId) {
+        const modal = bootstrap.Modal.getInstance(document.getElementById(modalId));
+        if (modal) modal.hide();
+    }
+
+    showToast(message, type = 'info') {
+        // Toast sistemi için basit bir implementasyon
+        const toast = document.createElement('div');
+        toast.className = `toast-notification toast-${type}`;
+        toast.innerHTML = `
+            <div class="toast-content">
+                <i class="fas fa-${this.getToastIcon(type)} me-2"></i>
+                ${message}
+            </div>
+        `;
+
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            background: ${this.getToastColor(type)};
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        `;
+
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.transform = 'translateX(0)';
+        }, 100);
+
+        setTimeout(() => {
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    getToastIcon(type) {
+        const icons = {
+            success: 'check-circle',
+            error: 'exclamation-circle',
+            warning: 'exclamation-triangle',
+            info: 'info-circle'
+        };
+        return icons[type] || 'info-circle';
+    }
+
+    getToastColor(type) {
+        const colors = {
+            success: '#28a745',
+            error: '#dc3545',
+            warning: '#ffc107',
+            info: '#17a2b8'
+        };
+        return colors[type] || '#17a2b8';
+    }
 }
 
 // ===== GLOBAL INSTANCE =====
@@ -820,15 +1182,22 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Global fonksiyonlar
-// Global fonksiyonlar
 window.QRMenu = {
     selectCategory: (category) => QRMenu?.selectCategory(category),
     goBackToCategories: () => QRMenu?.goBackToCategories(),
     closeSuggestion: () => QRMenu?.closeSuggestion(),
     closeProductModal: () => QRMenu?.closeProductModal(),
-    // ✅ Yeni carousel fonksiyonları
+    // ✅ Carousel fonksiyonları
     changeProductImage: (productId, index) => QRMenu?.changeProductImage(productId, index),
     nextProductImage: (productId) => QRMenu?.nextProductImage(productId),
     previousProductImage: (productId) => QRMenu?.previousProductImage(productId),
-    changeModalImage: (index) => QRMenu?.changeModalImage(index)
+    changeModalImage: (index) => QRMenu?.changeModalImage(index),
+    // 🎯 YENİ: Customer management fonksiyonları
+    showLoginModal: () => QRMenu?.showLoginModal(),
+    showCustomerModal: () => QRMenu?.showCustomerModal(),
+    showLoginForm: () => QRMenu?.showLoginForm(),
+    showRegisterForm: () => QRMenu?.showRegisterForm(),
+    loginCustomer: () => QRMenu?.loginCustomer(),
+    registerCustomer: () => QRMenu?.registerCustomer(),
+    logoutCustomer: () => QRMenu?.logoutCustomer()
 };
