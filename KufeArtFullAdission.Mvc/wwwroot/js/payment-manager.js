@@ -1,4 +1,8 @@
-﻿PaymentManager.currentCustomerData = null;
+﻿
+window.PaymentManager = window.PaymentManager || {};
+
+// Global değişkenler
+PaymentManager.currentCustomerData = null;
 PaymentManager.pointDiscountApplied = false;
 PaymentManager.appliedDiscountAmount = 0;
 PaymentManager.appliedDiscountPoints = 0;
@@ -6,8 +10,6 @@ PaymentManager.appliedDiscountPoints = 0;
 
 // wwwroot/js/payment-manager.js
 window.PaymentManager = {
-
-
 
     processFullPayment: function (tableId, paymentType) {
         if (App.isPaymentProcessing) {
@@ -277,6 +279,13 @@ window.PaymentManager = {
 
         console.log('🎯 Gönderilen ödeme verisi:', paymentData);
 
+        console.log('🎯 Gönderilen ödeme verisi:', paymentData);
+        console.log('📊 Puan durumu:', {
+            discountApplied: PaymentManager.pointDiscountApplied,
+            discountAmount: PaymentManager.appliedDiscountAmount,
+            pointsToUse: PaymentManager.appliedDiscountPoints
+        });
+
         $.ajax({
             url: App.endpoints.processQuickPayment,
             method: 'POST',
@@ -386,6 +395,7 @@ window.PaymentManager = {
         ToastHelper.info('Yeni müşteri olarak kaydedilecek ve puanlar hesabına eklenecek!');
     },
 
+    // payment-manager.js dosyasında displayCustomerPoints fonksiyonunu şöyle güncelleyin:
     displayCustomerPoints: function (data) {
         PaymentManager.currentCustomerData = data;
 
@@ -401,7 +411,7 @@ window.PaymentManager = {
             $('#discountAmount').text(`₺${maxDiscountAmount.toFixed(2)} indirim`);
             $('#pointDiscountSection').show();
 
-            // Buton event'ini kur
+            // 🔧 ÖNEMLİ: Buton event'ini kur (Bu kısım eksikti!)
             $('#applyPointDiscountBtn').off('click').on('click', function () {
                 PaymentManager.applyPointDiscount();
             });
@@ -415,42 +425,53 @@ window.PaymentManager = {
     },
 
     // 🎯 YENİ: Puan indirimi uygula
-    applyPointDiscount: function () {
-        if (!PaymentManager.currentCustomerData) return;
-
-        const currentPoints = PaymentManager.currentCustomerData.currentPoints;
+    // 🎯 DÜZELTME: Ödeme tutarlarını güncelle
+    updatePaymentAmounts: function () {
         const remainingAmount = App.currentTableRemainingAmount || 0;
 
-        // Maksimum indirim hesapla (puan miktarı veya kalan tutar, hangisi düşükse)
-        const maxDiscountAmount = Math.min(currentPoints / 100, remainingAmount);
-        const pointsToUse = Math.floor(maxDiscountAmount * 100);
+        console.log('💰 UI Güncelleniyor - Kalan tutar:', remainingAmount);
 
-        if (maxDiscountAmount <= 0) {
-            ToastHelper.warning('İndirim uygulanacak tutar yok!');
-            return;
+        // 1. Siparişler tab'ındaki ödeme durumu alert'ini güncelle
+        const paymentStatusAlert = $('.alert-info').filter(function () {
+            return $(this).text().includes('Kalan');
+        });
+
+        if (paymentStatusAlert.length > 0) {
+            // Ödeme durumu metnini güncelle
+            paymentStatusAlert.find('.row.text-center').html(`
+            <div class="col-4">
+                <small class="text-muted">Toplam Sipariş</small><br>
+                <strong>₺${(App.currentTableOrders.reduce((sum, order) => sum + order.totalPrice, 0) || 0).toFixed(2)}</strong>
+            </div>
+            <div class="col-4">
+                <small class="text-muted">Ödenen</small><br>
+                <strong class="text-success">₺${((App.currentTableOrders.reduce((sum, order) => sum + order.totalPrice, 0) || 0) - remainingAmount).toFixed(2)}</strong>
+            </div>
+            <div class="col-4">
+                <small class="text-muted">Kalan</small><br>
+                <strong class="text-warning">₺${remainingAmount.toFixed(2)}</strong>
+            </div>
+        `);
+
+            console.log('✅ Ödeme durumu güncellendi');
         }
 
-        if (!confirm(`${pointsToUse} puan kullanarak ₺${maxDiscountAmount.toFixed(2)} indirim uygulamak istediğinizden emin misiniz?\n\nBu işlem sonrası puan bakiyeniz: ${currentPoints - pointsToUse}`)) {
-            return;
+        // 2. Modal footer'daki ödeme butonlarının yakınındaki bilgileri güncelle
+        $('.btn:contains("Nakit Kapat"), .btn:contains("Kart Kapat")').each(function () {
+            const originalText = $(this).text().split(' ')[0]; // "Nakit" veya "Kart"
+            $(this).html(`💰 ${originalText} Kapat<br><small>₺${remainingAmount.toFixed(2)}</small>`);
+        });
+
+        // 3. Parçalı ödeme modalındaki tutarları güncelle
+        if ($('#partialPaymentModal').hasClass('show')) {
+            $('#totalOrderAmount').html(`
+            Toplam sipariş: ₺${(App.currentTableOrders.reduce((sum, order) => sum + order.totalPrice, 0) || 0).toFixed(2)}<br>
+            <span class="text-success">Ödenen: ₺${((App.currentTableOrders.reduce((sum, order) => sum + order.totalPrice, 0) || 0) - remainingAmount).toFixed(2)}</span><br>
+            <span class="text-warning fw-bold">Kalan: ₺${remainingAmount.toFixed(2)}</span>
+        `);
+
+            $('#customPaymentAmount').attr('max', remainingAmount).attr('placeholder', `Maksimum: ₺${remainingAmount.toFixed(2)}`);
         }
-
-        // İndirim durumunu kaydet
-        PaymentManager.pointDiscountApplied = true;
-        PaymentManager.appliedDiscountAmount = maxDiscountAmount;
-        PaymentManager.appliedDiscountPoints = pointsToUse;
-
-        // Kalan tutarı güncelle
-        App.currentTableRemainingAmount -= maxDiscountAmount;
-
-        // UI'yi güncelle
-        $('#pointDiscountSection').hide();
-        $('#appliedDiscountText').text(`${pointsToUse} puan kullanıldı (₺${maxDiscountAmount.toFixed(2)})`);
-        $('#discountAppliedIndicator').show();
-
-        // Ödeme durumu bilgilerini güncelle
-        PaymentManager.updatePaymentAmounts();
-
-        ToastHelper.success(`₺${maxDiscountAmount.toFixed(2)} indirim uygulandı!`);
     },
 
     // 🎯 YENİ: Puan indirimi iptal et
@@ -476,14 +497,29 @@ window.PaymentManager = {
     },
 
     // 🎯 YENİ: Ödeme tutarlarını güncelle
+    // 🎯 GELİŞTİRİLMİŞ: Ödeme tutarlarını güncelle
     updatePaymentAmounts: function () {
-        // Ödeme durumu bilgilerini güncelle (footer'daki alert'i bul ve güncelle)
-        const paymentAlert = $('.alert-info:contains("Kalan:")');
-        if (paymentAlert.length > 0) {
-            const remainingAmount = App.currentTableRemainingAmount || 0;
-            // İçeriği güncelle
-            paymentAlert.find('strong:contains("Kalan:")').parent()
-                .html(`<strong class="text-warning">₺${remainingAmount.toFixed(2)}</strong>`);
+        const remainingAmount = App.currentTableRemainingAmount || 0;
+
+        console.log('💰 UI Güncelleniyor - Kalan tutar:', remainingAmount);
+
+        // 1. Ana modal'daki ödeme butonları
+        $('#cashAmountText, #cardAmountText').text(`₺${remainingAmount.toFixed(2)}`);
+
+        // 2. Ödeme durumu alert'i
+        $('.alert-info .row.text-center .col-4:last-child strong').text(`₺${remainingAmount.toFixed(2)}`);
+
+        // 3. Görsel feedback
+        if (PaymentManager.pointDiscountApplied) {
+            // Yeşil border ekle - indirim uygulandığını göster
+            $('.alert-info').removeClass('alert-info').addClass('alert-success');
+            $('.alert-success .col-4:last-child').html(`
+            <small class="text-muted">Kalan (İndirimli)</small><br>
+            <strong class="text-success">₺${remainingAmount.toFixed(2)}</strong>
+            <br><small class="text-success">✅ ${PaymentManager.appliedDiscountPoints} puan kullanıldı</small>
+        `);
         }
+
+        console.log('✅ UI güncellendi');
     }
 };
