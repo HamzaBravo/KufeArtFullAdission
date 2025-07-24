@@ -376,27 +376,6 @@ window.TableManager = {
                         </div>
                     </div>
 
-                    <!-- Ödeme Durumu -->
-                    <div class="row mt-3">
-                        <div class="col-12">
-                            <div class="alert alert-info mb-0 py-2">
-                                <div class="row text-center">
-                                    <div class="col-4">
-                                        <small class="text-muted">Toplam Sipariş</small><br>
-                                        <strong>₺${safeOrderAmount.toFixed(2)}</strong>
-                                    </div>
-                                    <div class="col-4">
-                                        <small class="text-muted">Ödenen</small><br>
-                                        <strong class="text-success">₺${safePaidAmount.toFixed(2)}</strong>
-                                    </div>
-                                    <div class="col-4">
-                                        <small class="text-muted">Kalan</small><br>
-                                        <strong class="text-warning">₺${safeRemainingAmount.toFixed(2)}</strong>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         `;

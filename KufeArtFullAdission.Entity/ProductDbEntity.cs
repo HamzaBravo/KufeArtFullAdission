@@ -19,4 +19,9 @@ public sealed class ProductDbEntity:BaseDbEntity
     public bool HasCampaign { get; set; } = false; // QR menüde kampanyalı gösterim
     public string CampaignCaption { get; set; } // "10+1"
     public string CampaignDetail { get; set; } // "1 ay içerisinde 10 kahve alana 1 kahve hediye"
+
+    // 🎯 YENİ: Küfe Point Alanları
+    public bool HasKufePoints { get; set; } = false; // Bu ürün puan kazandırır mı?
+    public int KufePoints { get; set; } = 0; // 0 = puan yok, 100 = 100 puan
+
 }

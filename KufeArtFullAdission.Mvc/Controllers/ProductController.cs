@@ -39,6 +39,22 @@ public class ProductController(DBContext _dbContext, IImageService _imageService
     {
         try
         {
+            if (product.HasKufePoints && product.KufePoints <= 0)
+            {
+                ModelState.AddModelError("KufePoints", "Küfe Point aktifse puan 0'dan büyük olmalıdır!");
+            }
+
+            if (product.KufePoints > 10000)
+            {
+                ModelState.AddModelError("KufePoints", "Maksimum 10.000 puan verilebilir!");
+            }
+
+            // Mantık hatası kontrolü
+            if (!product.HasKufePoints && product.KufePoints > 0)
+            {
+                product.KufePoints = 0; // Otomatik düzelt
+            }
+
             // ✅ YENİ: Prim doğrulaması
             if (product.IsCommissionEligible && product.CommissionRate < 0)
             {
@@ -115,6 +131,21 @@ public class ProductController(DBContext _dbContext, IImageService _imageService
     {
         try
         {
+            if (product.HasKufePoints && product.KufePoints <= 0)
+            {
+                ModelState.AddModelError("KufePoints", "Küfe Point aktifse puan 0'dan büyük olmalıdır!");
+            }
+
+            if (product.KufePoints > 10000)
+            {
+                ModelState.AddModelError("KufePoints", "Maksimum 10.000 puan verilebilir!");
+            }
+
+            if (!product.HasKufePoints && product.KufePoints > 0)
+            {
+                product.KufePoints = 0;
+            }
+
             // ✅ YENİ: Prim doğrulaması
             if (product.IsCommissionEligible && product.CommissionRate < 0)
             {

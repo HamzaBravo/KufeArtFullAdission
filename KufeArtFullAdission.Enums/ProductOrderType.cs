@@ -17,3 +17,9 @@ public enum PaymentType
     Cash,
     Card
 }
+
+public enum PointType
+{
+    Earned = 1,  // Kazanıldı
+    Spent = 2    // Harcandı
+}

@@ -520,6 +520,63 @@ public class HomeController(DBContext _dbContext) : Controller
         }
     }
 
+
+    [HttpGet]
+    public async Task<IActionResult> GetCustomerPoints(string phoneNumber)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(phoneNumber))
+            {
+                return Json(new { success = false, message = "Telefon numarası gerekli!" });
+            }
+
+            // Müşteriyi bul
+            var customer = await _dbContext.Customers
+                .FirstOrDefaultAsync(c => c.PhoneNumber == phoneNumber && c.IsActive);
+
+            if (customer == null)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Bu telefon numarasına kayıtlı müşteri bulunamadı!"
+                });
+            }
+
+            // Müşteri puan bakiyesini al
+            var customerPoints = await _dbContext.CustomerPoints
+                .FirstOrDefaultAsync(cp => cp.CustomerId == customer.Id);
+
+            int currentPoints = customerPoints?.TotalPoints ?? 0;
+
+            // Şu anki sepetteki siparişlerden kazanacağı puanları hesapla
+            // (Bu kısmı sonra yapacağız çünkü şu an için sipariş-puan bağlantısı yok)
+            int willEarnPoints = 0; // Şimdilik 0, sonra hesaplayacağız
+
+            return Json(new
+            {
+                success = true,
+                data = new
+                {
+                    customerId = customer.Id,
+                    customerName = customer.Fullname,
+                    phoneNumber = customer.PhoneNumber,
+                    currentPoints = currentPoints,
+                    willEarnPoints = willEarnPoints,
+                    canUseDiscount = currentPoints >= 5000
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            return Json(new
+            {
+                success = false,
+                message = "Hata oluştu: " + ex.Message
+            });
+        }
+    }
     // Ödeme tutarını hesapla
     private double CalculatePaymentAmount(List<AddtionHistoryDbEntity> orders, QuickPaymentDto paymentDto)
     {

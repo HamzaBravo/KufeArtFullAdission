@@ -15,4 +15,7 @@ public class DBContext(DbContextOptions<DBContext> options) : DbContext(options)
     public DbSet<CustomerPurchaseHistoryDbEntity> CustomerPurchaseHistories { get; set; }
     public DbSet<CampaignProgressDbEntity> CampaignProgresses { get; set; }
     public DbSet<PaymentDbEntity> Payments { get; set; }
+    public DbSet<KufePointTransactionDbEntity> KufePointTransactions { get; set; }
+    public DbSet<CustomerPointsDbEntity> CustomerPoints { get; set; }
+    public DbSet<CustomerDbEntity> Customers { get; set; }
 }
