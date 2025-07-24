@@ -305,7 +305,7 @@
             }
         }
 
-        function renderStaffTable(staffData) {
+              function renderStaffTable(staffData) {
             if (!staffData || !Array.isArray(staffData) || staffData.length === 0) {
                 $('#staffTableContainer').html(`
                     <div class="text-center py-4 text-muted">
@@ -326,7 +326,8 @@
                             <th class="text-end">Satış</th>
                             <th class="text-end">Ort. Sipariş</th>
                             <th class="text-end">Müşteri</th>
-                            <th class="text-end">Prim (%5)</th>
+                            <th class="text-end">Toplam Prim</th> <!-- ✅ GÜNCEL -->
+                            <th class="text-end">Prim Oranı</th>  <!-- ✅ YENİ -->
                             <th width="100">Detay</th>
                         </tr>
                     </thead>
@@ -334,16 +335,20 @@
             `;
 
             staffData.forEach((staff, index) => {
-                // ✅ KÜÇÜK HARF PROPERTY İSİMLERİ - Backend'den gelen format
-                const totalSales = staff?.totalSales || 0;              // küçük harf
-                const totalOrders = staff?.totalOrders || 0;            // küçük harf
-                const avgOrderValue = staff?.averageOrderValue || 0;    // camelCase
-                const uniqueCustomers = staff?.uniqueCustomers || 0;    // camelCase
-                const personName = staff?.personName || 'Bilinmeyen';   // camelCase
-                const topProduct = staff?.topSellingProduct || 'Veri yok'; // camelCase
-                const personId = staff?.personId || '';                 // camelCase
+                const totalSales = staff?.totalSales || 0;
+                const totalOrders = staff?.totalOrders || 0;
+                const avgOrderValue = staff?.averageOrderValue || 0;
+                const uniqueCustomers = staff?.uniqueCustomers || 0;
+                const personName = staff?.personName || 'Bilinmeyen';
+                const topProduct = staff?.topSellingProduct || 'Veri yok';
+                const personId = staff?.personId || '';
 
-                const commission = totalSales * 0.05; // %5 prim
+                // ✅ YENİ: Prim hesaplamaları
+                const totalCommission = staff?.totalCommission || 0;
+                const commissionEligibleSales = staff?.commissionEligibleSales || 0;
+                const nonCommissionSales = staff?.nonCommissionSales || 0;
+                const avgCommissionRate = commissionEligibleSales > 0 ? (totalCommission / commissionEligibleSales * 100) : 0;
+
                 const rankClass = index === 0 ? 'text-warning' : (index === 1 ? 'text-info' : 'text-muted');
                 const rankIcon = index === 0 ? 'fa-trophy' : (index === 1 ? 'fa-medal' : 'fa-award');
 
@@ -362,6 +367,7 @@
                         </td>
                         <td class="text-end">
                             <strong class="text-success">${safeFormatCurrency(totalSales)}</strong>
+                            ${nonCommissionSales > 0 ? `<br><small class="text-muted">Primsiz: ${safeFormatCurrency(nonCommissionSales)}</small>` : ''}
                         </td>
                         <td class="text-end">
                             ${safeFormatCurrency(avgOrderValue)}
@@ -370,7 +376,10 @@
                             <span class="badge bg-info">${uniqueCustomers}</span>
                         </td>
                         <td class="text-end">
-                            <strong class="text-warning">${safeFormatCurrency(commission)}</strong>
+                            <strong class="text-warning">${safeFormatCurrency(totalCommission)}</strong>
+                        </td>
+                        <td class="text-end">
+                            <span class="badge bg-secondary">%${avgCommissionRate.toFixed(1)}</span>
                         </td>
                         <td>
                             <button class="btn btn-sm btn-outline-primary" onclick="showStaffDetail('${personId}', '${personName}')">
@@ -620,24 +629,27 @@
             loadStaffDetailData(personId, personName);
         }
 
-        function loadStaffDetailData(personId, personName) {
-            // ✅ KÜÇÜK HARF PROPERTY İSİMLERİ
-            const staffData = currentData?.staffSummary?.find(s => s.personId === personId); // küçük harf
-            const dailyData = currentData?.dailyTrends?.filter(d => d.personId === personId) || []; // küçük harf
+                function loadStaffDetailData(personId, personName) {
+            const staffData = currentData?.staffSummary?.find(s => s.personId === personId);
+            const dailyData = currentData?.dailyTrends?.filter(d => d.personId === personId) || [];
 
             if (!staffData) {
                 $('#modalStaffContent').html('<div class="alert alert-warning">Veri bulunamadı</div>');
                 return;
             }
 
-            // ✅ KÜÇÜK HARF PROPERTY İSİMLERİ
-            const totalSales = staffData.totalSales || 0;              // küçük harf
-            const totalOrders = staffData.totalOrders || 0;            // küçük harf
-            const uniqueCustomers = staffData.uniqueCustomers || 0;    // camelCase
-            const avgOrderValue = staffData.averageOrderValue || 0;    // camelCase
-            const topProduct = staffData.topSellingProduct || 'Veri bulunamadı'; // camelCase
+            const totalSales = staffData.totalSales || 0;
+            const totalOrders = staffData.totalOrders || 0;
+            const uniqueCustomers = staffData.uniqueCustomers || 0;
+            const avgOrderValue = staffData.averageOrderValue || 0;
+            const topProduct = staffData.topSellingProduct || 'Veri bulunamadı';
 
-            const commission = totalSales * 0.05;
+            // ✅ YENİ: Detaylı prim bilgileri
+            const totalCommission = staffData.totalCommission || 0;
+            const commissionEligibleSales = staffData.commissionEligibleSales || 0;
+            const nonCommissionSales = staffData.nonCommissionSales || 0;
+            const avgCommissionRate = commissionEligibleSales > 0 ? (totalCommission / commissionEligibleSales * 100) : 0;
+
             const avgDailySales = dailyData.length > 0 ? totalSales / dailyData.length : 0;
 
             let html = `
@@ -647,14 +659,16 @@
                             <div class="card-body text-center">
                                 <h3>${safeFormatCurrency(totalSales)}</h3>
                                 <p class="mb-0">Toplam Satış</p>
+                                ${nonCommissionSales > 0 ? `<small>Primsiz: ${safeFormatCurrency(nonCommissionSales)}</small>` : ''}
                             </div>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="card bg-success text-white">
                             <div class="card-body text-center">
-                                <h3>${safeFormatCurrency(commission)}</h3>
-                                <p class="mb-0">Hesaplanan Prim (%5)</p>
+                                <h3>${safeFormatCurrency(totalCommission)}</h3>
+                                <p class="mb-0">Toplam Prim</p>
+                                <small>Ort. %${avgCommissionRate.toFixed(1)} oranında</small>
                             </div>
                         </div>
                     </div>
@@ -684,26 +698,59 @@
                     </div>
                 </div>
 
-                <div class="mt-4">
-                    <h6>En Çok Satan Ürün</h6>
-                    <div class="alert alert-info">
-                        <i class="fas fa-star me-2"></i>
-                        ${topProduct}
+                <!-- ✅ YENİ: Prim Detay Bölümü -->
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card border-warning">
+                            <div class="card-header bg-warning bg-opacity-10">
+                                <h6 class="mb-0">💰 Prim Detayları</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-6 text-center">
+                                        <h5 class="text-success">${safeFormatCurrency(commissionEligibleSales)}</h5>
+                                        <small class="text-muted">Primli Satış</small>
+                                    </div>
+                                    <div class="col-6 text-center">
+                                        <h5 class="text-muted">${safeFormatCurrency(nonCommissionSales)}</h5>
+                                        <small class="text-muted">Primsiz Satış</small>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="text-center">
+                                    <h4 class="text-warning">${safeFormatCurrency(totalCommission)}</h4>
+                                    <small class="text-muted">Toplam Prim Kazancı</small>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                    <div class="col-md-6">
+                        <div class="mt-4">
+                            <h6>En Çok Satan Ürün</h6>
+                            <div class="alert alert-info">
+                                <i class="fas fa-star me-2"></i>
+                                ${topProduct}
+                            </div>
+                        </div>
 
-                <div class="mt-3">
-                    <h6>Performans Notları</h6>
-                    <ul class="list-group">
-                        <li class="list-group-item d-flex justify-content-between">
-                            <span>Sipariş Başına Ortalama</span>
-                            <strong>${safeFormatCurrency(avgOrderValue)}</strong>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between">
-                            <span>Müşteri Başına Ortalama</span>
-                            <strong>${safeFormatCurrency(uniqueCustomers > 0 ? totalSales / uniqueCustomers : 0)}</strong>
-                        </li>
-                    </ul>
+                        <div class="mt-3">
+                            <h6>Performans Notları</h6>
+                            <ul class="list-group">
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Sipariş Başına Ortalama</span>
+                                    <strong>${safeFormatCurrency(avgOrderValue)}</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Müşteri Başına Ortalama</span>
+                                    <strong>${safeFormatCurrency(uniqueCustomers > 0 ? totalSales / uniqueCustomers : 0)}</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Ortalama Prim Oranı</span>
+                                    <strong class="text-warning">%${avgCommissionRate.toFixed(1)}</strong>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             `;
 

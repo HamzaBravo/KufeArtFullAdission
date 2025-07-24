@@ -1,0 +1,119 @@
+﻿@{
+    Layout = null; // No layout for this view
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#8B4513">
+    <title>Küfe Art - QR Menü</title>
+
+    <!-- PWA Meta Tags -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Küfe Art">
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link href="~/css/qr-menu.css" rel="stylesheet">
+</head>
+<body>
+    <!-- 🔄 GLOBAL LOADER -->
+    <div id="globalLoader" class="global-loader">
+        <div class="loader-content">
+            <div class="coffee-cup">
+                <div class="coffee-steam"></div>
+                <div class="coffee-steam"></div>
+                <div class="coffee-steam"></div>
+            </div>
+            <h3 class="cafe-name">☕ Küfe Art</h3>
+            <p class="loading-text">Menümüz hazırlanıyor...</p>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📱 MAIN APP -->
+    <div id="qrMenuApp" class="qr-menu-app" style="display: none;">
+
+        <!-- 🏠 HEADER -->
+        <header class="menu-header sticky-top">
+            <div class="container-fluid">
+                <div class="row align-items-center py-3">
+                    <div class="col-8">
+                        <h1 class="cafe-title mb-0">
+                            <i class="fas fa-coffee me-2"></i>
+                            Küfe Art
+                        </h1>
+                        <small class="cafe-subtitle">Bursa'nın kahve durağı</small>
+                    </div>
+                    <div class="col-4 text-end">
+                        <div class="current-time" id="currentTime"></div>
+                        <div class="weather-mini" id="weatherMini">
+                            <i class="fas fa-sun"></i> --°
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 📋 CATEGORY TABS -->
+        <nav class="category-navigation sticky-top">
+            <div class="container-fluid">
+                <div class="category-tabs" id="categoryTabs">
+                    <div class="category-loading">
+                        <div class="spinner-border spinner-border-sm"></div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 🛒 PRODUCTS GRID -->
+        <main class="products-container">
+            <div class="container-fluid">
+                <div id="productsGrid" class="products-grid">
+                    <!-- Products will be loaded here -->
+                </div>
+            </div>
+        </main>
+
+        <!-- 🌤️ WEATHER SUGGESTION POPUP -->
+        <div id="weatherSuggestion" class="weather-suggestion-popup">
+            <div class="suggestion-content">
+                <button class="suggestion-close" onclick="QRMenu.closeSuggestion()">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div class="suggestion-body">
+                    <!-- Weather suggestion content -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 📱 BOTTOM NAVIGATION (Optional) -->
+        <footer class="bottom-navigation">
+            <div class="container-fluid">
+                <div class="row text-center py-2">
+                    <div class="col">
+                        <small class="text-muted">
+                            <i class="fas fa-wifi me-1"></i>
+                            Wi-Fi: KufeArt_Guest
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/qr-menu.js"></script>
+</body>
+</html>

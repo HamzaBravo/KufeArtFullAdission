@@ -39,6 +39,23 @@ public class ProductController(DBContext _dbContext, IImageService _imageService
     {
         try
         {
+            // ✅ YENİ: Prim doğrulaması
+            if (product.IsCommissionEligible && product.CommissionRate < 0)
+            {
+                ModelState.AddModelError("CommissionRate", "Prim oranı negatif olamaz!");
+            }
+
+            if (product.IsCommissionEligible && product.CommissionRate > 100)
+            {
+                ModelState.AddModelError("CommissionRate", "Prim oranı %100'den fazla olamaz!");
+            }
+
+            // Prim dahil değilse oranı sıfırla
+            if (!product.IsCommissionEligible)
+            {
+                product.CommissionRate = 0;
+            }
+
             if (ModelState.IsValid)
             {
                 product.IsActive = true;
@@ -96,6 +113,23 @@ public class ProductController(DBContext _dbContext, IImageService _imageService
     {
         try
         {
+            // ✅ YENİ: Prim doğrulaması
+            if (product.IsCommissionEligible && product.CommissionRate < 0)
+            {
+                ModelState.AddModelError("CommissionRate", "Prim oranı negatif olamaz!");
+            }
+
+            if (product.IsCommissionEligible && product.CommissionRate > 100)
+            {
+                ModelState.AddModelError("CommissionRate", "Prim oranı %100'den fazla olamaz!");
+            }
+
+            // Prim dahil değilse oranı sıfırla
+            if (!product.IsCommissionEligible)
+            {
+                product.CommissionRate = 0;
+            }
+
             if (ModelState.IsValid)
             {
                 _dbContext.Products.Update(product);

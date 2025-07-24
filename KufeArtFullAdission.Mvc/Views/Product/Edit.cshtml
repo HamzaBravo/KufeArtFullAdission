@@ -107,6 +107,49 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- Prim Ayarları Bölümü -->
+                                <div class="mb-3">
+                                    <div class="card border-warning">
+                                        <div class="card-header bg-warning bg-opacity-10 py-2">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-percentage me-2 text-warning"></i>Prim Ayarları
+                                            </h6>
+                                        </div>
+                                        <div class="card-body py-2">
+                                            <div class="form-check mb-2">
+                                                <!-- ✅ GÜNCEL: Model'den gelen değeri kullan -->
+                                                <input asp-for="IsCommissionEligible" class="form-check-input" type="checkbox"
+                                                       id="commissionToggle" @@(Model.IsCommissionEligible ? "checked" : "" ) />
+                                                <label asp-for="IsCommissionEligible" class="form-check-label">
+                                                    💰 Bu ürün prim hesabına dahil edilsin
+                                                </label>
+                                            </div>
+
+                                            <!-- ✅ GÜNCEL: Model'e göre görünürlük ayarla -->
+                                            <div id="commissionFields" style="display: @(Model.IsCommissionEligible ? "block" : "none");">
+                                                <div class="row align-items-center">
+                                                    <div class="col-8">
+                                                        <label asp-for="CommissionRate" class="form-label small mb-1">Prim Oranı (%)</label>
+                                                        <div class="input-group input-group-sm">
+                                                            <input asp-for="CommissionRate" class="form-control" type="number"
+                                                                   step="0.1" min="0" max="100" placeholder="5.0"
+                                                                   @@(Model.IsCommissionEligible ? "required" : "" ) />
+                                                            <span class="input-group-text">%</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <small class="text-muted">
+                                                            <i class="fas fa-info-circle me-1"></i>
+                                                            Varsayılan: %5
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                                <span asp-validation-for="CommissionRate" class="text-danger small"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -190,6 +233,21 @@
             campaignFields.style.display = this.checked ? 'block' : 'none';
         });
 
+        // ✅ YENİ: Prim toggle
+        document.getElementById('commissionToggle').addEventListener('change', function() {
+            const commissionFields = document.getElementById('commissionFields');
+            const commissionRate = document.querySelector('input[name="CommissionRate"]');
+
+            if (this.checked) {
+                commissionFields.style.display = 'block';
+                commissionRate.setAttribute('required', 'required');
+            } else {
+                commissionFields.style.display = 'none';
+                commissionRate.removeAttribute('required');
+                commissionRate.value = '0';
+            }
+        });
+
         // Yeni resim önizleme
         document.getElementById('imageUpload').addEventListener('change', function(e) {
             const preview = document.getElementById('imagePreview');
@@ -242,6 +300,37 @@
                     card.style.border = '';
                 }
             });
+        });
+
+
+        // ✅ SAYFA YÜKLENDİĞİNDE MEVCUT DURUMLARI KONTROL ET
+        document.addEventListener('DOMContentLoaded', function() {
+            // Kampanya durumunu kontrol et
+            const campaignToggle = document.getElementById('campaignToggle');
+            const campaignFields = document.getElementById('campaignFields');
+
+            if (campaignToggle && campaignFields) {
+                campaignFields.style.display = campaignToggle.checked ? 'block' : 'none';
+            }
+
+            // ✅ Prim durumunu kontrol et
+            const commissionToggle = document.getElementById('commissionToggle');
+            const commissionFields = document.getElementById('commissionFields');
+            const commissionRate = document.querySelector('input[name="CommissionRate"]');
+
+            if (commissionToggle && commissionFields) {
+                if (commissionToggle.checked) {
+                    commissionFields.style.display = 'block';
+                    if (commissionRate) {
+                        commissionRate.setAttribute('required', 'required');
+                    }
+                } else {
+                    commissionFields.style.display = 'none';
+                    if (commissionRate) {
+                        commissionRate.removeAttribute('required');
+                    }
+                }
+            }
         });
     </script>
 }
