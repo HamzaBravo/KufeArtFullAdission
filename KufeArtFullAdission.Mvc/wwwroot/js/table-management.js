@@ -181,6 +181,14 @@ window.TableManager = {
         $('#summaryTab').html('<div class="text-center py-4"><div class="spinner-border"></div><p class="mt-2">Yükleniyor...</p></div>');
 
         TableManager.loadTableDetails(tableId);
+
+        // Modal açıldıktan sonra event listener'ları kur
+        $('#tableModal').on('shown.bs.modal', function () {
+            // Küfe Point event listener'ları
+            $('#usePointsCheckbox').off('change').on('change', function () {
+                $('#pointAmountSection').toggle(this.checked);
+            });
+        });
     },
 
     loadTableDetails: function (tableId) {
@@ -250,49 +258,70 @@ window.TableManager = {
         });
 
         let html = `
-            <!-- Masa Özeti -->
-            <div class="row mb-4">
-                <div class="col-md-4">
-                    <div class="card bg-warning bg-opacity-10 border-warning">
-                        <div class="card-body text-center">
-                            <i class="fas fa-clock fa-2x text-warning mb-2"></i>
-                            <h6 class="text-muted">Açılış Zamanı</h6>
-                            <p class="fw-bold mb-0">${Utils.getTimeAgo(orders[0]?.createdAt)}</p>
-                        </div>
+        <!-- 🎯 YENİ: Küfe Point Bölümü (Siparişler tab'ının en üstünde) -->
+        <div class="card mb-3 kufe-point-section">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0">🏆 Küfe Point Sistemi</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Müşteri Telefon Numarası (Opsiyonel)</label>
+                    <div class="input-group">
+                        <input type="tel" id="customerPhoneInput" class="form-control" 
+                               placeholder="05XX XXX XX XX" maxlength="11">
+                        <button type="button" class="btn btn-outline-primary" 
+                                onclick="PaymentManager.checkCustomerPoints()">
+                            Sorgula
+                        </button>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="card bg-info bg-opacity-10 border-info">
-                        <div class="card-body text-center">
-                            <i class="fas fa-shopping-cart fa-2x text-info mb-2"></i>
-                            <h6 class="text-muted">Toplam Ürün</h6>
-                            <p class="fw-bold mb-0">${orders.reduce((sum, order) => sum + order.productQuantity, 0)} adet</p>
+                
+                <div id="customerPointsResult" style="display:none;">
+                    <div class="alert alert-info">
+                        <div class="row">
+                            <div class="col-6">
+                                <strong>Mevcut Puan:</strong><br>
+                                <span id="currentPoints" class="text-primary fs-5">0</span>
+                            </div>
+                            <div class="col-6">
+                                <strong>Kazanacağı Puan:</strong><br>
+                                <span id="willEarnPoints" class="text-success fs-5">0</span>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card bg-success bg-opacity-10 border-success">
-                        <div class="card-body text-center">
-                            <i class="fas fa-lira-sign fa-2x text-success mb-2"></i>
-                            <h6 class="text-muted">Toplam Tutar</h6>
-                            <p class="fw-bold mb-0">₺${totalAmount.toFixed(2)}</p>
+                        
+                        <div id="pointDiscountSection" style="display:none;" class="mt-3">
+                            <div class="form-check mb-2">
+                                <input type="checkbox" id="usePointsCheckbox" class="form-check-input">
+                                <label for="usePointsCheckbox" class="form-check-label">
+                                    Puan indirimi uygula (Min 5000 puan)
+                                </label>
+                            </div>
+                            
+                            <div id="pointAmountSection" style="display:none;">
+                                <label class="form-label">Kullanılacak Puan:</label>
+                                <input type="number" id="pointsToUse" class="form-control" 
+                                       min="5000" step="100" placeholder="Minimum 5000">
+                                <small class="text-muted">100 puan = 1 TL</small>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Sipariş Geçmişi -->
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">
-                        <i class="fas fa-list me-2"></i>Sipariş Geçmişi
-                    </h6>
-                    <button class="btn btn-sm btn-outline-primary" onclick="OrderManager.addNewOrder('${table.id}')">
-                        <i class="fas fa-plus me-1"></i>Ürün Ekle
-                    </button>
+        <!-- ❌ ESKİ: Bu 3 kart'ı KALDIR (açılış zamanı, ürün sayısı, toplam tutar)
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card bg-warning bg-opacity-10 border-warning">
+                    ...
                 </div>
-                <div class="card-body">
-        `;
+            </div>
+            ...
+        </div>
+        -->
+
+        <!-- ✅ Siparişler listesi (aynı kalacak) -->
+    `;
 
         // Batch'leri render et
         Object.keys(batches).forEach((batchId, index) => {
@@ -343,42 +372,28 @@ window.TableManager = {
         });
 
         html += `
-                </div>
-            </div>
-
-                     <!-- Ödeme Butonları -->
-            <div class="card mb-3">
-                <div class="card-header">
-                    <h6 class="mb-0"><i class="fas fa-credit-card me-2"></i>Ödeme Al</h6>
-                </div>
-                <div class="card-body">
-                    <div class="row g-2">
-                        <div class="col-md-4">
-                            <button class="btn btn-success w-100 d-flex flex-column align-items-center" onclick="PaymentManager.processFullPayment('${table.id}', 'cash')">
-                                <i class="fas fa-money-bill-wave fa-lg mb-1"></i>
-                                <span class="fw-bold">Nakit</span>
-                                <small>₺${safeRemainingAmount.toFixed(2)}</small>
-                            </button>
+        <!-- Ödeme Durumu -->
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="alert alert-info mb-0 py-2">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <small class="text-muted">Toplam Sipariş</small><br>
+                            <strong>₺${safeOrderAmount.toFixed(2)}</strong>
                         </div>
-                        <div class="col-md-4">
-                            <button class="btn btn-primary w-100 d-flex flex-column align-items-center" onclick="PaymentManager.processFullPayment('${table.id}', 'card')">
-                                <i class="fas fa-credit-card fa-lg mb-1"></i>
-                                <span class="fw-bold">Kart</span>
-                                <small>₺${safeRemainingAmount.toFixed(2)}</small>
-                            </button>
+                        <div class="col-4">
+                            <small class="text-muted">Ödenen</small><br>
+                            <strong class="text-success">₺${safePaidAmount.toFixed(2)}</strong>
                         </div>
-                        <div class="col-md-4">
-                            <button class="btn btn-warning w-100 d-flex flex-column align-items-center" onclick="PaymentManager.openPartialPaymentModal('${table.id}')">
-                                <i class="fas fa-calculator fa-lg mb-1"></i>
-                                <span class="fw-bold">Parçalı</span>
-                                <small>Seç & Öde</small>
-                            </button>
+                        <div class="col-4">
+                            <small class="text-muted">Kalan</small><br>
+                            <strong class="text-warning">₺${safeRemainingAmount.toFixed(2)}</strong>
                         </div>
                     </div>
-
                 </div>
             </div>
-        `;
+        </div>
+    `;
 
         return html;
     },

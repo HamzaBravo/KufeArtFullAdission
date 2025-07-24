@@ -79,76 +79,18 @@ window.PaymentManager = {
 
         // 3. Manuel tutar ayarları
         $('#totalOrderAmount').html(`
-            Toplam sipariş: ₺${totalOrderAmount.toFixed(2)}<br>
-            <span class="text-success">Ödenen: ₺${totalPaidAmount.toFixed(2)}</span><br>
-            <span class="text-warning fw-bold">Kalan: ₺${remainingAmount.toFixed(2)}</span>
-        `);
+        Toplam sipariş: ₺${totalOrderAmount.toFixed(2)}<br>
+        <span class="text-success">Ödenen: ₺${totalPaidAmount.toFixed(2)}</span><br>
+        <span class="text-warning fw-bold">Kalan: ₺${remainingAmount.toFixed(2)}</span>
+    `);
 
         $('#customPaymentAmount')
             .attr('max', remainingAmount)
             .attr('placeholder', `Maksimum: ₺${remainingAmount.toFixed(2)}`)
             .val('');
 
-        // 🎯 YENİ: Küfe Point alanını ekle
-        const kufePointSection = `
-        <div class="card mt-3">
-            <div class="card-header bg-warning text-dark">
-                <h6 class="mb-0">🏆 Küfe Point Sistemi</h6>
-            </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <label class="form-label">Müşteri Telefon Numarası (Opsiyonel)</label>
-                    <div class="input-group">
-                        <input type="tel" id="customerPhoneInput" class="form-control" 
-                               placeholder="05XX XXX XX XX" maxlength="11">
-                        <button type="button" class="btn btn-outline-primary" 
-                                onclick="PaymentManager.checkCustomerPoints()">
-                            Sorgula
-                        </button>
-                    </div>
-                </div>
-                
-                <div id="customerPointsResult" style="display:none;">
-                    <div class="alert alert-info">
-                        <div class="row">
-                            <div class="col-6">
-                                <strong>Mevcut Puan:</strong><br>
-                                <span id="currentPoints" class="text-primary fs-5">0</span>
-                            </div>
-                            <div class="col-6">
-                                <strong>Kazanacağı Puan:</strong><br>
-                                <span id="willEarnPoints" class="text-success fs-5">0</span>
-                            </div>
-                        </div>
-                        
-                        <div id="pointDiscountSection" style="display:none;" class="mt-3">
-                            <div class="form-check mb-2">
-                                <input type="checkbox" id="usePointsCheckbox" class="form-check-input">
-                                <label for="usePointsCheckbox" class="form-check-label">
-                                    Puan indirimi uygula (Min 5000 puan)
-                                </label>
-                            </div>
-                            
-                            <div id="pointAmountSection" style="display:none;">
-                                <label class="form-label">Kullanılacak Puan:</label>
-                                <input type="number" id="pointsToUse" class="form-control" 
-                                       min="5000" step="100" placeholder="Minimum 5000">
-                                <small class="text-muted">100 puan = 1 TL</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-        // Modal body'nin sonuna ekle
-        $('.modal-body').append(kufePointSection);
-
-        // Event listener'ları ekle
-        $('#usePointsCheckbox').on('change', function () {
-            $('#pointAmountSection').toggle(this.checked);
-        });
+        // ❌ Küfe Point bölümünü KALDIR (artık parçalı ödeme modalında olmayacak)
+        // Event listener'ları da kaldır
     },
 
     populateOrderItems: function () {
@@ -364,10 +306,14 @@ window.PaymentManager = {
     },
 
     // 🎯 YENİ: Müşteri puan sorgulama
+    // 🎯 DÜZELTİLMİŞ: Müşteri puan sorgulama
     checkCustomerPoints: function () {
-        const phoneNumber = $('#customerPhoneInput').val().trim();
+        const phoneNumberInput = document.getElementById('customerPhoneInput');
+        const phoneNumber = phoneNumberInput ? phoneNumberInput.value.trim() : '';
 
-        if (!phoneNumber) {
+        console.log('Girilen telefon:', phoneNumber); // Debug için
+
+        if (!phoneNumber || phoneNumber === '') {
             ToastHelper.warning('Lütfen telefon numarası girin!');
             return;
         }
@@ -380,7 +326,7 @@ window.PaymentManager = {
         LoaderHelper.show('Müşteri puanları sorgulanıyor...');
 
         $.ajax({
-            url: '/Home/GetCustomerPoints', // Backend endpoint
+            url: '/Home/GetCustomerPoints',
             method: 'GET',
             data: { phoneNumber: phoneNumber },
             success: function (response) {
