@@ -59,6 +59,8 @@ public class ProductController(DBContext _dbContext, IImageService _imageService
             if (ModelState.IsValid)
             {
                 product.IsActive = true;
+                product.Name = product.Name.ToUpper();
+                product.CategoryName = product.CategoryName.ToUpper();
                 _dbContext.Products.Add(product);
                 await _dbContext.SaveChangesAsync();
 
@@ -132,6 +134,9 @@ public class ProductController(DBContext _dbContext, IImageService _imageService
 
             if (ModelState.IsValid)
             {
+                product.Name = product.Name.ToUpper();
+                product.CategoryName = product.CategoryName.ToUpper();
+
                 _dbContext.Products.Update(product);
 
                 // Silinecek resimleri işle

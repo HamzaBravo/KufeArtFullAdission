@@ -18,49 +18,47 @@ namespace KufeArtFullAdission.QrMenuMvc.Controllers
         {
             try
             {
-                // QR menüde gösterilecek aktif ürünleri getir
                 var products = await _context.Products
                     .AsNoTracking()
                     .Where(p => p.IsActive && p.IsQrMenu)
-                    .Select(p => new ProductDisplayModel
+                    .Select(p => new
                     {
                         Id = p.Id,
                         Name = p.Name,
                         Description = p.Description,
                         Price = p.Price,
                         CategoryName = p.CategoryName,
+                        // ✅ Normalize edilmiş kategori adını da gönder
+                        CategoryNameNormalized = NormalizeCategoryName(p.CategoryName),
                         HasCampaign = p.HasCampaign,
                         CampaignCaption = p.CampaignCaption,
-                        CampaignDetail = p.CampaignDetail
+                        CampaignDetail = p.CampaignDetail,
+                        Type = p.Type.ToString(),
+                        Images = _context.ProductImages
+                            .Where(pi => pi.ProductId == p.Id)
+                            .Select(pi => pi.ImagePath)
+                            .ToList()
                     })
                     .OrderBy(p => p.CategoryName)
                     .ThenBy(p => p.Name)
                     .ToListAsync();
 
-                // Her ürün için resimleri getir
-                foreach (var product in products)
+                var distinctCategories = await _context.Products
+                    .AsNoTracking()
+                    .Where(p => p.IsActive && p.IsQrMenu)
+                    .Select(p => p.CategoryName)
+                    .Distinct()
+                    .ToListAsync();
+
+                var categories = distinctCategories.Select(categoryName => new
                 {
-                    var images = await _context.ProductImages
-                        .AsNoTracking()
-                        .Where(pi => pi.ProductId == product.Id)
-                        .Select(pi => pi.ImagePath)
-                        .ToListAsync();
-
-                    product.Images = images;
-                }
-
-                // Kategorileri oluştur
-                var categories = products
-                    .GroupBy(p => p.CategoryName)
-                    .Select(g => new CategoryModel
-                    {
-                        Name = g.Key.ToLower().Replace(" ", ""),
-                        DisplayName = g.Key,
-                        ProductCount = g.Count(),
-                        Icon = GetCategoryIcon(g.Key)
-                    })
-                    .OrderBy(c => c.DisplayName)
-                    .ToList();
+                    Name = NormalizeCategoryName(categoryName), // ✅ Normalize edilmiş isim
+                    DisplayName = categoryName, // ✅ Orijinal görünen isim
+                    ProductCount = products.Count(p => p.CategoryName == categoryName),
+                    Icon = GetCategoryIcon(categoryName)
+                })
+                .OrderBy(c => c.DisplayName)
+                .ToList();
 
                 return Ok(new
                 {
@@ -214,20 +212,44 @@ namespace KufeArtFullAdission.QrMenuMvc.Controllers
         }
 
         // Yardımcı metodlar
-        private string GetCategoryIcon(string categoryName)
+        private static string GetCategoryIcon(string categoryName)
         {
-            return categoryName.ToLower() switch
+            var normalized = categoryName.ToLowerInvariant();
+
+            return normalized switch
             {
-                var c when c.Contains("kahve") => "fas fa-coffee",
-                var c when c.Contains("çay") => "fas fa-leaf",
-                var c when c.Contains("tatlı") => "fas fa-birthday-cake",
-                var c when c.Contains("yemek") => "fas fa-utensils",
-                var c when c.Contains("içecek") => "fas fa-glass-cheers",
-                var c when c.Contains("atıştırmalık") => "fas fa-cookie-bite",
-                var c when c.Contains("soğuk") => "fas fa-snowflake",
-                var c when c.Contains("sıcak") => "fas fa-fire",
-                _ => "fas fa-tag"
+                var name when name.Contains("kahve") => "fas fa-coffee",
+                var name when name.Contains("çay") || name.Contains("cay") => "fas fa-leaf",
+                var name when name.Contains("tatlı") || name.Contains("tatli") => "fas fa-birthday-cake",
+                var name when name.Contains("içecek") || name.Contains("icecek") => "fas fa-glass-water",
+                var name when name.Contains("soğuk") || name.Contains("soguk") => "fas fa-snowflake",
+                var name when name.Contains("sıcak") || name.Contains("sicak") => "fas fa-fire",
+                var name when name.Contains("yemek") => "fas fa-utensils",
+                var name when name.Contains("atıştırmalık") || name.Contains("atistirmalik") => "fas fa-cookie-bite",
+                var name when name.Contains("salata") => "fas fa-seedling",
+                var name when name.Contains("sandviç") || name.Contains("sandvic") => "fas fa-hamburger",
+                var name when name.Contains("pasta") => "fas fa-birthday-cake",
+                var name when name.Contains("börek") || name.Contains("borek") => "fas fa-bread-slice",
+                _ => "fas fa-utensils"
             };
+        }
+
+        // ✅ Kategori adını normalize etmek için yardımcı static metod
+        private static string NormalizeCategoryName(string categoryName)
+        {
+            if (string.IsNullOrEmpty(categoryName)) return "";
+
+            return categoryName
+                .ToUpperInvariant() // ✅ ToUpper yerine ToUpperInvariant kullan
+                .Replace("Ç", "C")
+                .Replace("Ğ", "G")
+                .Replace("İ", "I")
+                .Replace("Ö", "O")
+                .Replace("Ş", "S")
+                .Replace("Ü", "U")
+                .Replace(" ", "")
+                .Replace("-", "")
+                .Replace("_", "");
         }
 
         private string GetClientIpAddress()

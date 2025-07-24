@@ -3,36 +3,33 @@ class QRMenuEngine {
     constructor() {
         this.products = [];
         this.categories = [];
-        this.currentCategory = 'all';
+        this.currentView = 'categories'; // 'categories' veya 'products'
+        this.currentCategory = null;
         this.weatherData = null;
         this.suggestionShown = false;
+        this.loadingStates = {
+            products: false,
+            weather: false,
+            tracking: false
+        };
 
         this.init();
     }
 
     async init() {
         console.log('🚀 QR Menu initializing...');
-
-        // Start loading animation
         this.showLoader();
 
         try {
-            // Parallel loading for better performance
             await Promise.all([
                 this.loadProducts(),
                 this.loadWeatherData(),
                 this.trackPageView()
             ]);
 
-            // Initialize UI components
             this.initializeUI();
-            this.startClock();
-
-            // Hide loader and show app
-            setTimeout(() => {
-                this.hideLoader();
-                this.scheduleWeatherSuggestion();
-            }, 2000); // Minimum 2 seconds loading for better UX
+            this.hideLoader();
+            this.scheduleWeatherSuggestion();
 
         } catch (error) {
             console.error('❌ Initialization error:', error);
@@ -41,20 +38,35 @@ class QRMenuEngine {
     }
 
     showLoader() {
-        document.getElementById('globalLoader').style.display = 'flex';
-        document.getElementById('qrMenuApp').style.display = 'none';
+        const loader = document.getElementById('globalLoader');
+        const app = document.getElementById('qrMenuApp');
+
+        loader.style.display = 'flex';
+        app.style.display = 'none';
     }
 
     hideLoader() {
-        document.getElementById('globalLoader').style.display = 'none';
-        document.getElementById('qrMenuApp').style.display = 'block';
+        const allLoaded = Object.values(this.loadingStates).every(state => state);
 
-        // Smooth entrance animation
-        document.getElementById('qrMenuApp').style.opacity = '0';
+        if (!allLoaded) {
+            console.log('⏳ Waiting for all components to load...');
+            return;
+        }
+
+        const loader = document.getElementById('globalLoader');
+        const app = document.getElementById('qrMenuApp');
+
+        loader.style.opacity = '0';
         setTimeout(() => {
-            document.getElementById('qrMenuApp').style.opacity = '1';
-            document.getElementById('qrMenuApp').style.transition = 'opacity 0.5s ease';
-        }, 100);
+            loader.style.display = 'none';
+            app.style.display = 'block';
+            app.style.opacity = '0';
+
+            setTimeout(() => {
+                app.style.opacity = '1';
+                app.style.transition = 'opacity 0.5s ease';
+            }, 100);
+        }, 500);
     }
 
     async loadProducts() {
@@ -67,25 +79,61 @@ class QRMenuEngine {
             this.products = data.products || [];
             this.categories = data.categories || [];
 
-            console.log(`✅ Loaded ${this.products.length} products in ${this.categories.length} categories`);
+            this.assignRandomImagesToCategories();
+
+            console.log(`✅ Loaded ${this.products.length} products, ${this.categories.length} categories`);
+            this.loadingStates.products = true;
+
+            // İlk yüklemede sadece kategorileri göster
+            this.showCategoriesView();
+
+            this.checkAllLoaded();
         } catch (error) {
             console.error('❌ Products loading error:', error);
             throw error;
         }
     }
 
+    assignRandomImagesToCategories() {
+        this.categories = this.categories.map(category => {
+            // ✅ Normalize edilmiş isimle karşılaştır
+            const categoryProducts = this.products.filter(product =>
+                QRMenuEngine.normalizeCategoryName(product.categoryName) ===
+                QRMenuEngine.normalizeCategoryName(category.displayName)
+            );
+
+            if (categoryProducts.length > 0) {
+                const productsWithImages = categoryProducts.filter(product =>
+                    product.images && product.images.length > 0 && product.images[0] !== ''
+                );
+
+                if (productsWithImages.length > 0) {
+                    const randomProduct = productsWithImages[Math.floor(Math.random() * productsWithImages.length)];
+                    category.randomImage = randomProduct.images[0];
+                }
+            }
+
+            return category;
+        });
+    }
+
     async loadWeatherData() {
         try {
             console.log('🌤️ Loading weather data...');
             const response = await fetch('/api/weather/current');
-            if (!response.ok) throw new Error('Weather load failed');
 
-            this.weatherData = await response.json();
-            console.log('✅ Weather data loaded:', this.weatherData);
+            if (response.ok) {
+                this.weatherData = await response.json();
+                this.updateWeatherDisplay();
+                console.log('✅ Weather data loaded');
+            }
+
+            this.loadingStates.weather = true;
+            this.checkAllLoaded();
         } catch (error) {
-            console.error('❌ Weather loading error:', error);
-            // Weather is not critical, continue without it
-            this.weatherData = null;
+            console.log('⚠️ Weather loading failed:', error);
+            this.loadingStates.weather = true;
+            this.checkAllLoaded();
         }
     }
 
@@ -96,303 +144,584 @@ class QRMenuEngine {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ timestamp: new Date().toISOString() })
             });
-            console.log('📊 Page view tracked');
+            console.log('✅ Page view tracked');
         } catch (error) {
-            console.error('❌ Tracking error:', error);
-            // Tracking is not critical
+            console.log('⚠️ Tracking failed:', error);
+        } finally {
+            this.loadingStates.tracking = true;
+            this.checkAllLoaded();
+        }
+    }
+
+    checkAllLoaded() {
+        const allLoaded = Object.values(this.loadingStates).every(state => state);
+        if (allLoaded) {
+            console.log('🎉 All components loaded successfully');
+            this.hideLoader();
         }
     }
 
     initializeUI() {
+        this.startClock();
+        this.initializeEventListeners();
+        this.initializeFooter(); // ✅ Footer'ı başlat
+    }
+
+    initializeEventListeners() {
+        // Kategori kartlarına click event'i
+        document.addEventListener('click', (e) => {
+            const categoryCard = e.target.closest('.category-card');
+            if (categoryCard && this.currentView === 'categories') {
+                const categoryName = categoryCard.dataset.category;
+                this.selectCategory(categoryName);
+            }
+        });
+
+        // Ürün kartlarına click event'i
+        document.addEventListener('click', (e) => {
+            const productCard = e.target.closest('.product-card');
+            if (productCard && this.currentView === 'products') {
+                const productId = productCard.dataset.productId;
+                this.showProductModal(productId);
+            }
+        });
+
+        // Modal kapatma
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-close') || e.target.classList.contains('product-modal')) {
+                this.closeProductModal();
+            }
+        });
+
+        // ESC tuşu ile modal kapatma
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.closeProductModal();
+            }
+        });
+    }
+
+    // ===== VIEW MANAGEMENT =====
+    showCategoriesView() {
+        this.currentView = 'categories';
+        document.body.classList.remove('show-products');
+        document.body.classList.add('view-categories');
+
+        // ✅ Header'ı kategoriler moduna çevir
+        this.updateHeaderForCategories();
+
         this.renderCategories();
+        this.clearProductsContainer();
+    }
+
+    showProductsView(categoryName) {
+        this.currentView = 'products';
+        this.currentCategory = categoryName;
+
+        document.body.classList.remove('view-categories');
+        document.body.classList.add('show-products');
+
+        // ✅ Header'ı ürünler moduna çevir
+        this.updateHeaderForProducts(categoryName);
+
         this.renderProducts();
+    }
+
+    // ✅ Header güncelleme metodlarında renk tutarlılığı
+    updateHeaderForCategories() {
+        const header = document.querySelector('.menu-header');
+        header.classList.remove('products-mode');
+        // ✅ Renk sınıflarını kaldırma, CSS'te !important ile sabitlendi
+
+        const headerContent = header.querySelector('.row');
+        headerContent.innerHTML = `
+        <div class="col-8 header-content-categories">
+            <h1 class="cafe-title mb-0">
+                <i class="fas fa-coffee me-2"></i>
+                Küfe Art
+            </h1>
+            <small class="cafe-subtitle">Bursa'nın kahve durağı</small>
+        </div>
+        <div class="col-4 text-end">
+            <div class="current-time" id="currentTime"></div>
+            <div class="weather-mini" id="weatherMini">
+                <i class="fas fa-sun"></i> --°
+            </div>
+        </div>
+    `;
+
+        // Saat ve hava durumunu yeniden başlat
+        this.startClock();
         this.updateWeatherDisplay();
     }
 
-    renderCategories() {
-        const container = document.getElementById('categoryTabs');
+    updateHeaderForProducts(categoryName) {
+        const category = this.categories.find(c => c.name === categoryName);
+        if (!category) return;
 
-        if (!this.categories.length) {
-            container.innerHTML = '<div class="text-center py-3">Kategori bulunamadı</div>';
-            return;
-        }
+        const header = document.querySelector('.menu-header');
+        // ✅ products-mode class'ı ekle ama renk CSS'te sabit
+        header.classList.add('products-mode');
 
-        // Add "All" category
-        const allCategory = {
-            name: 'all',
-            displayName: 'Tümü',
-            icon: 'fas fa-th-large',
-            productCount: this.products.length
-        };
-
-        const allCategories = [allCategory, ...this.categories];
-
-        const categoriesHTML = allCategories.map(category => `
-            <div class="category-tab ${category.name === this.currentCategory ? 'active' : ''}" 
-                 data-category="${category.name}"
-                 onclick="QRMenu.selectCategory('${category.name}')">
-                <i class="${category.icon || 'fas fa-tag'}"></i>
-                ${category.displayName || category.name}
-                <span class="category-badge">${category.productCount}</span>
+        const headerContent = header.querySelector('.row');
+        headerContent.innerHTML = `
+        <div class="col-12 header-content-products">
+            <div class="header-back-section">
+                <button class="header-back-button" onclick="QRMenu.goBackToCategories()">
+                    <i class="fas fa-arrow-left"></i>
+                    Kategoriler
+                </button>
+                
+                <div class="header-category-info">
+                    <h2 class="header-category-title">
+                        <i class="${category.icon || 'fas fa-utensils'} header-category-icon"></i>
+                        ${category.displayName}
+                    </h2>
+                    <p class="header-category-subtitle">${category.productCount} ürün bulundu</p>
+                </div>
+                
+                <div class="header-time-weather">
+                    <div class="current-time" id="currentTime"></div>
+                    <div class="weather-mini" id="weatherMini">
+                        <i class="fas fa-sun"></i> --°
+                    </div>
+                </div>
             </div>
-        `).join('');
+        </div>
+    `;
 
-        container.innerHTML = categoriesHTML;
+        // Saat ve hava durumunu yeniden başlat
+        this.startClock();
+        this.updateWeatherDisplay();
     }
 
     selectCategory(categoryName) {
-        this.currentCategory = categoryName;
+        console.log('🎯 Selected category:', categoryName);
+        this.showProductsView(categoryName);
 
-        // Update active tab
-        document.querySelectorAll('.category-tab').forEach(tab => {
-            tab.classList.remove('active');
-        });
-        document.querySelector(`[data-category="${categoryName}"]`).classList.add('active');
+        // Smooth scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
-        // Re-render products
-        this.renderProducts();
+    goBackToCategories() {
+        console.log('⬅️ Going back to categories');
+        this.showCategoriesView();
 
-        // Smooth scroll to top of products
-        document.querySelector('.products-container').scrollIntoView({
-            behavior: 'smooth'
-        });
+        // Smooth scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ===== RENDER METHODS =====
+    renderCategories() {
+        const container = document.getElementById('mainContent');
+
+        const categoriesHTML = this.categories.map(category => `
+            <div class="category-card" data-category="${category.name}">
+                <div class="category-image-container">
+                    ${category.randomImage ?
+                `<img src="${category.randomImage}" alt="${category.displayName}" class="category-image">` :
+                `<div class="category-placeholder">
+                            <i class="${category.icon || 'fas fa-utensils'}"></i>
+                        </div>`
+            }
+                </div>
+                <div class="category-name">${category.displayName || category.name}</div>
+                <div class="category-count">${category.productCount} ürün</div>
+            </div>
+        `).join('');
+
+        container.innerHTML = `
+            <div class="view-categories">
+                <div class="categories-grid">
+                    ${categoriesHTML}
+                </div>
+            </div>
+            <div class="view-products">
+                <!-- Products will be rendered here -->
+            </div>
+        `;
+    }
+
+    renderBackNavigation() {
+        const container = document.querySelector('.view-products');
+        const backNavHTML = `
+            <div class="back-navigation">
+                <div class="container-fluid">
+                    <button class="back-button" onclick="QRMenu.goBackToCategories()">
+                        <i class="fas fa-arrow-left"></i>
+                        Kategorilere Dön
+                    </button>
+                </div>
+            </div>
+        `;
+
+        container.insertAdjacentHTML('afterbegin', backNavHTML);
+    }
+
+    renderCategoryHeader() {
+        const category = this.categories.find(c => c.name === this.currentCategory);
+        if (!category) return;
+
+        const container = document.querySelector('.view-products');
+        const headerHTML = `
+            <div class="category-page-header">
+                <div class="container-fluid">
+                    <h2 class="category-page-title">
+                        <i class="${category.icon || 'fas fa-utensils'}"></i>
+                        ${category.displayName}
+                    </h2>
+                    <p class="category-page-subtitle">${category.productCount} ürün bulundu</p>
+                </div>
+            </div>
+        `;
+
+        container.insertAdjacentHTML('beforeend', headerHTML);
     }
 
     renderProducts() {
-        const container = document.getElementById('productsGrid');
+        // ✅ Normalize edilmiş isimle filtreleme
+        let filteredProducts = this.products.filter(product =>
+            product.categoryNameNormalized === this.currentCategory ||
+            QRMenuEngine.normalizeCategoryName(product.categoryName) === this.currentCategory
+        );
 
-        let filteredProducts = this.products;
-
-        // Filter by category
-        if (this.currentCategory !== 'all') {
-            filteredProducts = this.products.filter(product =>
-                product.categoryName.toLowerCase().replace(/\s+/g, '') === this.currentCategory.toLowerCase()
-            );
-        }
+        const container = document.querySelector('.view-products');
 
         if (!filteredProducts.length) {
-            container.innerHTML = `
-                <div class="col-12 text-center py-5">
-                    <i class="fas fa-search fa-3x text-muted mb-3 opacity-25"></i>
-                    <h6 class="text-muted">Bu kategoride ürün bulunamadı</h6>
+            const emptyHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-search"></i>
+                    <h5>Bu kategoride ürün bulunamadı</h5>
+                    <p>Başka bir kategori deneyebilirsiniz</p>
                 </div>
             `;
+            container.innerHTML = emptyHTML;
             return;
         }
 
         const productsHTML = filteredProducts.map(product => this.createProductCard(product)).join('');
-        container.innerHTML = productsHTML;
 
-        // Initialize image carousels
+        const productsContainerHTML = `
+            <main class="products-container">
+                <div class="container-fluid">
+                    <div class="products-grid">
+                        ${productsHTML}
+                    </div>
+                </div>
+            </main>
+        `;
+
+        container.innerHTML = productsContainerHTML;
+
+        // ✅ Carousel'leri başlat
         this.initializeImageCarousels();
     }
 
+    initializeImageCarousels() {
+        // Otomatik döngü için timer'ları başlat
+        document.querySelectorAll('.product-image-carousel').forEach(carousel => {
+            const productId = carousel.dataset.productId;
+            this.startAutoSlide(productId);
+        });
+    }
+
+    startAutoSlide(productId) {
+        // Her 4 saniyede bir resmi değiştir
+        setInterval(() => {
+            this.nextProductImage(productId);
+        }, 2500);
+    }
+
+    // ✅ Çoklu resim destekli product card
     createProductCard(product) {
-        // ✅ GÜNCEL: Resim yoksa boş string kullan, CSS halleder
         const images = product.images && product.images.length > 0 ? product.images : [''];
-        const firstImage = images[0] || '';
+        const hasMultipleImages = images.length > 1 && images[0] !== '';
 
         return `
-        <div class="product-card" data-product-id="${product.id}">
-            <div class="product-image-container">
-                <img src="${firstImage}" alt="${product.name}" class="product-image">
-                
-                ${product.hasCampaign ? `
-                    <div class="campaign-badge">
-                        ${product.campaignCaption || '🎯 Kampanya'}
-                    </div>
-                ` : ''}
-                
-                ${images.length > 1 && images[0] !== '' ? `
-                    <div class="image-indicators">
-                        ${images.map((_, index) => `
-                            <div class="image-dot ${index === 0 ? 'active' : ''}" 
-                                 data-image-index="${index}"></div>
-                        `).join('')}
-                    </div>
-                ` : ''}
+            <div class="product-card" data-product-id="${product.id}">
+                <div class="product-image-container">
+                    ${hasMultipleImages ? `
+                        <!-- Çoklu resim carousel -->
+                        <div class="product-image-carousel" data-product-id="${product.id}">
+                            ${images.map((image, index) => `
+                                <img src="${image}" alt="${product.name}" 
+                                     class="product-image ${index === 0 ? 'active' : ''}" 
+                                     data-index="${index}">
+                            `).join('')}
+                        </div>
+                        
+                        <!-- Resim göstergeleri -->
+                        <div class="image-indicators">
+                            ${images.map((_, index) => `
+                                <div class="image-dot ${index === 0 ? 'active' : ''}" 
+                                     data-index="${index}" 
+                                     onclick="QRMenu.changeProductImage(${product.id}, ${index})"></div>
+                            `).join('')}
+                        </div>
+                        
+                        <!-- Önceki/Sonraki butonları -->
+                        <button class="carousel-btn carousel-prev" 
+                                onclick="QRMenu.previousProductImage(${product.id})">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <button class="carousel-btn carousel-next" 
+                                onclick="QRMenu.nextProductImage(${product.id})">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    ` : `
+                        <!-- Tek resim -->
+                        <img src="${images[0]}" alt="${product.name}" class="product-image">
+                    `}
+                    
+                    ${product.hasCampaign ? `
+                        <div class="campaign-badge">
+                            ${product.campaignCaption || '🎯 Kampanya'}
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="product-info">
+                    <div class="product-name">${product.name}</div>
+                    ${product.description ? `
+                        <div class="product-description">${product.description}</div>
+                    ` : ''}
+                    <div class="product-price">₺${product.price.toFixed(2)}</div>
+                </div>
             </div>
-            
-            <div class="product-info">
-                <h3 class="product-name">${product.name}</h3>
-                ${product.description ? `
-                    <p class="product-description">${product.description}</p>
-                ` : ''}
-                <div class="product-price">₺${product.price.toFixed(2)}</div>
-            </div>
-        </div>
-    `;
+        `;
     }
 
-    initializeImageCarousels() {
-        // Add click handlers for image indicators
-        document.querySelectorAll('.image-dot').forEach(dot => {
-            dot.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const imageIndex = parseInt(e.target.dataset.imageIndex);
-                const productCard = e.target.closest('.product-card');
-                const productId = productCard.dataset.productId;
-                this.changeProductImage(productId, imageIndex);
-            });
+    changeProductImage(productId, targetIndex) {
+        const carousel = document.querySelector(`[data-product-id="${productId}"] .product-image-carousel`);
+        const dots = document.querySelectorAll(`[data-product-id="${productId}"] .image-dot`);
+        const images = carousel.querySelectorAll('.product-image');
+
+        if (!images[targetIndex]) return;
+
+        // Aktif resmi değiştir
+        images.forEach((img, index) => {
+            img.classList.toggle('active', index === targetIndex);
         });
 
-        // Add swipe support for mobile
-        this.initializeSwipeSupport();
-    }
-
-    changeProductImage(productId, imageIndex) {
-        const product = this.products.find(p => p.id === productId);
-        // ✅ GÜNCEL: Resim kontrolü
-        if (!product || !product.images || imageIndex >= product.images.length || product.images[0] === '') return;
-
-        const productCard = document.querySelector(`[data-product-id="${productId}"]`);
-        const imageElement = productCard.querySelector('.product-image');
-        const dots = productCard.querySelectorAll('.image-dot');
-
-        // Update image
-        imageElement.src = product.images[imageIndex] || '';
-
-        // Update active dot
-        dots.forEach(dot => dot.classList.remove('active'));
-        if (dots[imageIndex]) {
-            dots[imageIndex].classList.add('active');
-        }
-    }
-
-    initializeSwipeSupport() {
-        // Touch/swipe support for product images
-        let startX = 0;
-        let currentProductId = null;
-
-        document.querySelectorAll('.product-image-container').forEach(container => {
-            container.addEventListener('touchstart', (e) => {
-                startX = e.touches[0].clientX;
-                currentProductId = e.target.closest('.product-card').dataset.productId;
-            });
-
-            container.addEventListener('touchend', (e) => {
-                if (!currentProductId) return;
-
-                const endX = e.changedTouches[0].clientX;
-                const diffX = startX - endX;
-
-                if (Math.abs(diffX) > 50) { // Minimum swipe distance
-                    const product = this.products.find(p => p.id === currentProductId);
-                    // ✅ GÜNCEL: Resim yoksa veya tek resimse swipe'ı devre dışı bırak
-                    if (!product || !product.images || product.images.length <= 1 || product.images[0] === '') return;
-
-                    const currentDot = document.querySelector(`[data-product-id="${currentProductId}"] .image-dot.active`);
-                    if (!currentDot) return; // Dot yoksa çık
-
-                    const currentIndex = parseInt(currentDot.dataset.imageIndex);
-
-                    let newIndex;
-                    if (diffX > 0) { // Swipe left - next image
-                        newIndex = (currentIndex + 1) % product.images.length;
-                    } else { // Swipe right - previous image
-                        newIndex = currentIndex === 0 ? product.images.length - 1 : currentIndex - 1;
-                    }
-
-                    this.changeProductImage(currentProductId, newIndex);
-                }
-
-                currentProductId = null;
-            });
+        // Aktif dot'u değiştir
+        dots.forEach((dot, index) => {
+            dot.classList.toggle('active', index === targetIndex);
         });
     }
 
-    updateWeatherDisplay() {
-        const weatherMini = document.getElementById('weatherMini');
 
-        if (!this.weatherData || !this.weatherData.success) {
-            weatherMini.innerHTML = '<i class="fas fa-cloud"></i> --°';
-            return;
+    nextProductImage(productId) {
+        const carousel = document.querySelector(`[data-product-id="${productId}"] .product-image-carousel`);
+        if (!carousel) return;
+
+        const currentActive = carousel.querySelector('.product-image.active');
+        const currentIndex = parseInt(currentActive.dataset.index);
+        const totalImages = carousel.querySelectorAll('.product-image').length;
+
+        const nextIndex = (currentIndex + 1) % totalImages;
+        this.changeProductImage(productId, nextIndex);
+    }
+
+    previousProductImage(productId) {
+        const carousel = document.querySelector(`[data-product-id="${productId}"] .product-image-carousel`);
+        if (!carousel) return;
+
+        const currentActive = carousel.querySelector('.product-image.active');
+        const currentIndex = parseInt(currentActive.dataset.index);
+        const totalImages = carousel.querySelectorAll('.product-image').length;
+
+        const prevIndex = currentIndex === 0 ? totalImages - 1 : currentIndex - 1;
+        this.changeProductImage(productId, prevIndex);
+    }
+
+    clearProductsContainer() {
+        const container = document.querySelector('.view-products');
+        if (container) {
+            container.innerHTML = '';
         }
-
-        const temp = Math.round(this.weatherData.temperature);
-        const icon = this.getWeatherIcon(this.weatherData.condition);
-
-        weatherMini.innerHTML = `<i class="${icon}"></i> ${temp}°`;
     }
 
-    getWeatherIcon(condition) {
-        const iconMap = {
-            'clear': 'fas fa-sun',
-            'clouds': 'fas fa-cloud',
-            'rain': 'fas fa-cloud-rain',
-            'snow': 'fas fa-snowflake',
-            'thunderstorm': 'fas fa-bolt',
-            'drizzle': 'fas fa-cloud-drizzle',
-            'mist': 'fas fa-smog',
-            'fog': 'fas fa-smog'
-        };
+    // ===== MODAL METHODS =====
+    // ✅ Modal'da da çoklu resim desteği
+    showProductModal(productId) {
+        const product = this.products.find(p => p.id == productId);
+        if (!product) return;
 
-        return iconMap[condition?.toLowerCase()] || 'fas fa-cloud';
+        const images = product.images && product.images.length > 0 ? product.images : [''];
+        const hasMultipleImages = images.length > 1 && images[0] !== '';
+
+        const modalHTML = `
+            <div class="product-modal" id="productModal">
+                <div class="modal-content-custom">
+                    <div class="modal-header-custom">
+                        ${hasMultipleImages ? `
+                            <!-- Modal'da da carousel -->
+                            <div class="modal-image-carousel">
+                                ${images.map((image, index) => `
+                                    <img src="${image}" alt="${product.name}" 
+                                         class="modal-image ${index === 0 ? 'active' : ''}" 
+                                         data-index="${index}">
+                                `).join('')}
+                            </div>
+                            
+                            <div class="modal-image-indicators">
+                                ${images.map((_, index) => `
+                                    <div class="modal-image-dot ${index === 0 ? 'active' : ''}" 
+                                         data-index="${index}" 
+                                         onclick="QRMenu.changeModalImage(${index})"></div>
+                                `).join('')}
+                            </div>
+                        ` : `
+                            <img src="${images[0]}" alt="${product.name}" class="modal-image">
+                        `}
+                        
+                        <button class="modal-close" onclick="QRMenu.closeProductModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body-custom">
+                        ${product.hasCampaign ? `
+                            <div class="modal-campaign">
+                                <i class="fas fa-fire me-2"></i>
+                                ${product.campaignCaption || 'Kampanyalı Ürün!'}
+                            </div>
+                            ${product.campaignDetail ? `
+                                <div style="margin-top: 10px; font-size: 0.9rem; color: #666; text-align: center;">
+                                    ${product.campaignDetail}
+                                </div>
+                            ` : ''}
+                        ` : ''}
+                        
+                        <h2 class="modal-title">${product.name}</h2>
+                        
+                        ${product.description ? `
+                            <div class="modal-description">${product.description}</div>
+                        ` : ''}
+                        
+                        <div class="modal-price">₺${product.price.toFixed(2)}</div>
+                        
+                        <div style="margin-top: 20px; text-align: center; color: #999; font-size: 0.85rem;">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Detaylı bilgi için garsonunuza danışabilirsiniz
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        document.getElementById('productModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
     }
 
+    changeModalImage(targetIndex) {
+        const modal = document.getElementById('productModal');
+        const images = modal.querySelectorAll('.modal-image');
+        const dots = modal.querySelectorAll('.modal-image-dot');
+
+        images.forEach((img, index) => {
+            img.classList.toggle('active', index === targetIndex);
+        });
+
+        dots.forEach((dot, index) => {
+            dot.classList.toggle('active', index === targetIndex);
+        });
+    }
+
+    closeProductModal() {
+        const modal = document.getElementById('productModal');
+        if (modal) {
+            modal.style.display = 'none';
+            modal.remove();
+            document.body.style.overflow = '';
+        }
+    }
+
+    // ===== UTILITY METHODS =====
     startClock() {
-        const updateTime = () => {
+        const updateClock = () => {
             const now = new Date();
             const timeString = now.toLocaleTimeString('tr-TR', {
                 hour: '2-digit',
                 minute: '2-digit'
             });
-            document.getElementById('currentTime').textContent = timeString;
+
+            const timeElement = document.getElementById('currentTime');
+            if (timeElement) {
+                timeElement.textContent = timeString;
+            }
         };
 
-        updateTime();
-        setInterval(updateTime, 1000);
+        updateClock();
+        setInterval(updateClock, 1000);
+    }
+
+    updateWeatherDisplay() {
+        const weatherElement = document.getElementById('weatherMini');
+        if (!weatherElement || !this.weatherData) return;
+
+        const temp = Math.round(this.weatherData.temperature || 20);
+        const condition = this.weatherData.condition || 'clear';
+
+        let icon = '🌤️';
+        if (condition.includes('rain')) icon = '🌧️';
+        else if (condition.includes('cloud')) icon = '☁️';
+        else if (condition.includes('sun')) icon = '☀️';
+
+        weatherElement.innerHTML = `${icon} ${temp}°`;
     }
 
     scheduleWeatherSuggestion() {
-        // Show suggestion after 7 seconds
+        if (this.suggestionShown || this.currentView !== 'categories') return;
+
         setTimeout(() => {
-            if (!this.suggestionShown && this.weatherData && this.weatherData.success) {
+            if (this.currentView === 'categories') {
                 this.showWeatherSuggestion();
             }
-        }, 7000);
+        }, 10000);
     }
 
     showWeatherSuggestion() {
-        if (this.suggestionShown) return;
+        if (this.suggestionShown || this.currentView !== 'categories') return;
 
         const suggestion = this.generateWeatherSuggestion();
         if (!suggestion) return;
 
-        const popup = document.getElementById('weatherSuggestion');
-        const body = popup.querySelector('.suggestion-body');
-
-        body.innerHTML = `
-            <div class="weather-icon">${suggestion.icon}</div>
-            <div class="suggestion-message">${suggestion.message}</div>
-            <div class="recommended-products">
-                ${suggestion.products.map(product => `
-                    <span class="recommended-product">${product}</span>
-                `).join('')}
+        const popupHTML = `
+            <div class="weather-suggestion-popup" id="weatherSuggestion">
+                <div class="suggestion-content">
+                    <button class="suggestion-close" onclick="QRMenu.closeSuggestion()">×</button>
+                    <div class="suggestion-body">
+                        <div class="weather-icon">${suggestion.icon}</div>
+                        <div class="suggestion-message">${suggestion.message}</div>
+                        <div class="recommended-products">
+                            ${suggestion.products.map(product =>
+            `<span class="recommended-product">${product}</span>`
+        ).join('')}
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
 
-        popup.style.display = 'flex';
+        document.body.insertAdjacentHTML('beforeend', popupHTML);
+        document.getElementById('weatherSuggestion').style.display = 'flex';
         this.suggestionShown = true;
 
-        // Auto close after 10 seconds
         setTimeout(() => {
             this.closeSuggestion();
-        }, 10000);
+        }, 15000);
     }
 
     generateWeatherSuggestion() {
-        if (!this.weatherData || !this.weatherData.success) return null;
+        const now = new Date();
+        const hour = now.getHours();
+        const temp = this.weatherData?.temperature || 20;
+        const condition = this.weatherData?.condition || '';
 
-        const temp = this.weatherData.temperature;
-        const condition = this.weatherData.condition?.toLowerCase();
-        const hour = new Date().getHours();
-
-        // Temperature-based suggestions
         if (temp < 10) {
             return {
                 icon: '🥶',
-                message: 'Brr! Dışarısı çok soğuk. Sıcacık içeceklerle ısınmaya ne dersin?',
+                message: 'Soğuk bir gün! Sıcacık lezzetlerle ısınmaya ne dersin?',
                 products: ['Sıcak Çikolata', 'Türk Kahvesi', 'Bitki Çayı', 'Cappuccino']
             };
         }
@@ -405,24 +734,6 @@ class QRMenuEngine {
             };
         }
 
-        // Weather condition based
-        if (condition?.includes('rain')) {
-            return {
-                icon: '🌧️',
-                message: 'Yağmurlu günlerde sıcak içecekler çok keyifli oluyor!',
-                products: ['Cappuccino', 'Latte', 'Sıcak Çikolata', 'Earl Grey']
-            };
-        }
-
-        if (condition?.includes('cloud')) {
-            return {
-                icon: '☁️',
-                message: 'Bulutlu havalarda kahve molası tam zamanı!',
-                products: ['Americano', 'Flat White', 'Mocha', 'Cheesecake']
-            };
-        }
-
-        // Time-based fallback
         if (hour >= 6 && hour < 11) {
             return {
                 icon: '🌅',
@@ -431,47 +742,93 @@ class QRMenuEngine {
             };
         }
 
-        if (hour >= 14 && hour < 17) {
-            return {
-                icon: '☕',
-                message: 'Öğleden sonra enerjini toplamak için tatlı bir mola?',
-                products: ['Latte', 'Cheesecake', 'Brownie', 'Cappuccino']
-            };
-        }
-
         return null;
     }
 
     closeSuggestion() {
         const popup = document.getElementById('weatherSuggestion');
-        popup.style.display = 'none';
+        if (popup) {
+            popup.style.display = 'none';
+            popup.remove();
+        }
     }
 
     showError(message) {
         this.hideLoader();
-        const container = document.getElementById('productsGrid');
+        const container = document.getElementById('mainContent');
         container.innerHTML = `
-            <div class="col-12 text-center py-5">
-                <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
-                <h5 class="text-danger">${message}</h5>
+            <div class="empty-state">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h5 style="color: #dc3545;">Hata Oluştu</h5>
+                <p>${message}</p>
                 <button class="btn btn-primary mt-3" onclick="location.reload()">
                     <i class="fas fa-refresh me-2"></i>Sayfayı Yenile
                 </button>
             </div>
         `;
     }
+
+    static normalizeCategoryName(categoryName) {
+        if (!categoryName) return "";
+
+        return categoryName
+            .toUpperCase()
+            .replace(/Ç/g, "C")
+            .replace(/Ğ/g, "G")
+            .replace(/İ/g, "I")
+            .replace(/Ö/g, "O")
+            .replace(/Ş/g, "S")
+            .replace(/Ü/g, "U")
+            .replace(/\s+/g, "")
+            .replace(/-/g, "")
+            .replace(/_/g, "");
+    }
+
+    initializeFooter() {
+        // Footer'a tıklanınca küçük bir easter egg
+        const footer = document.querySelector('.developer-footer');
+        if (footer) {
+            let clickCount = 0;
+            footer.addEventListener('click', () => {
+                clickCount++;
+                if (clickCount === 5) {
+                    footer.style.background = 'linear-gradient(135deg, #ff6b6b, #4ecdc4)';
+                    setTimeout(() => {
+                        footer.style.background = 'linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%)';
+                        clickCount = 0;
+                    }, 2000);
+                }
+            });
+
+            // Fareyle üzerine gelindiğinde küçük animasyon
+            footer.addEventListener('mouseenter', () => {
+                footer.style.transform = 'translateY(-3px)';
+            });
+
+            footer.addEventListener('mouseleave', () => {
+                footer.style.transform = 'translateY(0)';
+            });
+        }
+    }
 }
 
 // ===== GLOBAL INSTANCE =====
 let QRMenu;
 
-// Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     QRMenu = new QRMenuEngine();
 });
 
-// Global functions for HTML onclick handlers
+// Global fonksiyonlar
+// Global fonksiyonlar
 window.QRMenu = {
     selectCategory: (category) => QRMenu?.selectCategory(category),
-    closeSuggestion: () => QRMenu?.closeSuggestion()
+    goBackToCategories: () => QRMenu?.goBackToCategories(),
+    closeSuggestion: () => QRMenu?.closeSuggestion(),
+    closeProductModal: () => QRMenu?.closeProductModal(),
+    // ✅ Yeni carousel fonksiyonları
+    changeProductImage: (productId, index) => QRMenu?.changeProductImage(productId, index),
+    nextProductImage: (productId) => QRMenu?.nextProductImage(productId),
+    previousProductImage: (productId) => QRMenu?.previousProductImage(productId),
+    changeModalImage: (index) => QRMenu?.changeModalImage(index)
 };
