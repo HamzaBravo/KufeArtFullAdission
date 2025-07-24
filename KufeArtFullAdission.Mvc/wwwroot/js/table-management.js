@@ -395,6 +395,56 @@ window.TableManager = {
         </div>
     `;
 
+        // ✅ ÖNEMLİ: Modal footer'a ödeme butonlarını ekle
+        const tableId = table.id;
+        html += `
+        </div> <!-- siparişler content biter -->
+        
+        <!-- ✅ YENİ: Ödeme Butonları (Ana Modal'da) -->
+        <div class="modal-footer bg-light">
+            <div class="container-fluid">
+                <div class="row g-2">
+                    <!-- Hızlı Ödemeler -->
+                    <div class="col-md-6">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <button type="button" class="btn btn-success w-100" 
+                                        onclick="PaymentManager.processFullPayment('${tableId}', 'cash')">
+                                    💰 Nakit Kapat
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <button type="button" class="btn btn-primary w-100" 
+                                        onclick="PaymentManager.processFullPayment('${tableId}', 'card')">
+                                    💳 Kart Kapat
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Parçalı Ödeme -->
+                    <div class="col-md-6">
+                        <button type="button" class="btn btn-warning w-100" 
+                                onclick="PaymentManager.openPartialPaymentModal('${tableId}')">
+                            📝 Parçalı Ödeme
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Sipariş Ekleme -->
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <button type="button" class="btn btn-outline-primary w-100" 
+                                onclick="OrderManager.addNewOrder('${tableId}')">
+                            ➕ Sipariş Ekle
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+        return html;
         return html;
     },
 
