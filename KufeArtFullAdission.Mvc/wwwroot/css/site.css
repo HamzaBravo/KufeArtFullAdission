@@ -398,3 +398,12 @@ input[list] {
     color: white;
     font-weight: bold;
 }
+#customerNameInfo {
+    border-left: 3px solid #007bff;
+    background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%) !important;
+}
+
+    #customerNameInfo strong {
+        font-size: 1.1em;
+        letter-spacing: 0.5px;
+    }

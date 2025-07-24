@@ -271,8 +271,10 @@ window.TableManager = {
                                 <div class="mb-3">
                                     <label class="form-label">Müşteri Telefon Numarası (Opsiyonel)</label>
                                     <div class="input-group">
-                                        <input type="tel" id="customerPhoneInput" class="form-control"
-                                               placeholder="05XX XXX XX XX" maxlength="11">
+                                      <input type="tel" id="customerPhoneInput" class="form-control"
+                                               placeholder="05XX XXX XX XX" maxlength="11"
+                                               autocomplete="off"
+                                               spellcheck="false">
                                         <button type="button" class="btn btn-outline-primary"
                                                 onclick="PaymentManager.checkCustomerPoints()">
                                             Sorgula

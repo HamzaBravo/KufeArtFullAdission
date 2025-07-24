@@ -4,6 +4,12 @@ using System.Collections.Generic;
 
 namespace KufeArtFullAdission.Mvc.Models
 {
+    public class ChangePasswordRequest
+    {
+        public string CurrentPassword { get; set; }
+        public string NewPassword { get; set; }
+    }
+
     public class ErrorViewModel
     {
         public string? RequestId { get; set; }

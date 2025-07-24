@@ -1,5 +1,6 @@
 ﻿using AppDbContext;
 using KufeArtFullAdission.Enums;
+using KufeArtFullAdission.Mvc.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -112,5 +113,30 @@ public class AuthController(DBContext _dbContext) : Controller
     public IActionResult AccessDenied()
     {
         return View();
+    }
+
+    [HttpPost]
+    [Authorize]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        try
+        {
+            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var user = await _dbContext.Persons.FindAsync(userId);
+
+            if (user == null || user.Password != request.CurrentPassword)
+            {
+                return Json(new { success = false, message = "Mevcut şifre yanlış!" });
+            }
+
+            user.Password = request.NewPassword;
+            await _dbContext.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Şifre başarıyla değiştirildi!" });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = "Hata oluştu!" });
+        }
     }
 }

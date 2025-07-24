@@ -11,6 +11,22 @@ PaymentManager.appliedDiscountPoints = 0;
 // wwwroot/js/payment-manager.js
 window.PaymentManager = {
 
+    maskCustomerName: function (fullName) {
+        if (!fullName || fullName.trim() === '') return 'İsimsiz Müşteri';
+
+        const nameParts = fullName.trim().split(' ');
+
+        const maskedParts = nameParts.map(part => {
+            if (part.length <= 1) return part;
+            if (part.length === 2) return part[0] + '*';
+
+            // 3+ karakter: ilk karakter + yıldızlar + son karakter
+            return part[0] + '*'.repeat(part.length - 2) + part[part.length - 1];
+        });
+
+        return maskedParts.join(' ');
+    },
+
     processFullPayment: function (tableId, paymentType) {
         if (App.isPaymentProcessing) {
             ToastHelper.warning('İşlem devam ediyor, lütfen bekleyin...');
@@ -402,6 +418,25 @@ window.PaymentManager = {
         $('#currentPoints').text(data.currentPoints || 0);
         $('#willEarnPoints').text(data.willEarnPoints || 0);
 
+        // 🎯 YENİ: Müşteri adını maskeli göster
+        const maskedName = PaymentManager.maskCustomerName(data.customerName);
+
+        // Müşteri bilgisi ekle
+        if (!$('#customerNameInfo').length) {
+            // İlk kez ekleniyor
+            $('#customerPointsResult .alert-info .row').before(`
+            <div id="customerNameInfo" class="mb-2 p-2 bg-light rounded">
+                <small class="text-muted">Müşteri:</small><br>
+                <strong class="text-primary">${maskedName}</strong>
+                <small class="text-muted d-block">📞 ${data.phoneNumber}</small>
+            </div>
+        `);
+        } else {
+            // Güncelle
+            $('#customerNameInfo strong').text(maskedName);
+            $('#customerNameInfo small:last').text(`📞 ${data.phoneNumber}`);
+        }
+
         // İndirim bölümünü göster/gizle
         if (data.currentPoints >= 5000) {
             const maxDiscountAmount = Math.min(data.currentPoints / 100, App.currentTableRemainingAmount || 0);
@@ -521,5 +556,60 @@ window.PaymentManager = {
         }
 
         console.log('✅ UI güncellendi');
+    },
+
+    // 🎯 YENİ: EKSİK OLAN FONKSİYON - applyPointDiscount
+    applyPointDiscount: function () {
+        if (!PaymentManager.currentCustomerData) {
+            ToastHelper.error('Müşteri verileri bulunamadı!');
+            return;
+        }
+
+        const currentPoints = PaymentManager.currentCustomerData.currentPoints;
+        const remainingAmount = App.currentTableRemainingAmount || 0;
+
+        // Maksimum indirim hesapla (puan miktarı veya kalan tutar, hangisi düşükse)
+        const maxDiscountAmount = Math.min(currentPoints / 100, remainingAmount);
+        const pointsToUse = Math.floor(maxDiscountAmount * 100);
+
+        console.log('🎯 applyPointDiscount çağrıldı:', {
+            currentPoints: currentPoints,
+            remainingAmount: remainingAmount,
+            maxDiscountAmount: maxDiscountAmount,
+            pointsToUse: pointsToUse
+        });
+
+        if (maxDiscountAmount <= 0) {
+            ToastHelper.warning('İndirim uygulanacak tutar yok!');
+            return;
+        }
+
+        if (!confirm(`${pointsToUse} puan kullanarak ₺${maxDiscountAmount.toFixed(2)} indirim uygulamak istediğinizden emin misiniz?\n\nBu işlem sonrası puan bakiyeniz: ${currentPoints - pointsToUse}`)) {
+            return;
+        }
+
+        // İndirim durumunu kaydet
+        PaymentManager.pointDiscountApplied = true;
+        PaymentManager.appliedDiscountAmount = maxDiscountAmount;
+        PaymentManager.appliedDiscountPoints = pointsToUse;
+
+        // Kalan tutarı güncelle (UI için)
+        App.currentTableRemainingAmount -= maxDiscountAmount;
+
+        // UI'yi güncelle
+        $('#pointDiscountSection').hide();
+        $('#appliedDiscountText').text(`${pointsToUse} puan kullanıldı (₺${maxDiscountAmount.toFixed(2)})`);
+        $('#discountAppliedIndicator').show();
+
+        // Ödeme durumu bilgilerini güncelle
+        PaymentManager.updatePaymentAmounts();
+
+        ToastHelper.success(`₺${maxDiscountAmount.toFixed(2)} indirim uygulandı!`);
+
+        console.log('✅ İndirim uygulandı:', {
+            pointsToUse: pointsToUse,
+            discountAmount: maxDiscountAmount,
+            newRemainingAmount: App.currentTableRemainingAmount
+        });
     }
 };

@@ -42,6 +42,13 @@ function bindGlobalEvents() {
         App.currentTableId = null; // Sadece modal kapanırken temizle
     });
 
+    // Modal kapandığında temizleme (main.js veya uygun yere)
+    $('#tableModal').on('hidden.bs.modal', function () {
+        $('#customerNameInfo').remove();
+        $('#customerPointsResult').hide();
+        $('#customerPhoneInput').val('');
+    });
+
     // Enter tuşu ile sipariş gönderme
     $('#waiterNote').on('keypress', function (e) {
         if (e.which === 13 && e.ctrlKey) { // Ctrl+Enter
