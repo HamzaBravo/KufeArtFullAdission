@@ -13,36 +13,40 @@ class WaiterSignalRClient {
 
     async init() {
         try {
-            // Admin paneli SignalR Hub'ına bağlan
-            const adminPanelUrl = this.getAdminPanelUrl();
-
+            // Kendi hub'ına bağlan
             this.connection = new signalR.HubConnectionBuilder()
-                .withUrl(`${adminPanelUrl}/orderHub`)
+                .withUrl("/waiterHub")  // Kendi hub'ı
                 .withAutomaticReconnect([0, 2000, 10000, 30000])
                 .build();
 
-            // Event listeners
             this.bindSignalREvents();
-
-            // Bağlantıyı başlat
             await this.connection.start();
-            console.log("✅ Garson SignalR bağlandı");
 
-            // Garson grubuna katıl
             this.waiterName = this.getWaiterName();
             await this.connection.invoke("JoinWaiterGroup", this.waiterName);
 
             this.isConnected = true;
-            this.reconnectAttempts = 0;
-            this.updateConnectionStatus(true);
+            console.log("✅ Garson Hub'ına bağlandı");
 
         } catch (error) {
             console.error("❌ SignalR bağlantı hatası:", error);
-            this.handleConnectionError();
         }
     }
 
     bindSignalREvents() {
+
+        // Admin bildirimi
+        this.connection.on("AdminNotification", (data) => {
+            console.log("📢 Admin bildirimi:", data);
+
+            if (data.Type === "TableUpdate") {
+                // Masa listesini yenile
+                this.refreshPageData();
+            }
+
+            this.showToast(data.Message, 'info');
+        });
+
         // Sipariş tamamlandı bildirimi
         this.connection.on("OrderCompleted", (orderData) => {
             console.log("🔔 Sipariş hazır bildirimi:", orderData);
@@ -93,6 +97,17 @@ class WaiterSignalRClient {
             this.updateConnectionStatus(false);
         });
     }
+
+
+    refreshPageData() {
+        // Mevcut sayfa Dashboard ise masaları yenile
+        if (window.location.pathname === '/' && window.GarsonDashboard) {
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        }
+    }
+
 
     handleOrderCompleteNotification(orderData) {
         const notification = {

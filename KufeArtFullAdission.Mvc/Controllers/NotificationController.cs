@@ -3,7 +3,10 @@ using KufeArtFullAdission.Mvc.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Net.Http;
+using System.Net.Http.Json;
 using System.Threading.Tasks;
 
 namespace KufeArtFullAdission.Mvc.Controllers;
@@ -95,6 +98,43 @@ public class NotificationController(IHubContext<OrderHub> _hubContext) : Control
             return BadRequest(new { success = false, message = ex.Message });
         }
     }
+
+    // KufeArtFullAdission.Mvc/Controllers/NotificationController.cs - Yeni method ekle
+
+    [HttpPost("notify-waiters")]
+    [Authorize]
+    public async Task<IActionResult> NotifyWaiters([FromBody] WaiterNotificationDto notification)
+    {
+        try
+        {
+            // Garson paneline HTTP request gönder
+            var httpClient = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>()
+                .CreateClient("WaiterPanel");
+
+            var response = await httpClient.PostAsJsonAsync("/api/waiter-notification", notification);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return Ok(new { success = true, message = "Garsonlara bildirim gönderildi" });
+            }
+
+            return BadRequest(new { success = false, message = "Garson bildirimi başarısız" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
+
+}
+
+
+public class WaiterNotificationDto
+{
+    public string Type { get; set; } = "TableUpdate";
+    public Guid? TableId { get; set; }
+    public string? TableName { get; set; }
+    public string Message { get; set; } = "";
 }
 
 // DTO Classes

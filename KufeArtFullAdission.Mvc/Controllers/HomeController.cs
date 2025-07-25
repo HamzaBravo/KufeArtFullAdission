@@ -6,10 +6,14 @@ using KufeArtFullAdission.Mvc.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Json;
 using System.Threading.Tasks;
 
 namespace KufeArtFullAdission.Mvc.Controllers;
@@ -252,6 +256,8 @@ public class HomeController(DBContext _dbContext) : Controller
 
             await _dbContext.SaveChangesAsync();
 
+            await NotifyWaitersTableClosed(table.Id, table.Name);
+
             return Json(new
             {
                 success = true,
@@ -391,6 +397,8 @@ public class HomeController(DBContext _dbContext) : Controller
     {
         try
         {
+            var tables = await _dbContext.Tables.FirstOrDefaultAsync(x => x.Id == paymentDto.TableId);
+
             var payment = new PaymentDbEntity
             {
                 TableId = paymentDto.TableId,
@@ -404,6 +412,8 @@ public class HomeController(DBContext _dbContext) : Controller
             _dbContext.Payments.Add(payment);
             await _dbContext.SaveChangesAsync();
 
+
+            await NotifyWaitersTableClosed(paymentDto.TableId, tables.Name);
             return Json(new
             {
                 success = true,
@@ -593,6 +603,9 @@ public class HomeController(DBContext _dbContext) : Controller
             message += customerMessage;
 
             Console.WriteLine($"✅ İşlem tamamlandı: {message}");
+
+
+            await NotifyWaitersTableClosed(table.Id, table.Name);
 
             return Json(new
             {
@@ -847,6 +860,30 @@ public class HomeController(DBContext _dbContext) : Controller
         }
 
         return result;
+    }
+
+    private async Task NotifyWaitersTableClosed(Guid tableId, string tableName)
+    {
+        try
+        {
+            var httpClient = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>()
+                .CreateClient("WaiterPanel");
+
+            var notification = new
+            {
+                Type = "TableUpdate",
+                TableId = tableId,
+                TableName = tableName,
+                Message = $"{tableName} hesabı kapatıldı"
+            };
+
+            await httpClient.PostAsJsonAsync("/api/waiter-notification", notification);
+            Console.WriteLine($"✅ Garsonlara masa kapatma bildirimi gönderildi: {tableName}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Garson bildirimi hatası: {ex.Message}");
+        }
     }
 
     public IActionResult Privacy()

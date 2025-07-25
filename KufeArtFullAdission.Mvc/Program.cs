@@ -57,7 +57,25 @@ builder.WebHost.ConfigureKestrel(options =>
     options.Limits.MaxRequestBodySize = 50 * 1024 * 1024; // 50MB
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins("https://localhost:7115", "https://garson.kufeart.com")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
 
+
+builder.Services.AddHttpClient("WaiterPanel", client =>
+{
+    var waiterUrl = builder.Environment.IsDevelopment()
+        ? "https://localhost:7115"
+        : "https://garson.kufeart.com";
+    client.BaseAddress = new Uri(waiterUrl);
+});
 
 builder.Services.AddAuthorization();
 
@@ -74,7 +92,11 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
+
+
 app.UseRouting();
+
+app.UseCors();
 
 // Authentication & Authorization
 app.UseAuthentication();

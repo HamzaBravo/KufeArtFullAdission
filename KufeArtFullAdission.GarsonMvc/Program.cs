@@ -1,8 +1,12 @@
 ﻿using AppDbContext;
+using KufeArtFullAdission.GarsonMvc.Hubs;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+
+builder.Services.AddSignalR();
 
 // 🎯 DATABASE
 builder.Services.AddDbContext<DBContext>(options =>
@@ -30,6 +34,17 @@ builder.Services.AddHttpClient("AdminPanel", client =>
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
+
+
+builder.Services.AddHttpClient("AdminPanel", client =>
+{
+    var adminUrl = builder.Environment.IsDevelopment()
+        ? "https://localhost:7164"
+        : "https://adisyon.kufeart.com";
+    client.BaseAddress = new Uri(adminUrl);
+});
+
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -48,8 +63,13 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseCors();
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+
+app.MapHub<WaiterHub>("/waiterHub");
 
 app.Run();
