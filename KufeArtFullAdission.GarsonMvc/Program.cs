@@ -10,7 +10,7 @@ builder.Services.AddSignalR();
 
 // 🎯 DATABASE
 builder.Services.AddDbContext<DBContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("HamzaLocal")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("LiveServer")));
 
 // 🔐 AUTHENTICATION
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -27,7 +27,9 @@ builder.Services.AddSignalR();
 // 📞 HTTP CLIENT (Admin paneli ile iletişim)
 builder.Services.AddHttpClient("AdminPanel", client =>
 {
-    client.BaseAddress = new Uri("https://localhost:7164/"); // Admin panel URL
+    //client.BaseAddress = new Uri("https://localhost:7164/"); // Admin panel URL
+
+    client.BaseAddress = new Uri("https://adsiyon.kufeart.com/");
 });
 
 
