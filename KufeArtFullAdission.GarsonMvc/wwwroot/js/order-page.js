@@ -11,6 +11,8 @@ class OrderPage {
         this.isCartModalOpen = false; // ✅ Modal durumunu takip et
 
         this.init();
+
+        window.orderPageInstance = this;
     }
 
     init() {
@@ -23,10 +25,9 @@ class OrderPage {
     bindEvents() {
         let cartButtonCooldown = false;
 
-        // 🔥 DEBUG: Console log ekleyelim
         console.log('🔍 Events binding...');
 
-        // Tek bir event listener ile toggle işlevi
+        // Sepet butonu - normal event listener
         document.getElementById('openCartBtn').addEventListener('click', (e) => {
             console.log('🛒 Cart button clicked, modal open:', this.isCartModalOpen);
 
@@ -37,15 +38,24 @@ class OrderPage {
             this.toggleCartModal();
         });
 
-        // Modal kapatma event'leri
-        document.getElementById('closeCartBtn').addEventListener('click', (e) => {
-            console.log('❌ Close button clicked');
-            this.closeCartModal();
-        });
+        // ✅ EVENT DELEGATION ile modal kapatma - document üzerinden dinleyelim
+        document.addEventListener('click', (e) => {
+            // Close button
+            if (e.target.id === 'closeCartBtn' || e.target.closest('#closeCartBtn')) {
+                console.log('❌ Close button clicked');
+                this.closeCartModal();
+            }
 
-        document.getElementById('cartOverlay').addEventListener('click', (e) => {
-            console.log('📱 Overlay clicked');
-            this.closeCartModal();
+            // Overlay
+            if (e.target.id === 'cartOverlay') {
+                console.log('📱 Overlay clicked');
+                this.closeCartModal();
+            }
+
+            // History close button
+            if (e.target.id === 'closeHistoryBtn' || e.target.closest('#closeHistoryBtn')) {
+                this.closeHistoryModal();
+            }
         });
 
         // ESC tuşu ile modal kapatma
@@ -80,19 +90,7 @@ class OrderPage {
             this.toggleClearButton();
         });
 
-        // ❌❌❌ BU KISMEN TAMAMEN SİLİN - DUPLIKASYON:
-        // // Cart events  
-        // document.getElementById('openCartBtn').addEventListener('click', () => {
-        //     this.openCartModal();
-        // });
-        // 
-        // document.getElementById('closeCartBtn').addEventListener('click', () => {
-        //     this.closeCartModal();
-        // });
-        // 
-        // document.getElementById('cartOverlay').addEventListener('click', () => {
-        //     this.closeCartModal();
-        // });
+        // ❌ Tüm duplikasyon kısmını SİLİN - artık event delegation kullanıyoruz
     }
 
     async loadTableDetails() {
@@ -593,41 +591,41 @@ class OrderPage {
     }
 
     toggleCartModal() {
+        console.log('🔄 Toggle called, current state:', this.isCartModalOpen);
+
         if (this.isCartModalOpen) {
+            console.log('➡️ Closing modal...');
             this.closeCartModal();
         } else {
+            console.log('➡️ Opening modal...');
             this.openCartModal();
         }
     }
 
     openCartModal() {
+        console.log('🟢 Opening modal...');
         document.getElementById('cartModal').style.display = 'block';
         document.body.style.overflow = 'hidden';
         this.isCartModalOpen = true;
 
         const cartBadgeBtn = document.querySelector('.cart-badge-btn');
-        const closeBtn = document.getElementById('closeCartFloatingBtn');
         if (cartBadgeBtn) {
             cartBadgeBtn.classList.add('active');
         }
-        if (closeBtn) {
-            closeBtn.style.display = 'flex'; // ✅ Kapatma butonunu göster
-        }
+        console.log('✅ Modal opened, state:', this.isCartModalOpen);
     }
 
     closeCartModal() {
+        console.log('🔴 Closing modal...');
         document.getElementById('cartModal').style.display = 'none';
         document.body.style.overflow = '';
         this.isCartModalOpen = false;
 
         const cartBadgeBtn = document.querySelector('.cart-badge-btn');
-        const closeBtn = document.getElementById('closeCartFloatingBtn');
         if (cartBadgeBtn) {
             cartBadgeBtn.classList.remove('active');
         }
-        if (closeBtn) {
-            closeBtn.style.display = 'none'; // ✅ Kapatma butonunu gizle
-        }
+        console.log('✅ Modal closed, state:', this.isCartModalOpen);
     }
 
     closeHistoryModal() {
@@ -760,6 +758,8 @@ class OrderPage {
             console.log('Product details:', product);
         }
     }
+
+  
 }
 
 // Toast CSS

@@ -110,14 +110,14 @@
 
 <!-- 🛒 Sepet Modal -->
 <div class="cart-modal" id="cartModal">
-    <div class="modal-overlay" id="cartOverlay"></div>
+    <div class="modal-overlay" id="cartOverlay" onclick="window.orderPageInstance?.closeCartModal()"></div>
     <div class="modal-container">
         <div class="modal-header">
             <h4>
                 <i class="fas fa-shopping-cart me-2"></i>
                 Sepet (@Model.TableName)
             </h4>
-            <button class="btn-close" id="closeCartBtn">
+            <button class="btn-close" id="closeCartBtn" onclick="window.orderPageInstance?.closeCartModal()">
                 <i class="fas fa-times"></i>
             </button>
         </div>
