@@ -24,6 +24,128 @@ namespace KufeArtFullAdission.QrMenuMvc.Controllers
         // 📱 ANA MENÜ VERİLERİ
         // 🎯 YARDIMCI METODLAR bölümünü şöyle değiştirin:
 
+
+        // QrMenuApiController.cs'e güvenli login endpoint'i ekleyin:
+
+        [HttpPost("customer/login")]
+        public async Task<IActionResult> LoginCustomer([FromBody] CustomerLoginDto dto)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(dto.PhoneNumber) || string.IsNullOrEmpty(dto.Password))
+                {
+                    return Ok(new { success = false, message = "Telefon numarası ve şifre gereklidir." });
+                }
+
+                var customer = await _context.Customers
+                    .FirstOrDefaultAsync(c => c.PhoneNumber == dto.PhoneNumber && c.IsActive&&c.Password==dto.Password);
+
+                if (customer == null || customer.Password != dto.Password)
+                {
+                    return Ok(new { success = false, message = "Hatalı telefon numarası yada şifre" });
+                }
+
+
+                // Müşteri puan bilgileri
+                var customerPoints = await _context.CustomerPoints
+                    .FirstOrDefaultAsync(cp => cp.CustomerId == customer.Id);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = $"Merhaba {customer.Fullname}! 👋",
+                    customer = new
+                    {
+                        id = customer.Id,
+                        name = customer.Fullname,
+                        phone = customer.PhoneNumber,
+                        points = customerPoints?.TotalPoints ?? 0,
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Login error: {ex.Message}");
+                return Ok(new { success = false, message = "Giriş sırasında hata oluştu." });
+            }
+        }
+
+        // Puan geçmişi API'si
+        [HttpGet("customer/point-history/{customerId}")]
+        public async Task<IActionResult> GetPointHistory(Guid customerId)
+        {
+            try
+            {
+                var transactions = await _context.KufePointTransactions
+                    .AsNoTracking()
+                    .Where(t => t.CustomerId == customerId)
+                    .OrderByDescending(t => t.CreatedAt)
+                    .Take(20) // Son 20 işlem
+                    .Select(t => new
+                    {
+                        id = t.Id,
+                        type = t.Type.ToString(),
+                        points = t.Points,
+                        description = t.Description,
+                        date = t.CreatedAt,
+                        productId = t.ProductId
+                    })
+                    .ToListAsync();
+
+                return Ok(new { success = true, transactions = transactions });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Point history error: {ex.Message}");
+                return Ok(new { success = false, message = "Puan geçmişi yüklenemedi." });
+            }
+        }
+
+        // Şifre değiştirme API'si
+        [HttpPost("customer/change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+        {
+            try
+            {
+                var customer = await _context.Customers
+                    .FirstOrDefaultAsync(c => c.Id == dto.CustomerId && c.IsActive);
+
+                if (customer == null || customer.Password != dto.CurrentPassword)
+                {
+                    return Ok(new { success = false, message = "Mevcut şifre hatalı!" });
+                }
+
+                if (dto.NewPassword.Length < 4)
+                {
+                    return Ok(new { success = false, message = "Şifre en az 4 karakter olmalıdır!" });
+                }
+
+                customer.Password = dto.NewPassword;
+                await _context.SaveChangesAsync();
+
+                return Ok(new { success = true, message = "Şifre başarıyla değiştirildi!" });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Change password error: {ex.Message}");
+                return Ok(new { success = false, message = "Şifre değiştirme sırasında hata oluştu." });
+            }
+        }
+
+        // DTO
+        public class CustomerLoginDto
+        {
+            public string PhoneNumber { get; set; }
+            public string Password { get; set; }
+        }
+
+        public class ChangePasswordDto
+        {
+            public Guid CustomerId { get; set; }
+            public string CurrentPassword { get; set; }
+            public string NewPassword { get; set; }
+        }
+
         private string GetRandomCategoryImage(IEnumerable<object> categoryProducts)
         {
             try
@@ -115,11 +237,11 @@ namespace KufeArtFullAdission.QrMenuMvc.Controllers
                 if (string.IsNullOrEmpty(dto.PhoneNumber))
                     return Ok(new { success = false, message = "Telefon numarası gerekli" });
 
-                var cleanPhone = CleanPhoneNumber(dto.PhoneNumber);
+                //var cleanPhone = CleanPhoneNumber(dto.PhoneNumber);
 
                 var customer = await _context.Customers
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(c => c.PhoneNumber == cleanPhone && c.IsActive);
+                    .FirstOrDefaultAsync(c => c.PhoneNumber == dto.PhoneNumber && c.IsActive);
 
                 if (customer == null)
                 {

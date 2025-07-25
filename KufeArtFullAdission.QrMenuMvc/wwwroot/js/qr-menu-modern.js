@@ -279,7 +279,7 @@ class QRMenuEngine {
     // 🖼️ PRODUCT MODAL
     async showProductModal(productId) {
         try {
-            const product = this.menuData.products.find(p => p.Id === productId);
+            const product = this.menuData.products.find(p => (p.id || p.Id) === productId);
             if (!product) return;
 
             const modal = document.getElementById('productModal');
@@ -287,70 +287,81 @@ class QRMenuEngine {
 
             if (!modal || !modalBody) return;
 
+            // Field isimlerini normalize et
+            const productName = product.name || product.Name || 'İsimsiz Ürün';
+            const productDescription = product.description || product.Description;
+            const productPrice = product.price || product.Price || 0;
+            const productImages = product.images || product.Images || [];
+            const hasCampaign = product.hasCampaign || product.HasCampaign;
+            const campaignCaption = product.campaignCaption || product.CampaignCaption;
+            const campaignDetail = product.campaignDetail || product.CampaignDetail;
+            const hasKufePoints = product.hasKufePoints || product.HasKufePoints;
+            const kufePoints = product.kufePoints || product.KufePoints || 0;
+
             // Modal content oluştur
             const modalHTML = `
-                <div class="product-modal-content">
-                    ${product.Images && product.Images.length > 0 ? `
-                        <div class="product-gallery">
-                            <div class="gallery-main">
-                                <img src="${product.Images[0].Original}" alt="${product.Name}" class="main-image" id="mainProductImage">
-                                ${product.Images.length > 1 ? `
-                                    <div class="gallery-nav">
-                                        <button class="gallery-btn prev" onclick="QRMenuApp.previousImage()">
-                                            <i class="fas fa-chevron-left"></i>
-                                        </button>
-                                        <button class="gallery-btn next" onclick="QRMenuApp.nextImage()">
-                                            <i class="fas fa-chevron-right"></i>
-                                        </button>
-                                    </div>
-                                ` : ''}
-                            </div>
-                            ${product.Images.length > 1 ? `
-                                <div class="gallery-thumbs">
-                                    ${product.Images.map((img, index) => `
-                                        <img src="${img.Thumbnail}" alt="${product.Name}" class="thumb ${index === 0 ? 'active' : ''}" 
-                                             onclick="QRMenuApp.selectImage(${index})" data-index="${index}">
-                                    `).join('')}
+            <div class="product-modal-content">
+                ${productImages && productImages.length > 0 ? `
+                    <div class="product-gallery">
+                        <div class="gallery-main">
+                            <img src="${productImages[0].Original || productImages[0].original}" alt="${productName}" class="main-image" id="mainProductImage">
+                            ${productImages.length > 1 ? `
+                                <div class="gallery-nav">
+                                    <button class="gallery-btn prev" onclick="QRMenuApp.previousImage()">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <button class="gallery-btn next" onclick="QRMenuApp.nextImage()">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
                                 </div>
                             ` : ''}
                         </div>
-                    ` : `
-                        <div class="product-placeholder">
-                            <i class="fas fa-image" style="font-size: 4rem; color: var(--accent);"></i>
-                        </div>
-                    `}
-                    
-                    <div class="product-details">
-                        <div class="product-header">
-                            <h2 class="product-title">${product.Name}</h2>
-                            <div class="product-badges-modal">
-                                ${product.HasCampaign ? `<span class="badge campaign">${product.CampaignCaption}</span>` : ''}
-                                ${product.HasKufePoints && product.KufePoints > 0 ? `<span class="badge points">+${product.KufePoints} Puan</span>` : ''}
-                            </div>
-                        </div>
-                        
-                        ${product.Description ? `<p class="product-description-full">${product.Description}</p>` : ''}
-                        
-                        ${product.HasCampaign && product.CampaignDetail ? `
-                            <div class="campaign-detail">
-                                <h4><i class="fas fa-gift"></i> Kampanya Detayı</h4>
-                                <p>${product.CampaignDetail}</p>
+                        ${productImages.length > 1 ? `
+                            <div class="gallery-thumbs">
+                                ${productImages.map((img, index) => `
+                                    <img src="${img.Thumbnail || img.thumbnail}" alt="${productName}" class="thumb ${index === 0 ? 'active' : ''}" 
+                                         onclick="QRMenuApp.selectImage(${index})" data-index="${index}">
+                                `).join('')}
                             </div>
                         ` : ''}
-                        
-                        <div class="product-price-section">
-                            <div class="price-main">₺${product.Price.toFixed(2)}</div>
-                            ${product.HasKufePoints && product.KufePoints > 0 ?
-                    `<div class="points-info">
-                                    <i class="fas fa-star"></i> 
-                                    Bu üründen <strong>+${product.KufePoints} puan</strong> kazanırsınız
-                                </div>` :
-                    ''
-                }
+                    </div>
+                ` : `
+                    <div class="product-placeholder">
+                        <i class="fas fa-image" style="font-size: 4rem; color: var(--accent);"></i>
+                    </div>
+                `}
+                
+                <div class="product-details">
+                    <div class="product-header">
+                        <h2 class="product-title">${productName}</h2>
+                        <div class="product-badges-modal">
+                            ${hasCampaign ? `<span class="badge campaign">${campaignCaption}</span>` : ''}
+                            ${hasKufePoints && kufePoints > 0 ? `<span class="badge points">+${kufePoints} Puan</span>` : ''}
                         </div>
                     </div>
+                    
+                    ${productDescription ? `<p class="product-description-full">${productDescription}</p>` : ''}
+                    
+                    ${hasCampaign && campaignDetail ? `
+                        <div class="campaign-detail">
+                            <h4><i class="fas fa-gift"></i> Kampanya Detayı</h4>
+                            <p>${campaignDetail}</p>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="product-price-section">
+                        <div class="price-main">₺${Number(productPrice).toFixed(2)}</div>
+                        ${hasKufePoints && kufePoints > 0 ?
+                    `<div class="points-info">
+                                <i class="fas fa-star"></i> 
+                                Bu üründen <strong>+${kufePoints} puan</strong> kazanırsınız
+                            </div>` :
+                    ''
+                }
+                    </div>
                 </div>
-            `;
+            </div>
+        `;
 
             modalBody.innerHTML = modalHTML;
 
@@ -360,10 +371,7 @@ class QRMenuEngine {
 
             // Current image index'i sakla
             this.currentImageIndex = 0;
-            this.currentProductImages = product.Images || [];
-
-            // Touch events for swipe
-            this.initializeModalTouchEvents();
+            this.currentProductImages = productImages || [];
 
         } catch (error) {
             console.error('❌ Product modal error:', error);
@@ -376,7 +384,7 @@ class QRMenuEngine {
         const thumbs = document.querySelectorAll('.gallery-thumbs .thumb');
 
         if (mainImage && this.currentProductImages[index]) {
-            mainImage.src = this.currentProductImages[index].Original;
+            mainImage.src = this.currentProductImages[index].Original || this.currentProductImages[index].original;
             this.currentImageIndex = index;
 
             // Thumb active state
@@ -489,9 +497,21 @@ class QRMenuEngine {
 
     // 🎯 SMART SUGGESTION
     prepareSuggestion(suggestion) {
-        if (!suggestion || !suggestion.Product) return;
+        console.log('🎯 Preparing suggestion:', suggestion);
 
-        this.pendingSuggestion = suggestion;
+        // Field isimlerini normalize et (backend küçük harf gönderiyor)
+        if (!suggestion || !suggestion.product) {
+            console.log('❌ No suggestion or product data');
+            return;
+        }
+
+        this.pendingSuggestion = {
+            icon: suggestion.icon || suggestion.Icon || '🌤️',
+            message: suggestion.message || suggestion.Message || '',
+            product: suggestion.product || suggestion.Product
+        };
+
+        console.log('✅ Suggestion prepared:', this.pendingSuggestion);
     }
 
     scheduleSmartSuggestion() {
@@ -506,39 +526,50 @@ class QRMenuEngine {
     }
 
     showSmartSuggestion() {
-        if (!this.pendingSuggestion) return;
+        console.log('🎯 Showing suggestion:', this.pendingSuggestion);
+
+        if (!this.pendingSuggestion) {
+            console.log('❌ No pending suggestion');
+            return;
+        }
 
         const popup = document.getElementById('smartSuggestion');
         const icon = document.getElementById('suggestionIcon');
         const message = document.getElementById('suggestionMessage');
         const productDiv = document.getElementById('suggestedProduct');
 
-        if (!popup) return;
+        if (!popup) {
+            console.log('❌ Suggestion popup element not found');
+            return;
+        }
 
         const suggestion = this.pendingSuggestion;
 
-        if (icon) icon.textContent = suggestion.Icon;
-        if (message) message.textContent = suggestion.Message;
+        if (icon) icon.textContent = suggestion.icon;
+        if (message) message.textContent = suggestion.message;
 
-        if (productDiv && suggestion.Product) {
+        if (productDiv && suggestion.product) {
+            const product = suggestion.product;
+
             productDiv.innerHTML = `
-                <div class="suggested-product-card" onclick="QRMenuApp.showProductModal('${suggestion.Product.Id}'); QRMenuApp.closeSuggestion();">
-                    ${suggestion.Product.Image ?
-                    `<img src="${suggestion.Product.Image}" alt="${suggestion.Product.Name}">` :
+            <div class="suggested-product-card" onclick="QRMenuApp.showProductModal('${product.id}'); QRMenuApp.closeSuggestion();">
+                ${product.image ?
+                    `<img src="${product.image}" alt="${product.name}">` :
                     `<div class="product-icon">🍽️</div>`
                 }
-                    <div class="suggestion-product-info">
-                        <h4>${suggestion.Product.Name}</h4>
-                        <p class="suggestion-price">₺${suggestion.Product.Price.toFixed(2)}</p>
-                        ${suggestion.Product.HasKufePoints && suggestion.Product.KufePoints > 0 ?
-                    `<span class="suggestion-points">+${suggestion.Product.KufePoints} puan</span>` :
+                <div class="suggestion-product-info">
+                    <h4>${product.name}</h4>
+                    <p class="suggestion-price">₺${Number(product.price).toFixed(2)}</p>
+                    ${product.hasKufePoints && product.kufePoints > 0 ?
+                    `<span class="suggestion-points">+${product.kufePoints} puan</span>` :
                     ''
                 }
-                    </div>
                 </div>
-            `;
+            </div>
+        `;
         }
 
+        console.log('✅ Showing popup');
         popup.style.display = 'flex';
 
         // 15 saniye sonra otomatik kapat
@@ -572,58 +603,365 @@ class QRMenuEngine {
         }
     }
 
+    // 👤 USER PANEL - ADVANCED VERSION
     loadUserPanel() {
         const panelBody = document.getElementById('userPanelBody');
         if (!panelBody) return;
 
         if (this.customerData) {
-            // Logged in user
+            // ✅ Giriş yapmış kullanıcı - TAB SİSTEMİ
             panelBody.innerHTML = `
+            <!-- Kullanıcı Bilgileri -->
+            <div class="panel-section">
                 <div class="user-info">
                     <div class="user-avatar">
                         <i class="fas fa-user"></i>
                     </div>
                     <h4>${this.customerData.name}</h4>
                     <p>${this.customerData.phone}</p>
+                    ${this.customerData.lastLogin ?
+                    `<small>Son giriş: ${new Date(this.customerData.lastLogin).toLocaleDateString('tr-TR')}</small>` :
+                    ''
+                }
                 </div>
                 <div class="points-display">
-                    <div class="points-value">${this.customerData.points}</div>
+                    <div class="points-value">${this.customerData.points.toLocaleString()}</div>
                     <div class="points-label">Küfe Point</div>
                 </div>
-                <button class="btn btn-logout" onclick="QRMenuApp.logout()">
-                    <i class="fas fa-sign-out-alt"></i> Çıkış Yap
-                </button>
-            `;
-        } else {
-            // Not logged in
-            panelBody.innerHTML = `
-                <div class="login-form">
-                    <h4>Küfe Point Hesabınız</h4>
-                    <p>Puanlarınızı görmek için telefon numaranızı girin</p>
-                    <div class="input-group">
-                        <input type="tel" id="phoneInput" placeholder="05xxxxxxxxx" maxlength="11">
-                        <button onclick="QRMenuApp.checkCustomer()">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                    <div class="login-info">
-                        <i class="fas fa-info-circle"></i>
-                        Henüz üye değil misiniz? Kasada kolayca üye olabilirsiniz.
+            </div>
+
+            <!-- Tab Menu -->
+            <div class="panel-section">
+                <div class="settings-tabs">
+                    <button class="tab-button active" onclick="QRMenuApp.showTab('history')">
+                        <i class="fas fa-history"></i> Geçmiş
+                    </button>
+                    <button class="tab-button" onclick="QRMenuApp.showTab('settings')">
+                        <i class="fas fa-cog"></i> Ayarlar
+                    </button>
+                </div>
+
+                <!-- Puan Geçmişi Tab -->
+                <div id="historyTab" class="tab-content active">
+                    <h6 class="section-title">
+                        <i class="fas fa-star"></i> Puan Geçmişi
+                    </h6>
+                    <div id="pointHistory" class="point-history">
+                        <div style="text-align: center; padding: var(--space-lg); color: var(--text-secondary);">
+                            <i class="spinner"></i> Yükleniyor...
+                        </div>
                     </div>
                 </div>
-            `;
+
+                <!-- Ayarlar Tab -->
+                <div id="settingsTab" class="tab-content">
+                    <h6 class="section-title">
+                        <i class="fas fa-key"></i> Şifre Değiştir
+                    </h6>
+                    <form id="changePasswordForm" onsubmit="QRMenuApp.changePassword(event)">
+                        <div class="form-group">
+                            <label>Mevcut Şifre</label>
+                            <input type="password" name="currentPassword" class="form-control" required minlength="4">
+                        </div>
+                        <div class="form-group">
+                            <label>Yeni Şifre</label>
+                            <input type="password" name="newPassword" class="form-control" required minlength="4">
+                        </div>
+                        <div class="form-group">
+                            <label>Yeni Şifre (Tekrar)</label>
+                            <input type="password" name="confirmPassword" class="form-control" required minlength="4">
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Şifreyi Değiştir
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Çıkış -->
+            <div class="panel-section">
+                <button class="btn-logout" onclick="QRMenuApp.logout()">
+                    <i class="fas fa-sign-out-alt"></i> Güvenli Çıkış
+                </button>
+            </div>
+        `;
+
+            // Puan geçmişini yükle
+            this.loadPointHistory();
+        } else {
+            // ✅ Giriş yapmamış kullanıcı - ŞİFRELİ GİRİŞ
+            panelBody.innerHTML = `
+            <div class="login-form">
+                <h4>Küfe Point Hesabınız</h4>
+                <p>Hesabınıza giriş yapın</p>
+                
+                <form id="loginForm" onsubmit="QRMenuApp.loginCustomer(event)">
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-phone"></i> Telefon Numarası
+                        </label>
+                        <input 
+                            type="tel" 
+                            name="phoneNumber"
+                            class="form-control" 
+                            placeholder="05xxxxxxxxx" 
+                            maxlength="11"
+                            required
+                            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-lock"></i> Şifre
+                        </label>
+                        <input 
+                            type="password" 
+                            name="password"
+                            class="form-control" 
+                            placeholder="Şifrenizi girin"
+                            required
+                            minlength="4"
+                        >
+                    </div>
+                    
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-sign-in-alt"></i> Giriş Yap
+                    </button>
+                </form>
+                
+                <div class="login-info">
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        <strong>Henüz üye değil misiniz?</strong><br>
+                        Üye olmak için garsonunuzdan yardım alın. Garsonlarımız sizin için hızlıca üyelik işlemlerinizi tamamlayıp şifrenizi oluşturabilir.
+                    </div>
+                </div>
+            </div>
+        `;
         }
     }
 
+    // 🔐 YENİ: Şifreli Giriş
+    async loginCustomer(event) {
+        event.preventDefault();
+
+        const form = event.target;
+        const formData = new FormData(form);
+        const phoneNumber = formData.get('phoneNumber').trim();
+        const password = formData.get('password').trim();
+
+        if (!phoneNumber || !password) {
+            this.showError('Lütfen tüm alanları doldurun.');
+            return;
+        }
+
+        // Loading state
+        const submitButton = form.querySelector('button[type="submit"]');
+        const originalHTML = submitButton.innerHTML;
+        submitButton.innerHTML = '<i class="spinner"></i> Giriş yapılıyor...';
+        submitButton.disabled = true;
+
+        try {
+            const response = await fetch('/api/qr-menu/customer/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    phoneNumber: phoneNumber,
+                    password: password
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.customerData = result.customer;
+                this.loadUserPanel();
+                this.showSuccess(result.message);
+            } else {
+                this.showError(result.message);
+            }
+
+        } catch (error) {
+            console.error('❌ Login error:', error);
+            this.showError('Giriş sırasında hata oluştu. Lütfen tekrar deneyin.');
+        } finally {
+            // Reset button
+            submitButton.innerHTML = originalHTML;
+            submitButton.disabled = false;
+        }
+    }
+
+    // 📊 YENİ: Puan Geçmişi Yükleme
+    async loadPointHistory() {
+        if (!this.customerData) return;
+
+        const historyContainer = document.getElementById('pointHistory');
+        if (!historyContainer) return;
+
+        try {
+            const response = await fetch(`/api/qr-menu/customer/point-history/${this.customerData.id}`);
+            const result = await response.json();
+
+            if (result.success && result.transactions.length > 0) {
+                const historyHTML = result.transactions.map(transaction => {
+                    const isEarned = transaction.type === 'Earned';
+                    const date = new Date(transaction.date).toLocaleDateString('tr-TR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    return `
+                    <div class="history-item">
+                        <div class="history-info">
+                            <div class="history-description">${transaction.description}</div>
+                            <div class="history-date">${date}</div>
+                        </div>
+                        <div class="history-points ${isEarned ? 'earned' : 'spent'}">
+                            ${isEarned ? '+' : '-'}${Math.abs(transaction.points)}
+                        </div>
+                    </div>
+                `;
+                }).join('');
+
+                historyContainer.innerHTML = historyHTML;
+            } else {
+                historyContainer.innerHTML = `
+                <div style="text-align: center; padding: var(--space-xl); color: var(--text-secondary);">
+                    <i class="fas fa-history" style="font-size: 2rem; margin-bottom: var(--space-md); opacity: 0.5;"></i>
+                    <p>Henüz puan işleminiz bulunmuyor.</p>
+                </div>
+            `;
+            }
+
+        } catch (error) {
+            console.error('❌ Point history error:', error);
+            historyContainer.innerHTML = `
+            <div style="text-align: center; padding: var(--space-xl); color: var(--danger);">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Puan geçmişi yüklenirken hata oluştu.</p>
+            </div>
+        `;
+        }
+    }
+
+    // 🔧 YENİ: Tab Değiştirme
+    showTab(tabName) {
+        // Tab buttons
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // Tab contents
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+
+        // Activate selected
+        event.target.classList.add('active');
+        document.getElementById(tabName + 'Tab').classList.add('active');
+    }
+
+    // 🔑 YENİ: Şifre Değiştirme
+    async changePassword(event) {
+        event.preventDefault();
+
+        const form = event.target;
+        const formData = new FormData(form);
+        const currentPassword = formData.get('currentPassword').trim();
+        const newPassword = formData.get('newPassword').trim();
+        const confirmPassword = formData.get('confirmPassword').trim();
+
+        // Validasyon
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            this.showError('Lütfen tüm alanları doldurun.');
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            this.showError('Yeni şifreler eşleşmiyor!');
+            return;
+        }
+
+        if (newPassword.length < 4) {
+            this.showError('Şifre en az 4 karakter olmalıdır!');
+            return;
+        }
+
+        // Loading state
+        const submitButton = form.querySelector('button[type="submit"]');
+        const originalHTML = submitButton.innerHTML;
+        submitButton.innerHTML = '<i class="spinner"></i> Değiştiriliyor...';
+        submitButton.disabled = true;
+
+        try {
+            const response = await fetch('/api/qr-menu/customer/change-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    customerId: this.customerData.id,
+                    currentPassword: currentPassword,
+                    newPassword: newPassword
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.showSuccess(result.message);
+                form.reset(); // Formu temizle
+            } else {
+                this.showError(result.message);
+            }
+
+        } catch (error) {
+            console.error('❌ Change password error:', error);
+            this.showError('Şifre değiştirme sırasında hata oluştu.');
+        } finally {
+            // Reset button
+            submitButton.innerHTML = originalHTML;
+            submitButton.disabled = false;
+        }
+    }
+
+    // 🚪 Logout Güncelleme
+    logout() {
+        this.customerData = null;
+        this.loadUserPanel();
+        this.showSuccess('Güvenle çıkış yapıldı. 👋');
+    }
+
+
+    // 🔍 CHECK CUSTOMER - IMPROVED VERSION
     async checkCustomer() {
         const phoneInput = document.getElementById('phoneInput');
-        if (!phoneInput || !phoneInput.value.trim()) return;
+        if (!phoneInput || !phoneInput.value.trim()) {
+            this.showError('Lütfen telefon numaranızı girin.');
+            return;
+        }
+
+        const phoneNumber = phoneInput.value.trim();
+
+        // ✅ Basit telefon numarası validasyonu
+        if (phoneNumber.length < 10 || phoneNumber.length > 11) {
+            this.showError('Lütfen geçerli bir telefon numarası girin.');
+            return;
+        }
+
+        // Loading state
+        const button = phoneInput.nextElementSibling;
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        button.disabled = true;
 
         try {
             const response = await fetch('/api/qr-menu/customer/quick-check', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phoneNumber: phoneInput.value.trim() })
+                body: JSON.stringify({ phoneNumber: phoneNumber })
             });
 
             const result = await response.json();
@@ -633,19 +971,20 @@ class QRMenuEngine {
                 this.loadUserPanel();
                 this.showSuccess(`Merhaba ${result.customer.name}! 👋`);
             } else {
-                this.showError(result.message);
+                this.showError(result.message || 'Bu telefon numarasına kayıtlı üyelik bulunamadı.');
             }
 
         } catch (error) {
-            this.showError('Kontrol sırasında hata oluştu.');
+            console.error('❌ Customer check error:', error);
+            this.showError('Kontrol sırasında hata oluştu. Lütfen tekrar deneyin.');
+        } finally {
+            // Reset button
+            button.innerHTML = originalHTML;
+            button.disabled = false;
         }
     }
 
-    logout() {
-        this.customerData = null;
-        this.loadUserPanel();
-        this.showSuccess('Çıkış yapıldı.');
-    }
+
 
     // 🔄 MODAL MANAGEMENT
     closeProductModal() {
@@ -693,35 +1032,41 @@ class QRMenuEngine {
 
     // 🚨 ERROR HANDLING
     showError(message) {
-        // Toast notification (basit versiyon)
-        const toast = document.createElement('div');
-        toast.className = 'toast toast-error';
-        toast.innerHTML = `
-            <i class="fas fa-exclamation-triangle"></i>
-            <span>${message}</span>
-        `;
-
-        document.body.appendChild(toast);
-
-        setTimeout(() => {
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
+        this.showToast(message, 'error');
     }
 
     showSuccess(message) {
+        this.showToast(message, 'success');
+    }
+
+    showToast(message, type = 'info') {
+        // Mevcut toast'ları temizle
+        document.querySelectorAll('.toast').forEach(toast => toast.remove());
+
         const toast = document.createElement('div');
-        toast.className = 'toast toast-success';
+        toast.className = `toast toast-${type}`;
+
+        const icon = type === 'success' ? 'fa-check-circle' :
+            type === 'error' ? 'fa-exclamation-triangle' :
+                'fa-info-circle';
+
         toast.innerHTML = `
-            <i class="fas fa-check-circle"></i>
-            <span>${message}</span>
-        `;
+        <i class="fas ${icon}"></i>
+        <span>${message}</span>
+    `;
 
         document.body.appendChild(toast);
 
+        // 3 saniye sonra kaldır
         setTimeout(() => {
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 300);
+            if (toast.parentNode) {
+                toast.style.opacity = '0';
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.remove();
+                    }
+                }, 300);
+            }
         }, 3000);
     }
 }
@@ -733,7 +1078,6 @@ document.addEventListener('DOMContentLoaded', () => {
     QRMenuApp = new QRMenuEngine();
 });
 
-// Global API for HTML onclick events
 window.QRMenuApp = {
     selectCategory: (category) => QRMenuApp?.selectCategory(category),
     showCategories: () => QRMenuApp?.showCategories(),
@@ -741,9 +1085,11 @@ window.QRMenuApp = {
     closeProductModal: () => QRMenuApp?.closeProductModal(),
     toggleUserPanel: () => QRMenuApp?.toggleUserPanel(),
     closeSuggestion: () => QRMenuApp?.closeSuggestion(),
-    checkCustomer: () => QRMenuApp?.checkCustomer(),
+    loginCustomer: (event) => QRMenuApp?.loginCustomer(event), // ✅ YENİ
     logout: () => QRMenuApp?.logout(),
     selectImage: (index) => QRMenuApp?.selectImage(index),
     nextImage: () => QRMenuApp?.nextImage(),
-    previousImage: () => QRMenuApp?.previousImage()
+    previousImage: () => QRMenuApp?.previousImage(),
+    showTab: (tabName) => QRMenuApp?.showTab(tabName), // ✅ YENİ
+    changePassword: (event) => QRMenuApp?.changePassword(event), // ✅ YENİ
 };
