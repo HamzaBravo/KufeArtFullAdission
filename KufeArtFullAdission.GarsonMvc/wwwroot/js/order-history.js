@@ -68,7 +68,10 @@ class OrderHistory {
         this.setLoading(true);
 
         try {
-            const response = await fetch(`/Order/HistoryData?startDate=${startDate}&endDate=${endDate}`);
+            // ❌ Yanlış: /Order/HistoryData
+            // ✅ Doğru: /Order/GetHistoryData
+            const response = await fetch(`/Order/GetHistoryData?startDate=${startDate}&endDate=${endDate}`);
+
             const result = await response.json();
 
             if (result.success) {

@@ -8,6 +8,8 @@ class OrderPage {
         this.currentCategory = 'all';
         this.searchQuery = '';
 
+        this.isCartModalOpen = false; // ✅ Modal durumunu takip et
+
         this.init();
     }
 
@@ -19,6 +21,34 @@ class OrderPage {
     }
 
     bindEvents() {
+
+        let cartButtonCooldown = false;
+
+        document.getElementById('openCartBtn').addEventListener('click', () => {
+            if (cartButtonCooldown) return; // Çok hızlı tıklamayı engelle
+
+            cartButtonCooldown = true;
+            setTimeout(() => cartButtonCooldown = false, 300); // 300ms cooldown
+
+            this.toggleCartModal();
+        });
+
+        // Modal kapatma event'leri
+        document.getElementById('closeCartBtn').addEventListener('click', () => {
+            this.closeCartModal();
+        });
+
+        document.getElementById('cartOverlay').addEventListener('click', () => {
+            this.closeCartModal();
+        });
+
+        // ✅ ESC tuşu ile modal kapatma
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.isCartModalOpen) {
+                this.closeCartModal();
+            }
+        });
+
         // Header actions
         document.getElementById('showHistoryBtn').addEventListener('click', () => {
             this.showOrderHistory();
@@ -275,7 +305,7 @@ class OrderPage {
         }
 
         this.updateCartUI();
-        this.showToast(`${product.name} sepete eklendi`, 'success');
+/*        this.showToast(`${product.name} sepete eklendi`, 'success');*/
     }
 
     removeFromCart(productId) {
@@ -303,26 +333,48 @@ class OrderPage {
         }
     }
 
+    // updateCartUI fonksiyonunu güncelle
+
     updateCartUI() {
         const totalItems = this.cart.reduce((sum, item) => sum + item.quantity, 0);
         const totalAmount = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-        // Floating cart
-        const floatingCart = document.getElementById('floatingCart');
+        // ✅ Yeni cart badge sistemi
+        const cartBadge = document.getElementById('cartBadge');
+        const cartBadgeCount = document.getElementById('cartBadgeCount');
+
         if (totalItems > 0) {
-            floatingCart.style.display = 'flex';
-            document.getElementById('cartCount').textContent = `${totalItems} ürün`;
-            document.getElementById('cartFloatingTotal').textContent = this.formatCurrency(totalAmount);
+            cartBadge.style.display = 'block';
+            cartBadge.setAttribute('data-empty', 'false');
+            cartBadgeCount.textContent = totalItems;
+            cartBadgeCount.setAttribute('data-count', totalItems);
+
+            // 10+ için large-count class ekle
+            if (totalItems >= 10) {
+                cartBadgeCount.classList.add('large-count');
+            } else {
+                cartBadgeCount.classList.remove('large-count');
+            }
+
+            // Badge'e animasyon ekle (yeni ürün eklendiğinde)
+            cartBadgeCount.style.animation = 'none';
+            setTimeout(() => {
+                cartBadgeCount.style.animation = 'pulse 0.6s ease-in-out';
+            }, 10);
+
         } else {
-            floatingCart.style.display = 'none';
+            cartBadge.style.display = 'none';
+            cartBadge.setAttribute('data-empty', 'true');
         }
 
-        // Cart modal
+        // Modal için eskisi gibi
         this.renderCartItems();
 
         // Submit button
         const submitBtn = document.getElementById('submitOrderBtn');
-        submitBtn.disabled = totalItems === 0;
+        if (submitBtn) {
+            submitBtn.disabled = totalItems === 0;
+        }
     }
 
     renderCartItems() {
@@ -560,14 +612,35 @@ class OrderPage {
         clearBtn.style.display = this.searchQuery ? 'block' : 'none';
     }
 
+    toggleCartModal() {
+        if (this.isCartModalOpen) {
+            this.closeCartModal();
+        } else {
+            this.openCartModal();
+        }
+    }
+
     openCartModal() {
         document.getElementById('cartModal').style.display = 'block';
         document.body.style.overflow = 'hidden';
+        this.isCartModalOpen = true; // ✅ Durumu güncelle
+
+        // ✅ Cart badge'e active class ekle
+        const cartBadgeBtn = document.querySelector('.cart-badge-btn');
+        if (cartBadgeBtn) {
+            cartBadgeBtn.classList.add('active');
+        }
     }
 
     closeCartModal() {
         document.getElementById('cartModal').style.display = 'none';
         document.body.style.overflow = '';
+        this.isCartModalOpen = false; // ✅ Durumu güncelle
+
+        const cartBadgeBtn = document.querySelector('.cart-badge-btn');
+        if (cartBadgeBtn) {
+            cartBadgeBtn.classList.remove('active');
+        }
     }
 
     closeHistoryModal() {

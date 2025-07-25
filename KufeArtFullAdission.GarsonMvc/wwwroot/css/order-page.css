@@ -680,3 +680,169 @@
         opacity: 0.3;
         margin-bottom: 15px;
     }
+/* Eski floating cart stillerini kaldır ve yerine badge stillerini ekle */
+
+/* 🛒 CART BADGE - Sağ üst köşede fixed */
+.cart-badge {
+    position: fixed;
+    top: 80px; /* Mobile nav altında */
+    right: 20px;
+    z-index: 999;
+    animation: bounceIn 0.5s ease;
+}
+
+@keyframes bounceIn {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.cart-badge-btn {
+    position: relative;
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, #2c5530, #4a7c59);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    box-shadow: 0 4px 20px rgba(44, 85, 48, 0.3);
+    transition: all 0.3s ease;
+}
+
+    .cart-badge-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 25px rgba(44, 85, 48, 0.4);
+    }
+
+    .cart-badge-btn:active {
+        transform: scale(0.95);
+    }
+
+.cart-badge-count {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #dc3545;
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+    min-width: 24px;
+    animation: pulse 1s ease-in-out;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Badge sayısı 2 haneli olunca boyutu büyüt */
+.cart-badge-count[data-count="10"],
+.cart-badge-count[data-count="11"],
+.cart-badge-count[data-count="12"],
+.cart-badge-count[data-count="13"],
+.cart-badge-count[data-count="14"],
+.cart-badge-count[data-count="15"],
+.cart-badge-count[data-count="16"],
+.cart-badge-count[data-count="17"],
+.cart-badge-count[data-count="18"],
+.cart-badge-count[data-count="19"] {
+    width: 28px;
+    height: 28px;
+    font-size: 0.7rem;
+    top: -10px;
+    right: -10px;
+}
+
+/* Büyük sayılar için */
+.cart-badge-count.large-count {
+    width: 30px;
+    height: 30px;
+    font-size: 0.65rem;
+    top: -12px;
+    right: -12px;
+}
+
+/* Sepet boşken badge gizle */
+.cart-badge[data-empty="true"] {
+    display: none !important;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .cart-badge {
+        top: 75px;
+        right: 15px;
+    }
+
+    .cart-badge-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
+    }
+
+    .cart-badge-count {
+        width: 22px;
+        height: 22px;
+        font-size: 0.7rem;
+        top: -6px;
+        right: -6px;
+    }
+}
+
+/* Z-index düzenlemesi - ürün kartlarından üstte olsun */
+.product-card {
+    position: relative;
+    z-index: 1;
+}
+
+.cart-badge {
+    z-index: 999; /* Ürün kartlarından üstte */
+}
+
+/* Modal z-index'i en üstte kalsın */
+.cart-modal {
+    z-index: 2000;
+}
+/* order-page.css'e ekle */
+
+.cart-badge-btn.active {
+    background: linear-gradient(135deg, #4a7c59, #2c5530); /* Tersine gradient */
+    transform: scale(0.95);
+    box-shadow: 0 2px 10px rgba(44, 85, 48, 0.6);
+}
+
+    .cart-badge-btn.active .cart-badge-count {
+        background: #28a745; /* Yeşil renk */
+        animation: none; /* Pulse animasyonunu durdur */
+    }

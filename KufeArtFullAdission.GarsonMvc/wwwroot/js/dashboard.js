@@ -332,60 +332,6 @@ class GarsonDashboard {
     }
 }
 
-// dashboard.js'e ekle
-class FABMenu {
-    constructor() {
-        this.fab = document.getElementById('mainFab');
-        this.menu = document.getElementById('fabMenu');
-        this.icon = document.getElementById('fabIcon');
-        this.isOpen = false;
-
-        this.bindEvents();
-    }
-
-    bindEvents() {
-        this.fab.addEventListener('click', () => this.toggle());
-
-        // Dışarı tıklandığında kapat
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.fab-container') && this.isOpen) {
-                this.close();
-            }
-        });
-    }
-
-    toggle() {
-        if (this.isOpen) {
-            this.close();
-        } else {
-            this.open();
-        }
-    }
-
-    open() {
-        this.isOpen = true;
-        this.fab.classList.add('active');
-        this.menu.style.display = 'block';
-        setTimeout(() => {
-            this.menu.classList.add('show');
-        }, 10);
-    }
-
-    close() {
-        this.isOpen = false;
-        this.fab.classList.remove('active');
-        this.menu.classList.remove('show');
-        setTimeout(() => {
-            this.menu.style.display = 'none';
-        }, 300);
-    }
-}
-
-// Sayfa yüklendiğinde başlat
-document.addEventListener('DOMContentLoaded', () => {
-    new FABMenu();
-});
-
 // 🚀 Initialize Dashboard
 document.addEventListener('DOMContentLoaded', () => {
     new GarsonDashboard();
