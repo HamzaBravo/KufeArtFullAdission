@@ -154,6 +154,114 @@ namespace KufeArtFullAdission.QrMenuMvc.Controllers
             }
         }
 
+        [HttpGet("menu-data")]
+        public async Task<IActionResult> GetMenuData()
+        {
+            try
+            {
+                Console.WriteLine("🚀 QR Menu data loading started...");
+
+                // Önce basic data'yı çek
+                var rawProducts = await _context.Products
+                    .AsNoTracking()
+                    .Where(p => p.IsActive && p.IsQrMenu)
+                    .Select(p => new
+                    {
+                        Id = p.Id,
+                        Name = p.Name,
+                        Description = p.Description,
+                        Price = p.Price,
+                        CategoryName = p.CategoryName,
+                        HasCampaign = p.HasCampaign,
+                        CampaignCaption = p.CampaignCaption,
+                        CampaignDetail = p.CampaignDetail,
+                        HasKufePoints = p.HasKufePoints,
+                        KufePoints = p.KufePoints,
+                        // 🖼️ Raw image paths - thumbnail generation memory'de yapacağız
+                        ImagePaths = _context.ProductImages
+                            .Where(pi => pi.ProductId == p.Id)
+                            .Take(3)
+                            .Select(pi => pi.ImagePath)
+                            .ToList()
+                    })
+                    .OrderBy(p => p.CategoryName)
+                    .ThenBy(p => p.Name)
+                    .ToListAsync();
+
+                // 🔄 Memory'de thumbnail paths oluştur
+                var products = rawProducts.Select(p => new
+                {
+                    p.Id,
+                    p.Name,
+                    p.Description,
+                    p.Price,
+                    p.CategoryName,
+                    p.HasCampaign,
+                    p.CampaignCaption,
+                    p.CampaignDetail,
+                    p.HasKufePoints,
+                    p.KufePoints,
+                    Images = p.ImagePaths.Select(imgPath => new
+                    {
+                        Original = imgPath,
+                        Thumbnail = GenerateThumbnailPath(imgPath) // Artık memory'de çalışıyor
+                    }).ToList()
+                }).ToList();
+
+                // 📂 Kategorileri otomatik oluştur - DÜZELTİLEN VERSİYON
+                var categories = new List<object>();
+                var categoryGroups = products.GroupBy(p => p.CategoryName);
+
+                foreach (var group in categoryGroups)
+                {
+                    var productsInCategory = group.ToList();
+
+                    // Rastgele resim seç
+                    string randomImage = null;
+                    var productsWithImages = productsInCategory.Where(p => p.Images.Any()).ToList();
+                    if (productsWithImages.Any())
+                    {
+                        var randomProduct = productsWithImages[Random.Shared.Next(productsWithImages.Count)];
+                        randomImage = randomProduct.Images.FirstOrDefault()?.Thumbnail;
+                    }
+
+                    categories.Add(new
+                    {
+                        Name = group.Key,
+                        DisplayName = group.Key,
+                        ProductCount = group.Count(),
+                        Icon = GetCategoryIcon(group.Key),
+                        RandomImage = randomImage
+                    });
+                }
+
+                categories = categories.OrderBy(c => ((dynamic)c).Name).ToList();
+
+                Console.WriteLine($"✅ Loaded {products.Count} products, {categories.Count} categories");
+
+                return Ok(new
+                {
+                    success = true,
+                    data = new
+                    {
+                        products = products,
+                        categories = categories,
+                        loadTime = DateTime.Now
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Menu data error: {ex.Message}");
+                return Ok(new
+                {
+                    success = false,
+                    message = "Menü yüklenirken hata oluştu",
+                    error = ex.Message
+                });
+            }
+        }
+
         // 🎯 YARDIMCI METODLAR
         private string GenerateThumbnailPath(string originalPath)
         {
@@ -274,8 +382,8 @@ namespace KufeArtFullAdission.QrMenuMvc.Controllers
                     icon = "☀️";
                 }
 
-                // 🎲 Rastgele ürün seç
-                var suggestedProduct = await _context.Products
+                // 🎲 Önce basic product data'yı al
+                var rawProduct = await _context.Products
                     .AsNoTracking()
                     .Where(p => p.IsActive && p.IsQrMenu &&
                                categoryFilters.Any(cf => p.CategoryName.Contains(cf)))
@@ -289,12 +397,29 @@ namespace KufeArtFullAdission.QrMenuMvc.Controllers
                         Category = p.CategoryName,
                         HasKufePoints = p.HasKufePoints,
                         KufePoints = p.KufePoints,
-                        Image = _context.ProductImages
+                        FirstImagePath = _context.ProductImages
                             .Where(pi => pi.ProductId == p.Id)
-                            .Select(pi => GenerateThumbnailPath(pi.ImagePath))
+                            .Select(pi => pi.ImagePath)
                             .FirstOrDefault()
                     })
                     .FirstOrDefaultAsync();
+
+                if (rawProduct == null) return null;
+
+                // 🔄 Memory'de thumbnail oluştur
+                var suggestedProduct = new
+                {
+                    rawProduct.Id,
+                    rawProduct.Name,
+                    rawProduct.Description,
+                    rawProduct.Price,
+                    rawProduct.Category,
+                    rawProduct.HasKufePoints,
+                    rawProduct.KufePoints,
+                    Image = !string.IsNullOrEmpty(rawProduct.FirstImagePath) ?
+                           GenerateThumbnailPath(rawProduct.FirstImagePath) :
+                           null
+                };
 
                 return new SmartSuggestionDto
                 {

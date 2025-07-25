@@ -32,6 +32,9 @@ var app = builder.Build();
 
 app.UseStaticFiles();
 
+
+app.MapControllers();
+
 // Ana projedeki uploads klasörünü paylaþ
 var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "KufeArtFullAdission.Mvc", "wwwroot", "uploads");
 if (Directory.Exists(uploadsPath))
