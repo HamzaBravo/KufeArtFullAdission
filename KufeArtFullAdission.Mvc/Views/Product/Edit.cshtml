@@ -117,7 +117,7 @@
                     </div>
                     <div class="col-4 text-end">
                         <small class="text-muted">Değer:</small><br>
-                        <span id="pointValue" class="fw-bold text-success">₺@((Model.KufePoints / 100.0).ToString("F2"))</span>
+                        <span id="pointValue" class="fw-bold text-success">₺@((Model.KufePoints ?? 0 / 100.0).ToString("F2"))</span>
                     </div>
                 </div>
                 <span asp-validation-for="KufePoints" class="text-danger"></span>

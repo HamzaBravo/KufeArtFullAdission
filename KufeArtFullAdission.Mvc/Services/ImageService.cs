@@ -1,6 +1,6 @@
 ﻿using KufeArtFullAdission.Mvc.Interfaces;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
@@ -10,88 +10,82 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace KufeArtFullAdission.Mvc.Services;
-
-public class ImageService : IImageService
+namespace KufeArtFullAdission.Mvc.Services
 {
-    private readonly IWebHostEnvironment _environment;
-
-    public ImageService(IWebHostEnvironment environment)
+    public class ImageService : IImageService
     {
-        _environment = environment;
-    }
+        private readonly string _physicalRoot;
+        private readonly string _webRootPrefix;
 
-    public async Task<List<string>> UploadImagesAsync(List<IFormFile> files, string folderName)
-    {
-        var uploadedPaths = new List<string>();
-        if (files == null || !files.Any()) return uploadedPaths;
-
-        var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", folderName);
-        Directory.CreateDirectory(uploadsFolder);
-
-        foreach (var file in files)
+        public ImageService(IConfiguration configuration)
         {
-            if (file.Length > 0)
-            {
-                // ✅ YENİ: Dosya boyutu kontrolü
-                if (file.Length > 10 * 1024 * 1024) // 10MB limit
-                {
-                    throw new InvalidOperationException($"Dosya çok büyük: {file.FileName}. Maksimum 10MB olmalı.");
-                }
-
-                var fileName = $"{Guid.NewGuid()}.webp";
-                var filePath = Path.Combine(uploadsFolder, fileName);
-
-                using var image = await Image.LoadAsync(file.OpenReadStream());
-
-                // ✅ YENİ: Resim boyutunu optimize et
-                if (image.Width > 1920 || image.Height > 1920)
-                {
-                    var ratio = Math.Min(1920.0 / image.Width, 1920.0 / image.Height);
-                    var newWidth = (int)(image.Width * ratio);
-                    var newHeight = (int)(image.Height * ratio);
-                    image.Mutate(x => x.Resize(newWidth, newHeight));
-                }
-
-                // ✅ YENİ: WebP kalitesi ayarı
-                var encoder = new WebpEncoder()
-                {
-                    Quality = 85 // %85 kalite - dosya boyutunu küçültür
-                };
-
-                await image.SaveAsync(filePath, encoder);
-
-                var webPath = $"/uploads/{folderName}/{fileName}";
-                uploadedPaths.Add(webPath);
-            }
+            // appsettings.json'dan yolları al
+            _physicalRoot = configuration["UploadSettings:PhysicalRoot"];       // Örn: C:\SharedUploads
+            _webRootPrefix = configuration["UploadSettings:WebRootPrefix"];     // Örn: /uploads
         }
 
-        return uploadedPaths;
-    }
-
-    public async Task<bool> DeleteImagesAsync(List<string> imagePaths)
-    {
-        try
+        public async Task<List<string>> UploadImagesAsync(List<IFormFile> files, string folderName)
         {
-            foreach (var imagePath in imagePaths)
-            {
-                if (!string.IsNullOrEmpty(imagePath))
-                {
-                    // ✅ DÜZELTME: Baştan "/" karakterini temizle
-                    var cleanPath = imagePath.TrimStart('/');
-                    var physicalPath = Path.Combine(_environment.WebRootPath, cleanPath);
+            var uploadedPaths = new List<string>();
+            if (files == null || !files.Any()) return uploadedPaths;
 
-                    if (File.Exists(physicalPath))
+            var uploadsFolder = Path.Combine(_physicalRoot, folderName);
+            Directory.CreateDirectory(uploadsFolder); // klasör yoksa oluştur
+
+            foreach (var file in files)
+            {
+                if (file.Length > 0)
+                {
+                    if (file.Length > 10 * 1024 * 1024)
+                        throw new InvalidOperationException($"Dosya çok büyük: {file.FileName}. Maksimum 10MB olmalı.");
+
+                    var fileName = $"{Guid.NewGuid()}.webp";
+                    var filePath = Path.Combine(uploadsFolder, fileName);
+
+                    using var image = await Image.LoadAsync(file.OpenReadStream());
+
+                    if (image.Width > 1920 || image.Height > 1920)
                     {
-                        File.Delete(physicalPath);
+                        var ratio = Math.Min(1920.0 / image.Width, 1920.0 / image.Height);
+                        var newWidth = (int)(image.Width * ratio);
+                        var newHeight = (int)(image.Height * ratio);
+                        image.Mutate(x => x.Resize(newWidth, newHeight));
+                    }
+
+                    var encoder = new WebpEncoder { Quality = 85 };
+                    await image.SaveAsync(filePath, encoder);
+
+                    var webPath = $"{_webRootPrefix}/{folderName}/{fileName}";
+                    uploadedPaths.Add(webPath);
+                }
+            }
+
+            return uploadedPaths;
+        }
+
+        public async Task<bool> DeleteImagesAsync(List<string> imagePaths)
+        {
+            try
+            {
+                foreach (var imagePath in imagePaths)
+                {
+                    if (!string.IsNullOrEmpty(imagePath))
+                    {
+                        var cleanPath = imagePath.TrimStart('/').Replace("/", Path.DirectorySeparatorChar.ToString());
+
+                        // Kök dizin ile birleştir
+                        var physicalPath = Path.Combine(_physicalRoot, cleanPath.Replace(_webRootPrefix.Trim('/'), ""));
+
+                        if (File.Exists(physicalPath))
+                            File.Delete(physicalPath);
                     }
                 }
+                return true;
             }
-            return true;
-        }
-        catch
-        {
-            return false;
+            catch
+            {
+                return false;
+            }
         }
     }
 }

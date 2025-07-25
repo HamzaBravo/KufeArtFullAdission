@@ -39,45 +39,30 @@ public class ProductController(DBContext _dbContext, IImageService _imageService
     {
         try
         {
-            // Küfe Point seçili değilse puanı sıfırla
+            // 🟡 Önce normalize et: checkbox'lar kapalıysa ilgili alanları sıfırla
             if (!product.HasKufePoints)
-            {
-                product.KufePoints = 0; // Checkbox seçili değilse puan 0 olsun
-            }
-            // Sadece checkbox seçili VE puan girilmişse validasyon yap
-            else if (product.HasKufePoints && product.KufePoints <= 0)
-            {
+                product.KufePoints = 0;
+
+            if (!product.IsCommissionEligible)
+                product.CommissionRate = 0;
+
+            // 🟢 Sonra validasyon yap
+            if (product.HasKufePoints && product.KufePoints <= 0)
                 ModelState.AddModelError("KufePoints", "Küfe Point aktifse puan 0'dan büyük olmalıdır!");
-            }
 
             if (product.KufePoints > 10000)
-            {
                 ModelState.AddModelError("KufePoints", "Maksimum 10.000 puan verilebilir!");
-            }
 
-            // Mantık hatası kontrolü
             if (!product.HasKufePoints && product.KufePoints > 0)
-            {
                 product.KufePoints = 0; // Otomatik düzelt
-            }
 
-            // ✅ YENİ: Prim doğrulaması
             if (product.IsCommissionEligible && product.CommissionRate < 0)
-            {
                 ModelState.AddModelError("CommissionRate", "Prim oranı negatif olamaz!");
-            }
 
             if (product.IsCommissionEligible && product.CommissionRate > 100)
-            {
                 ModelState.AddModelError("CommissionRate", "Prim oranı %100'den fazla olamaz!");
-            }
 
-            // Prim dahil değilse oranı sıfırla
-            if (!product.IsCommissionEligible)
-            {
-                product.CommissionRate = 0;
-            }
-
+            // 🟢 Validation kontrolü EN SON yapılır
             if (ModelState.IsValid)
             {
                 product.IsActive = true;
@@ -86,19 +71,16 @@ public class ProductController(DBContext _dbContext, IImageService _imageService
                 _dbContext.Products.Add(product);
                 await _dbContext.SaveChangesAsync();
 
-                // Resim upload
                 if (images != null && images.Any())
                 {
                     var imagePaths = await _imageService.UploadImagesAsync(images, "products");
-
                     foreach (var imagePath in imagePaths)
                     {
-                        var productImage = new ProductImagesDbEntity
+                        _dbContext.ProductImages.Add(new ProductImagesDbEntity
                         {
                             ProductId = product.Id,
                             ImagePath = imagePath
-                        };
-                        _dbContext.ProductImages.Add(productImage);
+                        });
                     }
 
                     await _dbContext.SaveChangesAsync();
@@ -118,6 +100,7 @@ public class ProductController(DBContext _dbContext, IImageService _imageService
         ViewBag.ExistingCategories = await GetExistingCategories();
         return View(product);
     }
+
 
     public async Task<IActionResult> Edit(Guid id)
     {

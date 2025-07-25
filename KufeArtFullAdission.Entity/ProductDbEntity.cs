@@ -22,6 +22,6 @@ public sealed class ProductDbEntity:BaseDbEntity
 
     // 🎯 YENİ: Küfe Point Alanları
     public bool HasKufePoints { get; set; } = false; // Bu ürün puan kazandırır mı?
-    public int KufePoints { get; set; } = 0; // 0 = puan yok, 100 = 100 puan
+    public int? KufePoints { get; set; } = 0; // 0 = puan yok, 100 = 100 puan
 
 }

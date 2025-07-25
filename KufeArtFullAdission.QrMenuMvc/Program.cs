@@ -35,16 +35,12 @@ app.UseStaticFiles();
 
 app.MapControllers();
 
-// Ana projedeki uploads klasörünü paylaþ
-var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "KufeArtFullAdission.Mvc", "wwwroot", "uploads");
-if (Directory.Exists(uploadsPath))
+app.UseStaticFiles(new StaticFileOptions
 {
-    app.UseStaticFiles(new StaticFileOptions
-    {
-        FileProvider = new PhysicalFileProvider(uploadsPath),
-        RequestPath = "/uploads"
-    });
-}
+    FileProvider = new PhysicalFileProvider(@"C:\SharedUploads"),
+    RequestPath = "/uploads"
+});
+
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

@@ -505,7 +505,7 @@ public class HomeController(DBContext _dbContext) : Controller
 
                         if (product != null && product.HasKufePoints && product.KufePoints > 0)
                         {
-                            int orderPoints = product.KufePoints * order.ProductQuantity;
+                            int orderPoints = product.KufePoints ?? 0* order.ProductQuantity;
                             totalEarnedPoints += orderPoints;
                             Console.WriteLine($"➕ {product.Name}: {orderPoints} puan");
                         }
@@ -719,7 +719,7 @@ public class HomeController(DBContext _dbContext) : Controller
 
                         if (product != null && product.KufePoints > 0)
                         {
-                            willEarnPoints += product.KufePoints * order.ProductQuantity;
+                            willEarnPoints += product.KufePoints ?? 0 * order.ProductQuantity;
                         }
                     }
                 }
