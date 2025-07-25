@@ -202,94 +202,128 @@
     }
 
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Product Create script loaded');
 
-        // ✅ YENİ: Prim toggle
-        document.getElementById('commissionToggle').addEventListener('change', function() {
+            const form = document.querySelector('form[action*="Create"]') ||
+                        document.querySelector('form[method="post"]:not([action*="Logout"])');
+            const submitButton = form ? form.querySelector('button[type="submit"]') : null;
+
+            if (!form || !submitButton) {
+                console.error('Form veya submit button bulunamadı!');
+                return;
+            }
+
+            // ✅ FORM SUBMIT EVENT (Eski kodundaki gibi)
+            form.addEventListener('submit', function(e) {
+                console.log('Form submit edildi');
+
+                if (typeof LoaderHelper === 'undefined') {
+                    console.error('LoaderHelper bulunamadı!');
+                    return;
+                }
+
+                const originalText = submitButton.innerHTML;
+
+                // Button'u disable et ve loading state'e geçir
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<span class="inline-loader me-2"></span>Kaydediliyor...';
+
+                // Global loader'ı göster
+                LoaderHelper.show('Ürün kaydediliyor, lütfen bekleyin...');
+
+                // Form validasyonu kontrolü
+                setTimeout(() => {
+                    if (!form.checkValidity()) {
+                        console.log('Form geçersiz, loader kapatılıyor');
+                        LoaderHelper.hide();
+                        submitButton.disabled = false;
+                        submitButton.innerHTML = originalText;
+                    }
+                }, 150);
+            });
+
+            // ✅ KÜFE POINT TOGGLE VE HESAPLAMA
+            const kufePointToggle = document.getElementById('kufePointToggle');
+            const kufePointFields = document.getElementById('kufePointFields');
+            const kufePointsInput = document.querySelector('input[name="KufePoints"]');
+            const pointValueSpan = document.getElementById('pointValue');
+
+            if (kufePointToggle && kufePointFields) {
+                kufePointToggle.addEventListener('change', function() {
+                    kufePointFields.style.display = this.checked ? 'block' : 'none';
+
+                    if (!this.checked && kufePointsInput) {
+                        kufePointsInput.value = 0;
+                        updatePointValue();
+                    }
+                });
+            }
+
+            // Puan değeri hesaplama fonksiyonu
+            function updatePointValue() {
+                if (!kufePointsInput || !pointValueSpan) return;
+
+                const points = parseInt(kufePointsInput.value) || 0;
+                const value = (points / 100).toFixed(2);
+                pointValueSpan.textContent = `₺${value}`;
+            }
+
+            // Puan input'unda değişiklik olduğunda hesapla
+            if (kufePointsInput) {
+                kufePointsInput.addEventListener('input', updatePointValue);
+                updatePointValue(); // İlk yüklemede hesapla
+            }
+
+            // ✅ KOMİSYON TOGGLE
+            const commissionToggle = document.getElementById('commissionToggle');
             const commissionFields = document.getElementById('commissionFields');
             const commissionRate = document.querySelector('input[name="CommissionRate"]');
 
-            if (this.checked) {
-                commissionFields.style.display = 'block';
-                commissionRate.setAttribute('required', 'required');
-            } else {
-                commissionFields.style.display = 'none';
-                commissionRate.removeAttribute('required');
-                commissionRate.value = '0';
-            }
-        });
-
-
-        // Küfe Point toggle
-        document.getElementById('kufePointToggle').addEventListener('change', function() {
-            const kufePointFields = document.getElementById('kufePointFields');
-            kufePointFields.style.display = this.checked ? 'block' : 'none';
-
-            if (!this.checked) {
-                document.querySelector('input[name="KufePoints"]').value = 0;
-                updatePointValue();
-            }
-        });
-
-        // Puan değeri hesaplama
-        document.querySelector('input[name="KufePoints"]').addEventListener('input', updatePointValue);
-
-        function updatePointValue() {
-            const points = parseInt(document.querySelector('input[name="KufePoints"]').value) || 0;
-            const value = (points / 100).toFixed(2);
-            document.getElementById('pointValue').textContent = `₺${value}`;
-        }
-
-        // Sayfa yüklendiğinde değeri hesapla
-        document.addEventListener('DOMContentLoaded', function() {
-            updatePointValue();
-        });
-
-        // Mevcut prim toggle (değişiklik yok)
-        document.getElementById('commissionToggle').addEventListener('change', function() {
-            const commissionFields = document.getElementById('commissionFields');
-            commissionFields.style.display = this.checked ? 'block' : 'none';
-        });
-
-        // Resim önizleme
-        document.getElementById('imageUpload').addEventListener('change', function(e) {
-            const preview = document.getElementById('imagePreview');
-            preview.innerHTML = '';
-
-            if (e.target.files.length > 0) {
-                const previewContainer = document.createElement('div');
-                previewContainer.className = 'row g-2';
-
-                Array.from(e.target.files).forEach(file => {
-                    if (file.type.startsWith('image/')) {
-                        const reader = new FileReader();
-                        reader.onload = function(e) {
-                            const col = document.createElement('div');
-                            col.className = 'col-md-3 col-6';
-                            col.innerHTML = `
-                                <div class="card">
-                                    <img src="${e.target.result}" class="card-img-top" style="height: 120px; object-fit: cover;" />
-                                    <div class="card-body p-2 text-center">
-                                        <small class="text-muted">${file.name}</small>
-                                    </div>
-                                </div>
-                            `;
-                            previewContainer.appendChild(col);
-                        };
-                        reader.readAsDataURL(file);
+            if (commissionToggle && commissionFields) {
+                commissionToggle.addEventListener('change', function() {
+                    if (this.checked) {
+                        commissionFields.style.display = 'block';
+                        if (commissionRate) {
+                            commissionRate.setAttribute('required', 'required');
+                        }
+                    } else {
+                        commissionFields.style.display = 'none';
+                        if (commissionRate) {
+                            commissionRate.removeAttribute('required');
+                            commissionRate.value = '0';
+                        }
                     }
                 });
-
-                preview.appendChild(previewContainer);
             }
-        });
 
-                // Sayfa yüklendiğinde prim alanlarını kontrol et
-        document.addEventListener('DOMContentLoaded', function() {
-            const commissionToggle = document.getElementById('commissionToggle');
-            const commissionFields = document.getElementById('commissionFields');
+            // ✅ RESİM ÖNİZLEME
+            const imageUpload = document.getElementById('imageUpload');
+            const imagePreview = document.getElementById('imagePreview');
 
-            if (!commissionToggle.checked) {
-                commissionFields.style.display = 'none';
+            if (imageUpload && imagePreview) {
+                imageUpload.addEventListener('change', function(e) {
+                    imagePreview.innerHTML = '';
+
+                    Array.from(e.target.files).forEach(file => {
+                        if (file.type.startsWith('image/')) {
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                const preview = document.createElement('div');
+                                preview.className = 'image-preview-item d-inline-block me-2 mb-2';
+                                preview.innerHTML = `
+                                    <div class="position-relative">
+                                        <img src="${e.target.result}" alt="Preview"
+                                             style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #28a745;">
+                                        <small class="d-block text-center mt-1 text-muted">${file.name}</small>
+                                    </div>
+                                `;
+                                imagePreview.appendChild(preview);
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    });
+                });
             }
         });
     </script>

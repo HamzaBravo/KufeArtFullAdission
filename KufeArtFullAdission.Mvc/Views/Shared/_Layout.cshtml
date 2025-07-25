@@ -335,6 +335,12 @@
     <script src="~/js/profile-manager.js" asp-append-version="true"></script>
     <script src="~/js/footer-effects.js" asp-append-version="true"></script>
 
+
+
+
+
+
+
     <!-- _Layout.cshtml'e ekle -->
     <script src="https://unpkg.com/@@microsoft/signalr@latest/dist/browser/signalr.min.js"></script>
     <script src="~/js/signalr-client.js" asp-append-version="true"></script>
@@ -513,6 +519,25 @@
         </div>
     </div>
 
+
+    <!-- ✅ GLOBAL TempData Toast Handler - TÜM SAYFALARDA ÇALIŞACAK -->
+    @if (TempData["ToastMessage"] != null)
+    {
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // LoaderHelper varsa loader'ı kapat (form submit sonrası)
+                if (typeof LoaderHelper !== 'undefined') {
+                    LoaderHelper.hide();
+                }
+
+                // Toast'ı göster
+                setTimeout(function() {
+                    ToastHelper.@(TempData["ToastType"] ?? "info")('@Html.Raw(TempData["ToastMessage"])');
+                }, 200); // 200ms bekle ki sayfa tam yüklensin
+            });
+        </script>
+    }
+
     <script>
         // Parçalı ödeme modal'ı açıldığında real-time validation ekle
         $('#partialPaymentModal').on('shown.bs.modal', function() {
@@ -538,54 +563,3 @@
     </script>
 </body>
 </html>
-
-<!-- Mevcut scripts'lerin EN SONUNA ekle -->
-@section Scripts {
-    @await RenderSectionAsync("Scripts", required: false)
-
-    <!-- Global TempData Toast Handler -->
-    @if (TempData["ToastMessage"] != null)
-    {
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                // Sayfa yüklendikten sonra toast'ı göster
-                setTimeout(function() {
-                    ToastHelper.@(TempData["ToastType"] ?? "info")('@Html.Raw(TempData["ToastMessage"])');
-                }, 100); // 100ms bekle ki sayfa tam yüklensin
-            });
-        </script>
-    }
-
-
-    <script>
-        // Hızlı rapor açma fonksiyonları
-        function openQuickReport(type) {
-            const today = new Date();
-            let startDate, endDate;
-
-            switch(type) {
-                case 'daily':
-                    startDate = endDate = today.toISOString().split('T')[0];
-                    break;
-                case 'weekly':
-                    const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
-                    startDate = weekStart.toISOString().split('T')[0];
-                    endDate = new Date().toISOString().split('T')[0];
-                    break;
-                case 'monthly':
-                    startDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-                    endDate = new Date().toISOString().split('T')[0];
-                    break;
-            }
-
-            // Ciro analizi sayfasına git
-            window.location.href = `@Url.Action("SalesAnalysis", "Report")?startDate=${startDate}&endDate=${endDate}`;
-        }
-
-        function openCustomReport() {
-            ToastHelper.info('Özel rapor oluşturucu yakında geliyor!');
-            // Modal açılacak veya yeni sayfaya yönlendirilecek
-        }
-    </script>
-}
-

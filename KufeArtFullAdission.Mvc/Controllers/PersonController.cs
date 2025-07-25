@@ -109,6 +109,11 @@ public class PersonController(DBContext _dbContext, IImageService _imageService)
 
             if (ModelState.IsValid)
             {
+                if (string.IsNullOrWhiteSpace(person.Password))
+                {
+                    person.Password = existingPerson.Password; // Mevcut şifreyi koru
+                }
+
                 // Mevcut resmi sil
                 if (deleteExistingImage && !string.IsNullOrEmpty(existingPerson.ProfileImagePath))
                 {
@@ -144,7 +149,11 @@ public class PersonController(DBContext _dbContext, IImageService _imageService)
                 person.FullName= person.FullName.ToUpper();
                 person.Username = person.Username.ToUpper();
 
+
+
                 _dbContext.Entry(existingPerson).CurrentValues.SetValues(person);
+
+
                 await _dbContext.SaveChangesAsync();
 
                 TempData["ToastMessage"] = "Personel başarıyla güncellendi!";
