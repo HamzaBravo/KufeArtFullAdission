@@ -39,7 +39,13 @@ public class ProductController(DBContext _dbContext, IImageService _imageService
     {
         try
         {
-            if (product.HasKufePoints && product.KufePoints <= 0)
+            // Küfe Point seçili değilse puanı sıfırla
+            if (!product.HasKufePoints)
+            {
+                product.KufePoints = 0; // Checkbox seçili değilse puan 0 olsun
+            }
+            // Sadece checkbox seçili VE puan girilmişse validasyon yap
+            else if (product.HasKufePoints && product.KufePoints <= 0)
             {
                 ModelState.AddModelError("KufePoints", "Küfe Point aktifse puan 0'dan büyük olmalıdır!");
             }

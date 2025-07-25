@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Processing;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -23,7 +24,6 @@ public class ImageService : IImageService
     public async Task<List<string>> UploadImagesAsync(List<IFormFile> files, string folderName)
     {
         var uploadedPaths = new List<string>();
-
         if (files == null || !files.Any()) return uploadedPaths;
 
         var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", folderName);
@@ -33,13 +33,34 @@ public class ImageService : IImageService
         {
             if (file.Length > 0)
             {
+                // ✅ YENİ: Dosya boyutu kontrolü
+                if (file.Length > 10 * 1024 * 1024) // 10MB limit
+                {
+                    throw new InvalidOperationException($"Dosya çok büyük: {file.FileName}. Maksimum 10MB olmalı.");
+                }
+
                 var fileName = $"{Guid.NewGuid()}.webp";
                 var filePath = Path.Combine(uploadsFolder, fileName);
 
                 using var image = await Image.LoadAsync(file.OpenReadStream());
-                await image.SaveAsWebpAsync(filePath);
 
-                // ✅ DÜZELTME: Her zaman "/" ile başlayan tam yol
+                // ✅ YENİ: Resim boyutunu optimize et
+                if (image.Width > 1920 || image.Height > 1920)
+                {
+                    var ratio = Math.Min(1920.0 / image.Width, 1920.0 / image.Height);
+                    var newWidth = (int)(image.Width * ratio);
+                    var newHeight = (int)(image.Height * ratio);
+                    image.Mutate(x => x.Resize(newWidth, newHeight));
+                }
+
+                // ✅ YENİ: WebP kalitesi ayarı
+                var encoder = new WebpEncoder()
+                {
+                    Quality = 85 // %85 kalite - dosya boyutunu küçültür
+                };
+
+                await image.SaveAsync(filePath, encoder);
+
                 var webPath = $"/uploads/{folderName}/{fileName}";
                 uploadedPaths.Add(webPath);
             }
