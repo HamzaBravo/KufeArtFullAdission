@@ -846,3 +846,34 @@
         background: #28a745; /* Yeşil renk */
         animation: none; /* Pulse animasyonunu durdur */
     }
+
+/* Floating kapatma butonu */
+.cart-close-btn {
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    width: 24px;
+    height: 24px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1001;
+    transition: all 0.2s ease;
+    border: 2px solid white;
+}
+
+    .cart-close-btn:hover {
+        background: #c82333;
+        transform: scale(1.1);
+    }
+
+/* Sepet açıkken kapatma butonunu göster */
+.cart-badge-btn.active + .cart-close-btn {
+    display: flex !important;
+}

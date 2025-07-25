@@ -21,30 +21,37 @@ class OrderPage {
     }
 
     bindEvents() {
-
         let cartButtonCooldown = false;
 
-        document.getElementById('openCartBtn').addEventListener('click', () => {
-            if (cartButtonCooldown) return; // Çok hızlı tıklamayı engelle
+        // 🔥 DEBUG: Console log ekleyelim
+        console.log('🔍 Events binding...');
 
+        // Tek bir event listener ile toggle işlevi
+        document.getElementById('openCartBtn').addEventListener('click', (e) => {
+            console.log('🛒 Cart button clicked, modal open:', this.isCartModalOpen);
+
+            if (cartButtonCooldown) return;
             cartButtonCooldown = true;
-            setTimeout(() => cartButtonCooldown = false, 300); // 300ms cooldown
+            setTimeout(() => cartButtonCooldown = false, 300);
 
             this.toggleCartModal();
         });
 
         // Modal kapatma event'leri
-        document.getElementById('closeCartBtn').addEventListener('click', () => {
+        document.getElementById('closeCartBtn').addEventListener('click', (e) => {
+            console.log('❌ Close button clicked');
             this.closeCartModal();
         });
 
-        document.getElementById('cartOverlay').addEventListener('click', () => {
+        document.getElementById('cartOverlay').addEventListener('click', (e) => {
+            console.log('📱 Overlay clicked');
             this.closeCartModal();
         });
 
-        // ✅ ESC tuşu ile modal kapatma
+        // ESC tuşu ile modal kapatma
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.isCartModalOpen) {
+                console.log('⌨️ ESC pressed');
                 this.closeCartModal();
             }
         });
@@ -73,46 +80,19 @@ class OrderPage {
             this.toggleClearButton();
         });
 
-        // Cart events
-        document.getElementById('openCartBtn').addEventListener('click', () => {
-            this.openCartModal();
-        });
-
-        document.getElementById('closeCartBtn').addEventListener('click', () => {
-            this.closeCartModal();
-        });
-
-        document.getElementById('cartOverlay').addEventListener('click', () => {
-            this.closeCartModal();
-        });
-
-        document.getElementById('submitOrderBtn').addEventListener('click', () => {
-            this.submitOrder();
-        });
-
-        // History modal events
-        document.getElementById('closeHistoryBtn').addEventListener('click', () => {
-            this.closeHistoryModal();
-        });
-
-        document.getElementById('historyOverlay').addEventListener('click', () => {
-            this.closeHistoryModal();
-        });
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                this.closeAllModals();
-            }
-            if (e.key === 'Enter' && e.ctrlKey) {
-                if (this.cart.length > 0) {
-                    this.submitOrder();
-                }
-            }
-        });
-
-        // Touch events for better mobile experience
-        this.bindTouchEvents();
+        // ❌❌❌ BU KISMEN TAMAMEN SİLİN - DUPLIKASYON:
+        // // Cart events  
+        // document.getElementById('openCartBtn').addEventListener('click', () => {
+        //     this.openCartModal();
+        // });
+        // 
+        // document.getElementById('closeCartBtn').addEventListener('click', () => {
+        //     this.closeCartModal();
+        // });
+        // 
+        // document.getElementById('cartOverlay').addEventListener('click', () => {
+        //     this.closeCartModal();
+        // });
     }
 
     async loadTableDetails() {
@@ -623,23 +603,30 @@ class OrderPage {
     openCartModal() {
         document.getElementById('cartModal').style.display = 'block';
         document.body.style.overflow = 'hidden';
-        this.isCartModalOpen = true; // ✅ Durumu güncelle
+        this.isCartModalOpen = true;
 
-        // ✅ Cart badge'e active class ekle
         const cartBadgeBtn = document.querySelector('.cart-badge-btn');
+        const closeBtn = document.getElementById('closeCartFloatingBtn');
         if (cartBadgeBtn) {
             cartBadgeBtn.classList.add('active');
+        }
+        if (closeBtn) {
+            closeBtn.style.display = 'flex'; // ✅ Kapatma butonunu göster
         }
     }
 
     closeCartModal() {
         document.getElementById('cartModal').style.display = 'none';
         document.body.style.overflow = '';
-        this.isCartModalOpen = false; // ✅ Durumu güncelle
+        this.isCartModalOpen = false;
 
         const cartBadgeBtn = document.querySelector('.cart-badge-btn');
+        const closeBtn = document.getElementById('closeCartFloatingBtn');
         if (cartBadgeBtn) {
             cartBadgeBtn.classList.remove('active');
+        }
+        if (closeBtn) {
+            closeBtn.style.display = 'none'; // ✅ Kapatma butonunu gizle
         }
     }
 
