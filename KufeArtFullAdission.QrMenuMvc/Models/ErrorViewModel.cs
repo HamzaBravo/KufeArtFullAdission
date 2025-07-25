@@ -1,5 +1,28 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace KufeArtFullAdission.QrMenuMvc.Models
 {
+    public class CustomerRegisterDto
+    {
+        [Required(ErrorMessage = "Ad Soyad zorunludur")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Ad Soyad 2-100 karakter arasýnda olmalýdýr")]
+        public string FullName { get; set; }
+
+        [Required(ErrorMessage = "Telefon numarasý zorunludur")]
+        [RegularExpression(@"^(\+90|0)?[5][0-9]{9}$", ErrorMessage = "Geçerli bir telefon numarasý girin (örn: 05xxxxxxxxx)")]
+        public string PhoneNumber { get; set; }
+
+        // Ýsteðe baðlý alanlar (gelecekte kullanmak için)
+        [EmailAddress(ErrorMessage = "Geçerli bir email adresi girin")]
+        public string Email { get; set; }
+
+        [Range(typeof(bool), "true", "true", ErrorMessage = "Gizlilik sözleþmesini kabul etmelisiniz")]
+        public bool AcceptPrivacyPolicy { get; set; }
+
+        // Pazarlama izni (opsiyonel)
+        public bool AcceptMarketing { get; set; } = false;
+    }
+
     public class CustomerRegistrationDto
     {
         public string Fullname { get; set; }

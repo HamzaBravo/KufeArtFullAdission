@@ -1,254 +1,141 @@
-﻿@{
-    Layout = null;
-}
-
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#8B4513">
+    <meta name="theme-color" content="#2C1810">
     <title>Küfe Art - QR Menü</title>
 
-    <!-- PWA Meta Tags -->
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Küfe Art">
+    <!-- Preload critical resources -->
+    <link rel="preload" href="~/css/qr-menu-modern.css" as="style">
+    <link rel="preload" href="~/js/qr-menu-modern.js" as="script">
 
-    <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Stylesheets -->
+    <link href="~/css/qr-menu-modern.css" rel="stylesheet">
+
+    <!-- Font Awesome for icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-
-    <!-- Custom CSS -->
-    <link href="~/css/qr-menu.css" rel="stylesheet">
 </head>
-<body class="view-categories">
+<body>
     <!-- 🔄 GLOBAL LOADER -->
     <div id="globalLoader" class="global-loader">
         <div class="loader-content">
-            <div class="coffee-cup">
-                <div class="coffee-steam"></div>
-                <div class="coffee-steam"></div>
-                <div class="coffee-steam"></div>
+            <div class="coffee-animation">
+                <div class="coffee-cup">
+                    <div class="coffee-steam"></div>
+                    <div class="coffee-steam"></div>
+                    <div class="coffee-steam"></div>
+                </div>
             </div>
-            <h3 class="cafe-name">☕ Küfe Art</h3>
+            <h2 class="cafe-name">☕ Küfe Art</h2>
             <p class="loading-text">Menümüz hazırlanıyor...</p>
+            <div class="loading-progress"></div>
         </div>
     </div>
 
     <!-- 📱 MAIN APP -->
     <div id="qrMenuApp" class="qr-menu-app" style="display: none;">
 
-        <!-- 🏠 HEADER - ✅ sticky-top class'ı kaldırıldı -->
         <!-- 🏠 HEADER -->
-        <header class="menu-header">
-            <div class="container-fluid">
-                <div class="row align-items-center py-3">
-                    <div class="col-6">
-                        <h1 class="cafe-title mb-0">
-                            <i class="fas fa-coffee me-2"></i>
-                            Küfe Art
-                        </h1>
-                        <small class="cafe-subtitle">Bursa'nın kahve durağı</small>
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="logo-icon">☕</div>
+                    <div class="logo-text">
+                        <h1 class="cafe-title">Küfe Art</h1>
+                        <span class="cafe-subtitle">Bursa'nın kahve durağı</span>
                     </div>
-                    <div class="col-6 text-end">
-                        <!-- 🎯 YENİ: Müşteri Alanı -->
-                        <div id="customerArea" class="customer-area">
-                            <!-- Giriş yapılmamış durum -->
-                            <div id="loginPrompt" class="login-prompt">
-                                <button class="btn btn-sm btn-outline-light" onclick="QRMenu.showLoginModal()">
-                                    <i class="fas fa-user me-1"></i>
-                                    Puan Kazan
-                                </button>
-                            </div>
+                </div>
 
-                            <!-- Giriş yapılmış durum -->
-                            <div id="customerInfo" class="customer-info" style="display: none;">
-                                <div class="customer-greeting">
-                                    <span class="customer-name" id="customerName">Hoşgeldin!</span>
-                                    <div class="customer-points" id="customerPoints">
-                                        <i class="fas fa-star me-1"></i>
-                                        <span class="points-value">0</span> puan
-                                    </div>
-                                </div>
-                                <button class="btn btn-sm btn-outline-light ms-2" onclick="QRMenu.showCustomerModal()">
-                                    <i class="fas fa-cog"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- ⏰ Saat ve Hava Durumu -->
-                        <div class="time-weather mt-2">
-                            <div class="current-time" id="currentTime"></div>
-                            <div class="weather-mini" id="weatherMini">
-                                <i class="fas fa-sun"></i> --°
-                            </div>
-                        </div>
+                <div class="header-info">
+                    <div class="weather-display" id="weatherDisplay">
+                        <span class="weather-icon">🌤️</span>
+                        <span class="weather-temp">--°</span>
                     </div>
+                    <div class="current-time" id="currentTime">--:--</div>
+                </div>
+
+                <div class="user-section">
+                    <button class="user-btn" id="userBtn" onclick="QRMenuApp.toggleUserPanel()">
+                        <i class="fas fa-user"></i>
+                    </button>
                 </div>
             </div>
         </header>
 
-        <!-- 📋 MAIN CONTENT AREA -->
-        <main id="mainContent" class="main-content">
-            <!-- Categories and Products will be rendered here dynamically -->
-        </main>
-        <!-- 🔐 CUSTOMER LOGIN/REGISTER MODAL -->
-        <div class="modal fade" id="customerLoginModal" tabindex="-1">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-primary text-white">
-                        <h5 class="modal-title">
-                            <i class="fas fa-star me-2"></i>
-                            Puan Hesabı
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <!-- Login Form -->
-                        <div id="loginForm">
-                            <div class="text-center mb-3">
-                                <h6>Puan kazanmak için giriş yapın</h6>
-                                <small class="text-muted">Her alışverişte puan kazanın, indirimlerin keyfini çıkarın!</small>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Telefon Numarası</label>
-                                <input type="tel" class="form-control" id="loginPhone"
-                                       placeholder="05XX XXX XX XX" maxlength="11">
-                                <div class="form-text">Türkiye telefon numarası formatında giriniz</div>
-                            </div>
-
-                            <div class="d-grid gap-2">
-                                <button class="btn btn-primary" onclick="QRMenu.loginCustomer()">
-                                    <i class="fas fa-sign-in-alt me-2"></i>
-                                    Giriş Yap
-                                </button>
-                                <button class="btn btn-outline-success" onclick="QRMenu.showRegisterForm()">
-                                    <i class="fas fa-user-plus me-2"></i>
-                                    Yeni Üyelik
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Register Form -->
-                        <div id="registerForm" style="display: none;">
-                            <div class="text-center mb-3">
-                                <h6>Yeni Üyelik Oluştur</h6>
-                                <small class="text-muted">Kayıt olun ve ilk alışverişinizle puan kazanmaya başlayın!</small>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Ad Soyad</label>
-                                <input type="text" class="form-control" id="registerName"
-                                       placeholder="Adınız Soyadınız">
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Telefon Numarası</label>
-                                <input type="tel" class="form-control" id="registerPhone"
-                                       placeholder="05XX XXX XX XX" maxlength="11">
-                            </div>
-
-                            <div class="d-grid gap-2">
-                                <button class="btn btn-success" onclick="QRMenu.registerCustomer()">
-                                    <i class="fas fa-user-plus me-2"></i>
-                                    Kayıt Ol
-                                </button>
-                                <button class="btn btn-outline-secondary" onclick="QRMenu.showLoginForm()">
-                                    <i class="fas fa-arrow-left me-2"></i>
-                                    Geri Dön
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+        <!-- 🎯 SMART SUGGESTION POPUP -->
+        <div id="smartSuggestion" class="smart-suggestion" style="display: none;">
+            <div class="suggestion-content">
+                <button class="suggestion-close" onclick="QRMenuApp.closeSuggestion()">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div class="suggestion-body">
+                    <div class="suggestion-icon" id="suggestionIcon">🌤️</div>
+                    <div class="suggestion-message" id="suggestionMessage"></div>
+                    <div class="suggested-product" id="suggestedProduct"></div>
                 </div>
             </div>
         </div>
 
-        <!-- 👤 CUSTOMER PROFILE MODAL -->
-        <div class="modal fade" id="customerProfileModal" tabindex="-1">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-success text-white">
-                        <h5 class="modal-title">
-                            <i class="fas fa-user me-2"></i>
-                            Profilim
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="customer-profile-content">
-                            <!-- Müşteri Bilgileri -->
-                            <div class="customer-details mb-4">
-                                <h6 class="mb-3">Hesap Bilgileri</h6>
-                                <div class="d-flex align-items-center">
-                                    <div class="profile-avatar me-3">
-                                        <i class="fas fa-user"></i>
-                                    </div>
-                                    <div>
-                                        <div class="fw-bold" id="profileName">-</div>
-                                        <small class="text-muted" id="profilePhone">-</small>
-                                    </div>
-                                </div>
-                            </div>
+        <!-- 📂 CATEGORIES VIEW -->
+        <div id="categoriesView" class="categories-view">
+            <div class="page-title">
+                <h2>Menümüz</h2>
+                <p>Kategorimizi seçin</p>
+            </div>
+            <div class="categories-grid" id="categoriesGrid">
+                <!-- Categories will be loaded here -->
+            </div>
+        </div>
 
-                            <!-- Puan Bilgileri -->
-                            <div class="points-summary mb-4">
-                                <h6 class="mb-3">Puan Durumu</h6>
-                                <div class="points-card">
-                                    <div class="points-main">
-                                        <i class="fas fa-star text-warning me-2"></i>
-                                        <span class="points-current" id="profilePoints">0</span>
-                                        <small class="text-muted">puan</small>
-                                    </div>
-                                    <div class="points-info">
-                                        <small class="text-success" id="pointsUsableInfo">5000 puana ulaştığınızda 50TL indirim!</small>
-                                    </div>
-                                </div>
-                            </div>
+        <!-- 🍽️ PRODUCTS VIEW -->
+        <div id="productsView" class="products-view" style="display: none;">
+            <div class="products-header">
+                <button class="back-btn" onclick="QRMenuApp.showCategories()">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="category-info">
+                    <h2 id="currentCategoryName">Kategori</h2>
+                    <span id="productCount">0 ürün</span>
+                </div>
+            </div>
+            <div class="products-grid" id="productsGrid">
+                <!-- Products will be loaded here -->
+            </div>
+        </div>
 
-                            <!-- Son İşlemler -->
-                            <div class="recent-transactions">
-                                <h6 class="mb-3">Son Puan Hareketleri</h6>
-                                <div id="recentTransactions">
-                                    <div class="text-muted text-center py-3">
-                                        <i class="fas fa-history"></i>
-                                        <br>
-                                        İşlem geçmişi yükleniyor...
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-outline-danger" onclick="QRMenu.logoutCustomer()">
-                            <i class="fas fa-sign-out-alt me-2"></i>
-                            Çıkış Yap
-                        </button>
-                    </div>
+        <!-- 👤 USER PANEL -->
+        <div id="userPanel" class="user-panel" style="display: none;">
+            <div class="panel-content">
+                <div class="panel-header">
+                    <h3><i class="fas fa-star"></i> Küfe Point</h3>
+                    <button class="panel-close" onclick="QRMenuApp.toggleUserPanel()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="panel-body" id="userPanelBody">
+                    <!-- User content will be loaded here -->
                 </div>
             </div>
         </div>
 
-        <!-- 👨‍💻 DEVELOPER FOOTER -->
-        <footer class="developer-footer">
-            <div class="developer-signature">
-                <i class="fas fa-code developer-icon"></i>
-                <span>Developed with</span>
-                <i class="fas fa-heart" style="color: #ff6b6b; animation: heartBeat 1.5s infinite;"></i>
-                <span>by</span>
-                <span class="developer-name">YourName</span>
-                <span class="developer-year">© 2025</span>
+        <!-- 🖼️ PRODUCT MODAL -->
+        <div id="productModal" class="product-modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button class="modal-close" onclick="QRMenuApp.closeProductModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body" id="productModalBody">
+                    <!-- Product details will be loaded here -->
+                </div>
             </div>
-        </footer>
+        </div>
 
     </div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Custom JS -->
-    <script src="~/js/qr-menu.js"></script>
+    <!-- JavaScript -->
+    <script src="~/js/qr-menu-modern.js"></script>
 </body>
 </html>
