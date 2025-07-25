@@ -265,6 +265,11 @@ namespace KufeArtFullAdission.QrMenuMvc.Controllers
         // 🎯 YARDIMCI METODLAR
         private string GenerateThumbnailPath(string originalPath)
         {
+            // 🔧 Geçici: Thumbnail yerine orijinal resmi kullan
+            return originalPath;
+
+            /* 
+            // İleride thumbnail sistemi için:
             if (string.IsNullOrEmpty(originalPath)) return originalPath;
 
             var extension = Path.GetExtension(originalPath);
@@ -273,6 +278,7 @@ namespace KufeArtFullAdission.QrMenuMvc.Controllers
 
             return Path.Combine(directory ?? "", $"{nameWithoutExt}_thumb{extension}")
                        .Replace("\\", "/");
+            */
         }
 
         private string GetCategoryIcon(string categoryName)

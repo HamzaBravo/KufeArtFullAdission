@@ -9,8 +9,7 @@ class QRMenuEngine {
         this.touchStartY = 0;
         this.loadingStates = {
             menu: false,
-            weather: false,
-            suggestions: false
+            suggestions: false  // ✅ weather'ı kaldırdım
         };
 
         this.init();
@@ -36,10 +35,9 @@ class QRMenuEngine {
         }
     }
 
-    // 📦 MENU DATA LOADING
+    // 📦 MENU DATA LOADING - CLEAN VERSION
     async loadMenuData() {
         try {
-            console.log('📦 Loading menu data...');
             const response = await fetch('/api/qr-menu/menu-data');
 
             if (!response.ok) throw new Error('Menu data load failed');
@@ -51,8 +49,6 @@ class QRMenuEngine {
             this.menuData = result.data;
             this.loadingStates.menu = true;
 
-            console.log(`✅ Loaded ${this.menuData.products.length} products, ${this.menuData.categories.length} categories`);
-
             // Kategorileri render et
             this.renderCategories();
 
@@ -61,18 +57,23 @@ class QRMenuEngine {
             throw error;
         }
     }
-
-    // 🧠 SMART SUGGESTIONS
+    // 🧠 SMART SUGGESTIONS - DEBUG
     async loadSmartSuggestions() {
         try {
             console.log('🧠 Loading smart suggestions...');
             const response = await fetch('/api/qr-menu/smart-suggestions');
 
+            console.log('🧠 Suggestions response status:', response.status);
+
             if (response.ok) {
                 const result = await response.json();
+                console.log('🧠 Suggestions result:', result);
+
                 if (result.success) {
                     this.updateWeatherDisplay(result.data.weather);
                     this.prepareSuggestion(result.data.suggestion);
+                    console.log('🧠 Weather data:', result.data.weather);
+                    console.log('🧠 Suggestion data:', result.data.suggestion);
                 }
             }
 
@@ -141,43 +142,50 @@ class QRMenuEngine {
         `;
     }
 
-    // 📂 RENDER CATEGORIES
+    // 📂 RENDER CATEGORIES - CLEAN VERSION
     renderCategories() {
         const grid = document.getElementById('categoriesGrid');
         if (!grid || !this.menuData?.categories) return;
 
-        const categoriesHTML = this.menuData.categories.map(category => `
-            <div class="category-card fade-in" onclick="QRMenuApp.selectCategory('${category.Name}')" data-category="${category.Name}">
+        const categoriesHTML = this.menuData.categories.map(category => {
+            const name = category.name || category.Name;
+            const displayName = category.displayName || category.DisplayName || name;
+            const productCount = category.productCount || category.ProductCount || 0;
+            const icon = category.icon || category.Icon || '🍽️';
+            const randomImage = category.randomImage || category.RandomImage;
+
+            return `
+            <div class="category-card fade-in" onclick="QRMenuApp.selectCategory('${name}')" data-category="${name}">
                 <div class="category-image">
-                    ${category.RandomImage ?
-                `<img src="${category.RandomImage}" alt="${category.DisplayName}" loading="lazy" onerror="this.style.display='none'">` :
-                `<span style="font-size: 4rem;">${category.Icon}</span>`
-            }
+                    ${randomImage ?
+                    `<img src="${randomImage}" alt="${displayName}" loading="lazy" onerror="this.style.display='none'">` :
+                    `<span style="font-size: 4rem;">${icon}</span>`
+                }
                 </div>
                 <div class="category-info">
-                    <h3 class="category-name">${category.DisplayName}</h3>
+                    <h3 class="category-name">${displayName}</h3>
                     <div class="category-meta">
-                        <span class="product-count">${category.ProductCount} ürün</span>
-                        <span class="category-icon">${category.Icon}</span>
+                        <span class="product-count">${productCount} ürün</span>
+                        <span class="category-icon">${icon}</span>
                     </div>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
 
         grid.innerHTML = categoriesHTML;
     }
 
-    // 🍽️ SELECT CATEGORY
+    // 🍽️ SELECT CATEGORY - CLEAN VERSION
     async selectCategory(categoryName) {
         try {
-            console.log(`📂 Selecting category: ${categoryName}`);
-
             this.currentCategory = categoryName;
 
             // Kategori ürünlerini filtrele
-            const categoryProducts = this.menuData.products.filter(
-                product => product.CategoryName === categoryName
-            );
+            const categoryProducts = this.menuData.products.filter(product => {
+                const productCategory = product.categoryName || product.CategoryName;
+                return productCategory === categoryName;
+            });
 
             this.renderProducts(categoryProducts);
             this.showProductsView();
@@ -188,7 +196,7 @@ class QRMenuEngine {
         }
     }
 
-    // 🍽️ RENDER PRODUCTS
+    // 🍽️ RENDER PRODUCTS - FİX VERSION
     renderProducts(products) {
         const grid = document.getElementById('productsGrid');
         const categoryTitle = document.getElementById('currentCategoryName');
@@ -200,31 +208,44 @@ class QRMenuEngine {
         if (categoryTitle) categoryTitle.textContent = this.currentCategory;
         if (productCount) productCount.textContent = `${products.length} ürün`;
 
-        const productsHTML = products.map(product => `
-            <div class="product-card fade-in" onclick="QRMenuApp.showProductModal('${product.Id}')" data-product-id="${product.Id}">
+        const productsHTML = products.map(product => {
+            // Field isimlerini normalize et (backend küçük harf gönderiyor)
+            const productId = product.id || product.Id;
+            const productName = product.name || product.Name || 'İsimsiz Ürün';
+            const productDescription = product.description || product.Description;
+            const productPrice = product.price || product.Price || 0;
+            const productImages = product.images || product.Images || [];
+            const hasCampaign = product.hasCampaign || product.HasCampaign;
+            const campaignCaption = product.campaignCaption || product.CampaignCaption;
+            const hasKufePoints = product.hasKufePoints || product.HasKufePoints;
+            const kufePoints = product.kufePoints || product.KufePoints || 0;
+
+            return `
+            <div class="product-card fade-in" onclick="QRMenuApp.showProductModal('${productId}')" data-product-id="${productId}">
                 <div class="product-image">
-                    ${product.Images && product.Images.length > 0 ?
-                `<img src="${product.Images[0].Thumbnail}" alt="${product.Name}" loading="lazy" onerror="this.style.display='none'">` :
-                `<div style="display: flex; align-items: center; justify-content: center; height: 100%; font-size: 3rem; color: var(--accent);">🍽️</div>`
-            }
+                    ${productImages && productImages.length > 0 ?
+                    `<img src="${productImages[0].Original || productImages[0].original}" alt="${productName}" loading="lazy" onerror="this.style.display='none'">` :
+                    `<div style="display: flex; align-items: center; justify-content: center; height: 100%; font-size: 3rem; color: var(--accent);">🍽️</div>`
+                }
                     <div class="product-badges">
-                        ${product.HasCampaign ? `<span class="badge campaign">${product.CampaignCaption || 'Kampanya'}</span>` : ''}
-                        ${product.HasKufePoints && product.KufePoints > 0 ? `<span class="badge points">+${product.KufePoints} puan</span>` : ''}
+                        ${hasCampaign ? `<span class="badge campaign">${campaignCaption || 'Kampanya'}</span>` : ''}
+                        ${hasKufePoints && kufePoints > 0 ? `<span class="badge points">+${kufePoints} puan</span>` : ''}
                     </div>
                 </div>
                 <div class="product-info">
-                    <h3 class="product-name">${product.Name}</h3>
-                    ${product.Description ? `<p class="product-description">${product.Description}</p>` : ''}
+                    <h3 class="product-name">${productName}</h3>
+                    ${productDescription ? `<p class="product-description">${productDescription}</p>` : ''}
                     <div class="product-footer">
-                        <span class="product-price">₺${product.Price.toFixed(2)}</span>
-                        ${product.HasKufePoints && product.KufePoints > 0 ?
-                `<span class="product-points"><i class="fas fa-star"></i> +${product.KufePoints}</span>` :
-                ''
-            }
+                        <span class="product-price">₺${Number(productPrice).toFixed(2)}</span>
+                        ${hasKufePoints && kufePoints > 0 ?
+                    `<span class="product-points"><i class="fas fa-star"></i> +${kufePoints}</span>` :
+                    ''
+                }
                     </div>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
 
         grid.innerHTML = productsHTML;
 

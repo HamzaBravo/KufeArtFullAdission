@@ -273,8 +273,10 @@ body {
 
 .categories-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(2, 1fr); /* 2 sütun */
     gap: var(--space-lg);
+    max-width: 800px; /* Maksimum genişlik */
+    margin: 0 auto;
 }
 
 .category-card {
@@ -406,8 +408,10 @@ body {
 
 .products-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: var(--space-lg);
+    grid-template-columns: repeat(2, 1fr); /* 2 sütun */
+    gap: var(--space-md);
+    max-width: 800px;
+    margin: 0 auto;
 }
 
 .product-card {
@@ -544,13 +548,19 @@ body {
     }
 
     .categories-grid {
-        grid-template-columns: 1fr;
-        gap: var(--space-md);
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: var(--space-lg);
+        max-width: 800px;
+        margin: 0 auto;
     }
 
+    /* 🍽️ PRODUCTS VIEW - 2 Sütun Responsive */
     .products-grid {
-        grid-template-columns: 1fr;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         gap: var(--space-md);
+        max-width: 800px;
     }
 
     .page-title h2 {
