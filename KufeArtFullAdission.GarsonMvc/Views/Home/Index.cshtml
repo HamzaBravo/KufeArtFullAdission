@@ -1,0 +1,76 @@
+﻿<!-- KufeArtFullAdission.GarsonMvc/Views/Home/Index.cshtml -->
+@model dynamic
+@{
+    ViewData["Title"] = "Masa Durumları";
+}
+
+<div class="dashboard-container">
+    <!-- 👤 Header - Garson Bilgileri -->
+    <div class="dashboard-header">
+        <div class="waiter-info">
+            <div class="waiter-avatar">
+                <i class="fas fa-user-tie"></i>
+            </div>
+            <div class="waiter-details">
+                <h3>@Model.WaiterName</h3>
+                <small>Garson Paneli</small>
+            </div>
+        </div>
+        <button class="btn-refresh" id="refreshBtn">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+    </div>
+
+    <!-- 📊 Stats Cards -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-chair"></i>
+            </div>
+            <div class="stat-info">
+                <h4 id="activeTableCount">@Model.ActiveTableCount</h4>
+                <small>Aktif Masa</small>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-shopping-cart"></i>
+            </div>
+            <div class="stat-info">
+                <h4 id="todayOrderCount">@Model.TodayOrderCount</h4>
+                <small>Günlük Sipariş</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🔍 Search & Filter -->
+    <div class="search-section">
+        <div class="search-input">
+            <i class="fas fa-search"></i>
+            <input type="text" id="tableSearch" placeholder="Masa ara..." />
+        </div>
+        <div class="filter-tabs" id="categoryTabs">
+            <button class="filter-tab active" data-category="all">
+                <i class="fas fa-th-large"></i>
+                Tümü
+            </button>
+        </div>
+    </div>
+
+    <!-- 🍽️ Masa Listesi -->
+    <div class="tables-container" id="tablesContainer">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Masalar yükleniyor...</p>
+        </div>
+    </div>
+</div>
+
+<!-- 🚀 FAB - Yeni Sipariş -->
+<div class="fab" id="fabNewOrder" style="display: none;">
+    <i class="fas fa-plus"></i>
+</div>
+
+@section Scripts {
+    <script src="~/js/dashboard.js"></script>
+}

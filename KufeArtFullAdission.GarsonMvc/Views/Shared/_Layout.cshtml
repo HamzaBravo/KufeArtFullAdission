@@ -1,0 +1,104 @@
+﻿<!-- KufeArtFullAdission.GarsonMvc/Views/Shared/_Layout.cshtml -->
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#2c5530" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+    <title>@ViewData["Title"] - KufeArt Garson</title>
+
+    <!-- 📱 PWA Support -->
+    <link rel="manifest" href="~/manifest.json" />
+    <link rel="apple-touch-icon" href="~/images/icon-192.png" />
+
+    <!-- 🎨 Styles -->
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/garson-layout.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/order-page.css" asp-append-version="true" />
+
+    <script src="https://unpkg.com/@@microsoft/signalr@latest/dist/browser/signalr.min.js"></script>
+
+</head>
+<body>
+    <!-- 📱 Mobile Navigation -->
+    <nav class="mobile-nav" id="mobileNav">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <i class="fas fa-utensils"></i>
+                <span>KufeArt</span>
+            </div>
+            <div class="nav-actions">
+                <button class="nav-btn" id="notificationBtn">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notificationCount" style="display: none;">0</span>
+                </button>
+                <button class="nav-btn" id="profileBtn">
+                    <i class="fas fa-user"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 🎯 Main Content -->
+    <main class="main-content">
+        @RenderBody()
+    </main>
+
+    <!-- 📱 Bottom Navigation -->
+    <nav class="bottom-nav" id="bottomNav">
+        <a href="/" class="nav-item active">
+            <i class="fas fa-home"></i>
+            <span>Ana Sayfa</span>
+        </a>
+        <a href="/Order/History" class="nav-item">
+            <i class="fas fa-history"></i>
+            <span>Geçmiş</span>
+        </a>
+        <a href="/Profile" class="nav-item">
+            <i class="fas fa-user-circle"></i>
+            <span>Profil</span>
+        </a>
+    </nav>
+
+    <!-- 🔔 Notification Panel -->
+    <div class="notification-panel" id="notificationPanel">
+        <div class="panel-header">
+            <h5>Bildirimler</h5>
+            <button class="panel-close" id="closeNotifications">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="panel-body" id="notificationList">
+            <div class="no-notifications">
+                <i class="fas fa-bell-slash"></i>
+                <p>Henüz bildirim yok</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🔄 Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Yükleniyor...</p>
+        </div>
+    </div>
+
+    <!-- ⚡ Scripts -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/garson-layout.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+
+@section Scripts {
+    <script src="~/js/garson-signalr-client.js" asp-append-version="true"></script>
+        @await RenderSectionAsync("Scripts", required: false)
+}
+</html>

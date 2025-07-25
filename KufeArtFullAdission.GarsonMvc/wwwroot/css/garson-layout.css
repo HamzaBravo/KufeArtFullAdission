@@ -1,0 +1,374 @@
+﻿/* KufeArtFullAdission.GarsonMvc/wwwroot/css/garson-layout.css */
+:root {
+    --primary: #2c5530;
+    --secondary: #f4a261;
+    --success: #2a9d8f;
+    --warning: #f4a261;
+    --danger: #e76f51;
+    --light: #f8f9fa;
+    --dark: #264653;
+    --white: #ffffff;
+    --shadow: 0 2px 15px rgba(0,0,0,0.08);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f1f5f9;
+    line-height: 1.6;
+    color: var(--dark);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    padding-top: 70px;
+    padding-bottom: 80px;
+}
+
+/* 📱 MOBILE NAVIGATION */
+.mobile-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 70px;
+    background: var(--white);
+    border-bottom: 1px solid #e2e8f0;
+    z-index: 1000;
+    box-shadow: var(--shadow);
+}
+
+.nav-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 100%;
+    padding: 0 20px;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: var(--primary);
+}
+
+    .nav-brand i {
+        font-size: 1.4rem;
+    }
+
+.nav-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.nav-btn {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: var(--light);
+    border-radius: 50%;
+    color: var(--primary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    .nav-btn:hover {
+        background: var(--primary);
+        color: white;
+        transform: scale(1.1);
+    }
+
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: var(--danger);
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+}
+
+/* 🎯 MAIN CONTENT */
+.main-content {
+    min-height: calc(100vh - 150px);
+    max-width: 500px;
+    margin: 0 auto;
+    position: relative;
+}
+
+/* 📱 BOTTOM NAVIGATION */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
+    background: var(--white);
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 1000;
+    box-shadow: 0 -2px 15px rgba(0,0,0,0.08);
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    color: #64748b;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    padding: 10px;
+    border-radius: 12px;
+    min-width: 60px;
+}
+
+    .nav-item i {
+        font-size: 1.2rem;
+    }
+
+    .nav-item span {
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .nav-item.active {
+        color: var(--primary);
+        background: rgba(44, 85, 48, 0.1);
+    }
+
+    .nav-item:hover {
+        color: var(--primary);
+        transform: translateY(-2px);
+    }
+
+/* 🔔 NOTIFICATION PANEL */
+.notification-panel {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 100%;
+    max-width: 400px;
+    height: 100vh;
+    background: var(--white);
+    z-index: 2000;
+    transition: right 0.3s ease;
+    box-shadow: -5px 0 20px rgba(0,0,0,0.1);
+}
+
+    .notification-panel.open {
+        right: 0;
+    }
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #e2e8f0;
+    background: var(--primary);
+    color: white;
+}
+
+    .panel-header h5 {
+        margin: 0;
+        font-weight: 600;
+    }
+
+.panel-close {
+    width: 35px;
+    height: 35px;
+    border: none;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.panel-body {
+    padding: 20px;
+    height: calc(100vh - 80px);
+    overflow-y: auto;
+}
+
+.no-notifications {
+    text-align: center;
+    padding: 60px 20px;
+    color: #64748b;
+}
+
+    .no-notifications i {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        opacity: 0.3;
+    }
+
+/* 🔄 LOADING OVERLAY */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.loading-spinner {
+    text-align: center;
+    color: white;
+}
+
+    .loading-spinner i {
+        font-size: 2.5rem;
+        margin-bottom: 15px;
+        display: block;
+    }
+
+/* 📱 RESPONSIVE & TOUCH */
+@media (max-width: 480px) {
+    .nav-container {
+        padding: 0 15px;
+    }
+
+    .main-content {
+        padding: 0 10px;
+    }
+
+    .nav-item span {
+        font-size: 0.7rem;
+    }
+}
+
+/* 🌙 DARK MODE SUPPORT */
+@media (prefers-color-scheme: dark) {
+    body {
+        background: #0f172a;
+        color: #e2e8f0;
+    }
+
+    .mobile-nav,
+    .bottom-nav,
+    .notification-panel {
+        background: #1e293b;
+        border-color: #334155;
+    }
+
+    .nav-btn {
+        background: #334155;
+        color: #e2e8f0;
+    }
+}
+
+/* 📱 PWA STYLES */
+@media (display-mode: standalone) {
+    body {
+        padding-top: 90px; /* Status bar için extra space */
+    }
+}
+/* garson-layout.css'e ekle */
+
+/* 🔔 NOTIFICATION STYLES */
+.connection-status {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #dc3545;
+    transition: background 0.3s ease;
+}
+
+    .connection-status.connected {
+        background: #28a745;
+    }
+
+.notification-item.high-priority {
+    border-left: 4px solid #dc3545;
+    background: rgba(220, 53, 69, 0.05);
+}
+
+    .notification-item.high-priority .notification-icon {
+        animation: pulse 2s infinite;
+    }
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.signalr-offline .nav-brand::after {
+    content: " (Çevrimdışı)";
+    font-size: 0.7rem;
+    color: #dc3545;
+    margin-left: 5px;
+}
+
+/* Mobile notification badge */
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #dc3545;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    animation: bounce 0.5s ease;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+
+    40% {
+        transform: translateY(-5px);
+    }
+
+    60% {
+        transform: translateY(-3px);
+    }
+}

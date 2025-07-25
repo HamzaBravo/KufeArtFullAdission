@@ -1,4 +1,5 @@
 using AppDbContext;
+using KufeArtFullAdission.Mvc.Hubs;
 using KufeArtFullAdission.Mvc.Interfaces;
 using KufeArtFullAdission.Mvc.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -16,6 +17,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+
+builder.Services.AddSignalR();
 
 // Mevcut kodlarýnýn altýna ekle
 builder.Services.AddScoped<IImageService, ImageService>();
@@ -76,8 +80,13 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+
+app.MapHub<OrderHub>("/orderHub");
 
 app.Run();

@@ -1,0 +1,66 @@
+﻿<!-- KufeArtFullAdission.GarsonMvc/Views/Auth/Login.cshtml -->
+@{
+    ViewData["Title"] = "Garson Girişi";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>@ViewData["Title"] - KufeArt Garson</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/garson-login.css" />
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <div class="logo">
+                <i class="fas fa-utensils"></i>
+                <h1>KufeArt</h1>
+            </div>
+            <p class="subtitle">Garson Paneli</p>
+        </div>
+
+        <div class="login-form">
+            <form method="post" asp-action="Login">
+                <div class="input-group">
+                    <span class="input-icon">
+                        <i class="fas fa-user"></i>
+                    </span>
+                    <input type="text" name="username" placeholder="Kullanıcı Adı" required autofocus />
+                </div>
+
+                <div class="input-group">
+                    <span class="input-icon">
+                        <i class="fas fa-lock"></i>
+                    </span>
+                    <input type="password" name="password" placeholder="Şifre" required />
+                </div>
+
+                <button type="submit" class="btn-login">
+                    <i class="fas fa-sign-in-alt me-2"></i>
+                    Giriş Yap
+                </button>
+
+                @if (TempData["ErrorMessage"] != null)
+                {
+                    <div class="alert-error">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        @TempData["ErrorMessage"]
+                    </div>
+                }
+            </form>
+        </div>
+
+        <div class="login-footer">
+            <small>
+                <i class="fas fa-shield-alt me-1"></i>
+                Güvenli Bağlantı
+            </small>
+        </div>
+    </div>
+</body>
+</html>

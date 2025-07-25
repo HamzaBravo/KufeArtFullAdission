@@ -1,0 +1,360 @@
+﻿/* KufeArtFullAdission.GarsonMvc/wwwroot/css/dashboard.css */
+:root {
+    --primary: #2c5530;
+    --secondary: #f4a261;
+    --success: #2a9d8f;
+    --warning: #f4a261;
+    --danger: #e76f51;
+    --light: #f8f9fa;
+    --dark: #264653;
+    --white: #ffffff;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f1f5f9;
+    line-height: 1.6;
+    color: var(--dark);
+}
+
+.dashboard-container {
+    padding: 20px 15px 100px;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+/* 👤 HEADER */
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--white);
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+
+.waiter-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.waiter-avatar {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, var(--primary), var(--success));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+}
+
+.waiter-details h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--dark);
+    margin-bottom: 2px;
+}
+
+.waiter-details small {
+    color: #64748b;
+}
+
+.btn-refresh {
+    width: 45px;
+    height: 45px;
+    border: none;
+    background: var(--light);
+    border-radius: 50%;
+    color: var(--primary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+    .btn-refresh:hover {
+        background: var(--primary);
+        color: white;
+        transform: rotate(180deg);
+    }
+
+/* 📊 STATS */
+.stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.stat-card {
+    background: var(--white);
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.stat-icon {
+    width: 45px;
+    height: 45px;
+    background: linear-gradient(135deg, var(--primary), var(--success));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.1rem;
+}
+
+.stat-info h4 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--dark);
+    margin-bottom: 2px;
+}
+
+.stat-info small {
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
+/* 🔍 SEARCH */
+.search-section {
+    margin-bottom: 25px;
+}
+
+.search-input {
+    position: relative;
+    margin-bottom: 15px;
+}
+
+    .search-input i {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #64748b;
+        z-index: 1;
+    }
+
+    .search-input input {
+        width: 100%;
+        padding: 15px 15px 15px 45px;
+        border: none;
+        border-radius: 12px;
+        background: var(--white);
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        font-size: 1rem;
+        color: var(--dark);
+    }
+
+.filter-tabs {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 5px;
+}
+
+.filter-tab {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 25px;
+    background: var(--white);
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+    .filter-tab.active {
+        background: var(--primary);
+        color: white;
+    }
+
+/* 🍽️ MASA KARTLARI */
+.tables-container {
+    margin-bottom: 80px;
+}
+
+.table-category {
+    margin-bottom: 25px;
+}
+
+.category-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--dark);
+    margin-bottom: 15px;
+    padding-left: 5px;
+}
+
+.tables-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+}
+
+.table-card {
+    background: var(--white);
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    border: 3px solid transparent;
+    position: relative;
+}
+
+    .table-card.empty {
+        border-color: var(--success);
+    }
+
+    .table-card.occupied {
+        border-color: var(--warning);
+        background: linear-gradient(135deg, #fff7ed, #ffffff);
+    }
+
+    .table-card:active {
+        transform: scale(0.95);
+    }
+
+.table-icon {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.table-card.empty .table-icon {
+    color: var(--success);
+}
+
+.table-card.occupied .table-icon {
+    color: var(--warning);
+}
+
+.table-name {
+    font-weight: 600;
+    color: var(--dark);
+    margin-bottom: 5px;
+}
+
+.table-amount {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin-bottom: 8px;
+}
+
+.table-duration {
+    font-size: 0.8rem;
+    padding: 4px 8px;
+    border-radius: 10px;
+    background: var(--light);
+    color: #64748b;
+    display: inline-block;
+}
+
+/* 🚀 FAB */
+.fab {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, var(--primary), var(--success));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.3rem;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(44, 85, 48, 0.3);
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+    .fab:hover {
+        transform: scale(1.1);
+    }
+
+.loading-spinner {
+    text-align: center;
+    padding: 50px 20px;
+    color: #64748b;
+}
+
+    .loading-spinner i {
+        font-size: 2rem;
+        margin-bottom: 15px;
+        display: block;
+    }
+
+/* 📱 RESPONSIVE */
+@media (max-width: 480px) {
+    .dashboard-container {
+        padding: 15px 10px;
+    }
+
+    .tables-grid {
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 10px;
+    }
+
+    .table-card {
+        padding: 15px;
+    }
+}
+/* dashboard.css'e eklenecek */
+.toast-error {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--danger);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(231, 111, 81, 0.3);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateX(-50%) translateY(-100%);
+    }
+
+    to {
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.no-tables {
+    text-align: center;
+    padding: 60px 20px;
+    color: #64748b;
+}
+
+    .no-tables i {
+        margin-bottom: 20px;
+        opacity: 0.3;
+    }

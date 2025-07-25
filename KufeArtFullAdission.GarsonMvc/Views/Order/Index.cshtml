@@ -1,0 +1,185 @@
+﻿<!-- KufeArtFullAdission.GarsonMvc/Views/Order/Index.cshtml -->
+@model dynamic
+@{
+    ViewData["Title"] = "Sipariş Al - " + Model.TableName;
+    Layout = "_Layout";
+}
+
+<!-- 🍽️ Masa Bilgileri Header -->
+<div class="order-header">
+    <div class="table-info">
+        <div class="table-icon">
+            <i class="fas fa-utensils"></i>
+        </div>
+        <div class="table-details">
+            <h3 id="tableNameHeader">@Model.TableName</h3>
+            <small>Garson: <span class="waiter-name">@Model.WaiterName</span></small>
+            <div class="table-status" id="tableStatus">
+                @if (Model.IsOccupied)
+                {
+                    <span class="status-badge occupied">
+                        <i class="fas fa-clock"></i> Aktif Masa
+                    </span>
+                }
+                else
+                {
+                    <span class="status-badge empty">
+                        <i class="fas fa-plus-circle"></i> Yeni Sipariş
+                    </span>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="header-actions">
+        <button class="btn-action" id="showHistoryBtn" title="Sipariş Geçmişi">
+            <i class="fas fa-history"></i>
+        </button>
+        <button class="btn-action" id="refreshTableBtn" title="Yenile">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+    </div>
+</div>
+
+<!-- 📊 Masa Özeti (Sadece dolu masalar için) -->
+<div class="table-summary" id="tableSummary" style="display: none;">
+    <div class="summary-card">
+        <div class="summary-item">
+            <span class="label">Toplam Tutar:</span>
+            <span class="value" id="tableTotal">₺0.00</span>
+        </div>
+        <div class="summary-item">
+            <span class="label">Açılış:</span>
+            <span class="value" id="tableOpenTime">--:--</span>
+        </div>
+        <div class="summary-item">
+            <span class="label">Süre:</span>
+            <span class="value" id="tableDuration">0 dk</span>
+        </div>
+    </div>
+</div>
+
+<!-- 🔍 Ürün Arama ve Kategoriler -->
+<div class="product-search-section">
+    <div class="search-container">
+        <div class="search-input">
+            <i class="fas fa-search"></i>
+            <input type="text" id="productSearch" placeholder="Ürün ara..." />
+            <button class="search-clear" id="clearSearch" style="display: none;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="category-tabs" id="categoryTabs">
+        <div class="tabs-loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            Kategoriler yükleniyor...
+        </div>
+    </div>
+</div>
+
+<!-- 🛒 Ürün Listesi -->
+<div class="products-section">
+    <div class="products-container" id="productsContainer">
+        <div class="products-loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Ürünler yükleniyor...</p>
+        </div>
+    </div>
+</div>
+
+<!-- 🛒 Floating Sepet Butonu -->
+<div class="floating-cart" id="floatingCart" style="display: none;">
+    <div class="cart-info">
+        <span class="cart-count" id="cartCount">0</span>
+        <span class="cart-total" id="cartFloatingTotal">₺0.00</span>
+    </div>
+    <button class="cart-btn" id="openCartBtn">
+        <i class="fas fa-shopping-cart"></i>
+        Sepeti Görüntüle
+    </button>
+</div>
+
+<!-- 🛒 Sepet Modal -->
+<div class="cart-modal" id="cartModal">
+    <div class="modal-overlay" id="cartOverlay"></div>
+    <div class="modal-container">
+        <div class="modal-header">
+            <h4>
+                <i class="fas fa-shopping-cart me-2"></i>
+                Sepet (@Model.TableName)
+            </h4>
+            <button class="btn-close" id="closeCartBtn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="modal-body">
+            <!-- Sepet İçeriği -->
+            <div class="cart-items" id="cartItems">
+                <div class="empty-cart">
+                    <i class="fas fa-shopping-cart fa-3x"></i>
+                    <p>Sepet boş</p>
+                    <small>Ürün seçerek sepete ekleyin</small>
+                </div>
+            </div>
+
+            <!-- Not Alanı -->
+            <div class="order-note-section">
+                <label for="orderNote">Not (Opsiyonel):</label>
+                <textarea id="orderNote" placeholder="Özel talimat, masa notu vb..."></textarea>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <div class="cart-summary">
+                <div class="total-section">
+                    <span class="total-label">Toplam:</span>
+                    <span class="total-amount" id="cartTotalAmount">₺0.00</span>
+                </div>
+                <button class="btn-submit-order" id="submitOrderBtn" disabled>
+                    <i class="fas fa-paper-plane me-2"></i>
+                    Sipariş Gönder
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 📋 Sipariş Geçmişi Modal -->
+<div class="history-modal" id="historyModal" style="display: none;">
+    <div class="modal-overlay" id="historyOverlay"></div>
+    <div class="modal-container">
+        <div class="modal-header">
+            <h4>
+                <i class="fas fa-history me-2"></i>
+                Sipariş Geçmişi
+            </h4>
+            <button class="btn-close" id="closeHistoryBtn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="history-content" id="historyContent">
+                <div class="history-loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Geçmiş yükleniyor...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden Data -->
+<script>
+    window.orderPageData = {
+        tableId: '@Model.TableId',
+        tableName: '@Model.TableName',
+        isOccupied: @Model.IsOccupied.ToString().ToLower(),
+        waiterName: '@Model.WaiterName'
+    };
+</script>
+
+@section Scripts {
+    <script src="~/js/order-page.js" asp-append-version="true"></script>
+}

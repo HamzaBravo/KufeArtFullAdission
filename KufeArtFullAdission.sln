@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppDbContext", "AppDbContex
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KufeArtFullAdission.QrMenuMvc", "KufeArtFullAdission.QrMenuMvc\KufeArtFullAdission.QrMenuMvc.csproj", "{8A1D6D58-594C-45A0-8A67-080C600F282A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KufeArtFullAdission.GarsonMvc", "KufeArtFullAdission.GarsonMvc\KufeArtFullAdission.GarsonMvc.csproj", "{757EA76A-5BD9-42FD-9790-6B7A833B32BE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{8A1D6D58-594C-45A0-8A67-080C600F282A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8A1D6D58-594C-45A0-8A67-080C600F282A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8A1D6D58-594C-45A0-8A67-080C600F282A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{757EA76A-5BD9-42FD-9790-6B7A833B32BE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{757EA76A-5BD9-42FD-9790-6B7A833B32BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{757EA76A-5BD9-42FD-9790-6B7A833B32BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{757EA76A-5BD9-42FD-9790-6B7A833B32BE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
