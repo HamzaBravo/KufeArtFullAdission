@@ -1,18 +1,18 @@
-﻿<!-- KufeArtFullAdission.GarsonMvc/Views/Home/Index.cshtml -->
+﻿<!-- KufeArtFullAdission.GarsonMvc/Views/Home/Index.cshtml - Düzeltilmiş -->
 @model dynamic
 @{
     ViewData["Title"] = "Masa Durumları";
 }
 
 <div class="dashboard-container">
-    <!-- 👤 Header - Garson Bilgileri -->
+    <!-- 👤 Header -->
     <div class="dashboard-header">
         <div class="waiter-info">
             <div class="waiter-avatar">
                 <i class="fas fa-user-tie"></i>
             </div>
             <div class="waiter-details">
-                <h3>@Model.WaiterName</h3>
+                <h3>@User.Identity.Name</h3>
                 <small>Garson Paneli</small>
             </div>
         </div>
@@ -21,14 +21,14 @@
         </button>
     </div>
 
-    <!-- 📊 Stats Cards -->
+    <!-- 📊 Stats Cards - Dashboard.js bunları arıyor, geri ekledik -->
     <div class="stats-row">
         <div class="stat-card">
             <div class="stat-icon">
                 <i class="fas fa-chair"></i>
             </div>
             <div class="stat-info">
-                <h4 id="activeTableCount">@Model.ActiveTableCount</h4>
+                <h4 id="activeTableCount">0</h4>
                 <small>Aktif Masa</small>
             </div>
         </div>
@@ -37,7 +37,7 @@
                 <i class="fas fa-shopping-cart"></i>
             </div>
             <div class="stat-info">
-                <h4 id="todayOrderCount">@Model.TodayOrderCount</h4>
+                <h4 id="todayOrderCount">0</h4>
                 <small>Günlük Sipariş</small>
             </div>
         </div>
@@ -64,11 +64,6 @@
             <p>Masalar yükleniyor...</p>
         </div>
     </div>
-</div>
-
-<!-- 🚀 FAB - Yeni Sipariş -->
-<div class="fab" id="fabNewOrder" style="display: none;">
-    <i class="fas fa-plus"></i>
 </div>
 
 @section Scripts {

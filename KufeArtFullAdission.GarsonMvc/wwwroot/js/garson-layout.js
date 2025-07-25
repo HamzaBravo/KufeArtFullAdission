@@ -7,91 +7,96 @@ class GarsonLayout {
     init() {
         this.bindEvents();
         this.updateActiveNav();
-        this.checkOrientation();
     }
 
     bindEvents() {
         // Notification panel
-        document.getElementById('notificationBtn').addEventListener('click', () => {
+        document.getElementById('notificationBtn')?.addEventListener('click', () => {
             this.toggleNotifications();
         });
 
-        document.getElementById('closeNotifications').addEventListener('click', () => {
+        document.getElementById('closeNotifications')?.addEventListener('click', () => {
             this.closeNotifications();
         });
 
-        // Profile button
-        document.getElementById('profileBtn').addEventListener('click', () => {
-            this.showProfileMenu();
+        // Profile panel
+        document.getElementById('profileBtn')?.addEventListener('click', () => {
+            this.toggleProfile();
         });
 
-        // Back button handling
+        document.getElementById('closeProfile')?.addEventListener('click', () => {
+            this.closeProfile();
+        });
+
+        // Panel overlay
+        document.getElementById('panelOverlay')?.addEventListener('click', () => {
+            this.closeAllPanels();
+        });
+
+        // Navigation
         window.addEventListener('popstate', () => {
             this.updateActiveNav();
-        });
-
-        // Orientation change
-        window.addEventListener('orientationchange', () => {
-            setTimeout(() => this.checkOrientation(), 100);
         });
     }
 
     toggleNotifications() {
         const panel = document.getElementById('notificationPanel');
-        panel.classList.toggle('open');
+        const overlay = document.getElementById('panelOverlay');
+
+        // Diğer panelleri kapat
+        this.closeProfile();
+
+        if (panel.classList.contains('open')) {
+            this.closeNotifications();
+        } else {
+            panel.classList.add('open');
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
     }
 
     closeNotifications() {
         const panel = document.getElementById('notificationPanel');
+        const overlay = document.getElementById('panelOverlay');
+
         panel.classList.remove('open');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
     }
 
-    showProfileMenu() {
-        // Simple profile menu
-        const options = [
-            { text: 'Profil', action: () => window.location.href = '/Profile' },
-            { text: 'Ayarlar', action: () => window.location.href = '/Settings' },
-            { text: 'Çıkış Yap', action: () => this.logout() }
-        ];
+    toggleProfile() {
+        const panel = document.getElementById('profilePanel');
+        const overlay = document.getElementById('panelOverlay');
 
-        this.showActionSheet(options);
+        // Diğer panelleri kapat
+        this.closeNotifications();
+
+        if (panel.classList.contains('open')) {
+            this.closeProfile();
+        } else {
+            panel.classList.add('open');
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
     }
 
-    showActionSheet(options) {
-        const overlay = document.createElement('div');
-        overlay.className = 'action-sheet-overlay';
+    closeProfile() {
+        const panel = document.getElementById('profilePanel');
+        const overlay = document.getElementById('panelOverlay');
 
-        const sheet = document.createElement('div');
-        sheet.className = 'action-sheet';
+        panel.classList.remove('open');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
 
-        options.forEach(option => {
-            const button = document.createElement('button');
-            button.className = 'action-button';
-            button.textContent = option.text;
-            button.onclick = () => {
-                overlay.remove();
-                option.action();
-            };
-            sheet.appendChild(button);
-        });
-
-        // Cancel button
-        const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'action-button cancel';
-        cancelBtn.textContent = 'İptal';
-        cancelBtn.onclick = () => overlay.remove();
-        sheet.appendChild(cancelBtn);
-
-        overlay.appendChild(sheet);
-        document.body.appendChild(overlay);
-
-        // Animate in
-        setTimeout(() => overlay.classList.add('show'), 10);
+    closeAllPanels() {
+        this.closeNotifications();
+        this.closeProfile();
     }
 
     updateActiveNav() {
         const currentPath = window.location.pathname;
-        const navItems = document.querySelectorAll('.bottom-nav .nav-item');
+        const navItems = document.querySelectorAll('.nav-item');
 
         navItems.forEach(item => {
             item.classList.remove('active');
@@ -101,35 +106,31 @@ class GarsonLayout {
             }
         });
     }
+}
 
-    checkOrientation() {
-        const isLandscape = window.innerHeight < window.innerWidth;
-        document.body.classList.toggle('landscape', isLandscape);
-    }
+// Global functions for profile actions
+function searchCustomer() {
+    // Modal veya yeni sayfa
+    alert('Müşteri arama özelliği yakında...');
+}
 
-    showLoading() {
-        document.getElementById('loadingOverlay').style.display = 'flex';
-    }
+function changePassword() {
+    // Şifre değiştirme modalı
+    alert('Şifre değiştirme özelliği yakında...');
+}
 
-    hideLoading() {
-        document.getElementById('loadingOverlay').style.display = 'none';
-    }
+function viewProfile() {
+    // Profil görüntüleme sayfası
+    window.location.href = '/Profile';
+}
 
-    async logout() {
-        if (confirm('Çıkış yapmak istediğinizden emin misiniz?')) {
-            this.showLoading();
-            try {
-                await fetch('/Auth/Logout', { method: 'POST' });
-                window.location.href = '/Auth/Login';
-            } catch (error) {
-                this.hideLoading();
-                alert('Çıkış işlemi başarısız!');
-            }
-        }
+function logout() {
+    if (confirm('Çıkış yapmak istediğinizden emin misiniz?')) {
+        window.location.href = '/Auth/Logout';
     }
 }
 
-// Initialize layout
+// Sayfa yüklendiğinde başlat
 document.addEventListener('DOMContentLoaded', () => {
     window.garsonLayout = new GarsonLayout();
 });

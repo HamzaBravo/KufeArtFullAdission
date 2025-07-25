@@ -5,6 +5,7 @@ using KufeArtFullAdission.GarsonMvc.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace KufeArtFullAdission.GarsonMvc.Controllers;
 
@@ -261,9 +262,106 @@ public class OrderController(DBContext _dbContext) : Controller
         }
     }
 
-    // KufeArtFullAdission.GarsonMvc/Controllers/OrderController.cs
-    // SubmitOrder methoduna eklenecek
 
+    [HttpGet]
+    public async Task<IActionResult> History(DateTime? startDate = null, DateTime? endDate = null)
+    {
+        try
+        {
+            var currentUserId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+
+            // Varsayılan olarak son 7 gün
+            var start = startDate ?? DateTime.Today.AddDays(-7);
+            var end = endDate ?? DateTime.Today.AddDays(1);
+
+            var orders = await _dbContext.AddtionHistories
+                .Where(h => h.PersonId == currentUserId &&
+                           h.CreatedAt >= start &&
+                           h.CreatedAt < end)
+                .OrderByDescending(h => h.CreatedAt)
+                .Select(h => new
+                {
+                    h.Id,
+                    h.ProductName,
+                    h.ProductQuantity,
+                    h.ProductPrice,
+                    h.TotalPrice,
+                    h.ShorLabel,
+                    h.CreatedAt,
+                    h.TableId,
+                    TableName = _dbContext.Tables.Where(t => t.Id == h.TableId).Select(t => t.Name).FirstOrDefault()
+                })
+                .ToListAsync();
+
+            // Günlük grupla
+            var groupedOrders = orders
+                .GroupBy(o => o.CreatedAt.Date)
+                .Select(g => new
+                {
+                    Date = g.Key,
+                    Orders = g.ToList(),
+                    TotalAmount = g.Sum(o => o.TotalPrice),
+                    OrderCount = g.Count()
+                })
+                .OrderByDescending(g => g.Date)
+                .ToList();
+
+            var viewModel = new
+            {
+                StartDate = start,
+                EndDate = end.AddDays(-1),
+                WaiterName = User.Identity.Name,
+                GroupedOrders = groupedOrders,
+                TotalAmount = orders.Sum(o => o.TotalPrice),
+                TotalOrders = orders.Count
+            };
+
+            return View(viewModel);
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = "Geçmiş yüklenirken hata oluştu: " + ex.Message;
+            return RedirectToAction("Index", "Home");
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetHistoryData(DateTime? startDate = null, DateTime? endDate = null)
+    {
+        try
+        {
+            var currentUserId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+
+            var start = startDate ?? DateTime.Today.AddDays(-7);
+            var end = endDate ?? DateTime.Today.AddDays(1);
+
+            var orders = await _dbContext.AddtionHistories
+                .Where(h => h.PersonId == currentUserId &&
+                           h.CreatedAt >= start &&
+                           h.CreatedAt < end)
+                .OrderByDescending(h => h.CreatedAt)
+                .Select(h => new
+                {
+                    h.Id,
+                    h.ProductName,
+                    h.ProductQuantity,
+                    h.ProductPrice,
+                    h.TotalPrice,
+                    h.ShorLabel,
+                    h.CreatedAt,
+                    FormattedDate = h.CreatedAt.ToString("dd.MM.yyyy"),
+                    FormattedTime = h.CreatedAt.ToString("HH:mm"),
+                    TableName = _dbContext.Tables.Where(t => t.Id == h.TableId).Select(t => t.Name).FirstOrDefault()
+                })
+                .ToListAsync();
+
+            return Json(new { success = true, data = orders });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = ex.Message });
+        }
+    }
     private async Task NotifyAdminPanel(Guid tableId, string tableName, double totalAmount)
     {
         try

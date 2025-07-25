@@ -1,0 +1,189 @@
+﻿@* KufeArtFullAdission.GarsonMvc/Views/Profile/Index.cshtml *@
+@model KufeArtFullAdission.Entity.PersonDbEntity
+@{
+    ViewData["Title"] = "Profil Bilgileri";
+    Layout = "_Layout";
+}
+
+<!-- 👤 Profile Header -->
+<div class="profile-page-header">
+    <div class="header-content">
+        <button class="btn-back" onclick="history.back()">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <div class="header-text">
+            <h1>Profil Bilgileri</h1>
+            <p>Hesap ayarlarınızı yönetin</p>
+        </div>
+    </div>
+</div>
+
+<!-- 👤 Profile Info Card -->
+<div class="profile-container">
+    <div class="profile-card">
+        <div class="profile-avatar-section">
+            <div class="profile-avatar-large">
+                @if (!string.IsNullOrEmpty(Model.ProfileImagePath))
+                {
+                    <img src="@Model.ProfileImagePath" alt="Profil" />
+                }
+                else
+                {
+                    <i class="fas fa-user"></i>
+                }
+            </div>
+            <div class="profile-main-info">
+                <h2 id="profileName">@Model.FullName</h2>
+                <p class="profile-username">@Model.Username</p>
+                <span class="profile-role-badge">
+                    @(Model.AccessType == KufeArtFullAdission.Enums.AccessType.Admin ? "👑 Yönetici" : "👨‍💼 Garson")
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ⚙️ Profile Actions -->
+    <div class="profile-sections">
+        <!-- Kişisel Bilgiler -->
+        <div class="profile-section">
+            <div class="section-header">
+                <h3>
+                    <i class="fas fa-user me-2"></i>
+                    Kişisel Bilgiler
+                </h3>
+            </div>
+            <div class="section-content">
+                <div class="profile-field">
+                    <label>Ad Soyad</label>
+                    <div class="field-with-action">
+                        <span id="displayFullName">@Model.FullName</span>
+                        <button class="btn-edit" onclick="editFullName()">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="profile-field">
+                    <label>Kullanıcı Adı</label>
+                    <span class="field-readonly">@Model.Username</span>
+                    <small class="field-note">Kullanıcı adı değiştirilemez</small>
+                </div>
+                <div class="profile-field">
+                    <label>Yetki Düzeyi</label>
+                    <span class="field-readonly">
+                        @(Model.AccessType == KufeArtFullAdission.Enums.AccessType.Admin ? "Yönetici" : "Garson")
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Güvenlik -->
+        <div class="profile-section">
+            <div class="section-header">
+                <h3>
+                    <i class="fas fa-shield-alt me-2"></i>
+                    Güvenlik Ayarları
+                </h3>
+            </div>
+            <div class="section-content">
+                <button class="profile-action-btn" onclick="openChangePasswordModal()">
+                    <div class="action-icon">
+                        <i class="fas fa-key"></i>
+                    </div>
+                    <div class="action-text">
+                        <span>Şifreyi Değiştir</span>
+                        <small>Hesap güvenliği için düzenli olarak değiştirin</small>
+                    </div>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Hesap -->
+        <div class="profile-section">
+            <div class="section-header">
+                <h3>
+                    <i class="fas fa-cog me-2"></i>
+                    Hesap İşlemleri
+                </h3>
+            </div>
+            <div class="section-content">
+                <button class="profile-action-btn logout" onclick="confirmLogout()">
+                    <div class="action-icon">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </div>
+                    <div class="action-text">
+                        <span>Güvenli Çıkış</span>
+                        <small>Oturumu sonlandır</small>
+                    </div>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 🔐 Change Password Modal -->
+<div class="modal-overlay" id="passwordModalOverlay">
+    <div class="custom-modal" id="passwordModal">
+        <div class="modal-header">
+            <h4>
+                <i class="fas fa-key me-2"></i>
+                Şifre Değiştir
+            </h4>
+            <button class="modal-close" onclick="closePasswordModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <form id="changePasswordForm" onsubmit="changePassword(event)">
+                <div class="form-group">
+                    <label>Mevcut Şifre</label>
+                    <div class="password-input">
+                        <input type="password" id="currentPassword" required minlength="4" />
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('currentPassword')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Yeni Şifre</label>
+                    <div class="password-input">
+                        <input type="password" id="newPassword" required minlength="4" />
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('newPassword')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <small class="form-hint">En az 4 karakter olmalıdır</small>
+                </div>
+                <div class="form-group">
+                    <label>Yeni Şifre (Tekrar)</label>
+                    <div class="password-input">
+                        <input type="password" id="confirmPassword" required minlength="4" />
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('confirmPassword')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closePasswordModal()">
+                        İptal
+                    </button>
+                    <button type="submit" class="btn-primary" id="changePasswordBtn">
+                        <span class="btn-text">
+                            <i class="fas fa-save me-1"></i>
+                            Şifreyi Değiştir
+                        </span>
+                        <span class="btn-loading" style="display: none;">
+                            <i class="fas fa-spinner fa-spin me-1"></i>
+                            Değiştiriliyor...
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/profile-page.js" asp-append-version="true"></script>
+}

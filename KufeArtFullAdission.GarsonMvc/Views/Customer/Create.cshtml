@@ -1,0 +1,130 @@
+﻿@* KufeArtFullAdission.GarsonMvc/Views/Customer/Create.cshtml *@
+@model KufeArtFullAdission.Entity.CustomerDbEntity
+@{
+    ViewData["Title"] = "Yeni Müşteri Kaydı";
+    Layout = "_Layout";
+}
+
+<!-- 👤 Müşteri Kayıt Header -->
+<div class="page-header">
+    <div class="header-content">
+        <div class="header-icon">
+            <i class="fas fa-user-plus"></i>
+        </div>
+        <div class="header-text">
+            <h1>Yeni Müşteri Kaydı</h1>
+            <p>QR menüde kayıt olmayan müşteriler için</p>
+        </div>
+    </div>
+    <button class="btn-back" onclick="history.back()">
+        <i class="fas fa-arrow-left"></i>
+    </button>
+</div>
+
+<!-- 📝 Kayıt Formu -->
+<div class="form-container">
+    <form id="customerCreateForm" class="customer-form">
+        <!-- Ad Soyad -->
+        <div class="form-group">
+            <label class="form-label">
+                <i class="fas fa-user"></i>
+                Ad Soyad *
+            </label>
+            <input type="text"
+                   name="fullname"
+                   class="form-input"
+                   placeholder="Örn: Ahmet Yılmaz"
+                   required
+                   autocomplete="name" />
+            <span class="form-error" id="fullnameError"></span>
+        </div>
+
+        <!-- Telefon Numarası -->
+        <div class="form-group">
+            <label class="form-label">
+                <i class="fas fa-phone"></i>
+                Telefon Numarası *
+            </label>
+            <input type="tel"
+                   name="phoneNumber"
+                   class="form-input"
+                   placeholder="05XX XXX XX XX"
+                   required
+                   autocomplete="tel"
+                   pattern="[0-9]{11}"
+                   maxlength="11" />
+            <span class="form-error" id="phoneError"></span>
+            <small class="form-hint">
+                <i class="fas fa-info-circle"></i>
+                11 haneli telefon numarası (05XXXXXXXXX)
+            </small>
+        </div>
+
+        <!-- Şifre -->
+        <div class="form-group">
+            <label class="form-label">
+                <i class="fas fa-lock"></i>
+                Şifre *
+            </label>
+            <div class="password-input">
+                <input type="password"
+                       name="password"
+                       class="form-input"
+                       placeholder="En az 4 karakter"
+                       required
+                       minlength="4"
+                       id="passwordInput" />
+                <button type="button" class="password-toggle" id="togglePassword">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </div>
+            <span class="form-error" id="passwordError"></span>
+        </div>
+
+        <!-- Kaydet Butonu -->
+        <div class="form-actions">
+            <button type="submit" class="btn-primary" id="submitBtn">
+                <span class="btn-text">
+                    <i class="fas fa-user-plus"></i>
+                    Müşteriyi Kaydet
+                </span>
+                <span class="btn-loading" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    Kaydediliyor...
+                </span>
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- 🔍 Var Olan Müşteri Kontrolü -->
+<div class="search-section">
+    <div class="search-header">
+        <h3>
+            <i class="fas fa-search"></i>
+            Mevcut Müşteri Kontrolü
+        </h3>
+        <p>Kayıt yapmadan önce müşterinin sistemde olup olmadığını kontrol edin</p>
+    </div>
+
+    <div class="search-form">
+        <div class="search-input-group">
+            <input type="tel"
+                   id="searchPhone"
+                   class="search-input"
+                   placeholder="Telefon numarası ile ara..."
+                   maxlength="11" />
+            <button type="button" class="btn-search" id="searchBtn">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+
+        <div class="search-results" id="searchResults" style="display: none;">
+            <!-- Sonuçlar buraya gelecek -->
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/customer-create.js" asp-append-version="true"></script>
+}

@@ -11,7 +11,7 @@ builder.Services.AddHttpClient();
 
 // Entity Framework
 builder.Services.AddDbContext<DBContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("HamzaLocal")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("LiveServer")));
 
 // HttpClient for weather API
 builder.Services.AddHttpClient();

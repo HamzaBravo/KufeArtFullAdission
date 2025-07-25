@@ -1,0 +1,144 @@
+﻿@* KufeArtFullAdission.GarsonMvc/Views/Order/History.cshtml *@
+@model dynamic
+@{
+    ViewData["Title"] = "Sipariş Geçmişi";
+    Layout = "_Layout";
+}
+
+<!-- 📋 History Header -->
+<div class="history-header">
+    <div class="header-content">
+        <div class="header-info">
+            <h1>
+                <i class="fas fa-history me-2"></i>
+                Sipariş Geçmişim
+            </h1>
+            <p>Son siparişlerinizi görüntüleyin</p>
+        </div>
+        <button class="btn-filter" onclick="openFilterModal()">
+            <i class="fas fa-filter"></i>
+        </button>
+    </div>
+</div>
+
+<!-- 📊 Summary Cards -->
+<div class="history-summary">
+    <div class="summary-card">
+        <div class="summary-icon">
+            <i class="fas fa-shopping-cart"></i>
+        </div>
+        <div class="summary-info">
+            <h3 id="totalOrders">@Model.TotalOrders</h3>
+            <small>Toplam Sipariş</small>
+        </div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-icon">
+            <i class="fas fa-lira-sign"></i>
+        </div>
+        <div class="summary-info">
+            <h3 id="totalAmount">₺@Model.TotalAmount.ToString("F2")</h3>
+            <small>Toplam Tutar</small>
+        </div>
+    </div>
+</div>
+
+<!-- 🔍 Date Filter -->
+<div class="date-filter">
+    <div class="filter-content">
+        <div class="date-inputs">
+            <input type="date" id="startDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+            <span class="date-separator">-</span>
+            <input type="date" id="endDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+        </div>
+        <button class="btn-apply-filter" onclick="applyFilter()">
+            <i class="fas fa-search"></i>
+            Filtrele
+        </button>
+    </div>
+</div>
+
+<!-- 📋 History List -->
+<div class="history-container" id="historyContainer">
+    <div class="history-loading" id="historyLoading" style="display: none;">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Geçmiş yükleniyor...</p>
+    </div>
+
+    <div class="history-content" id="historyContent">
+        @foreach (var dayGroup in Model.GroupedOrders)
+        {
+            <div class="history-day-group" data-date="@dayGroup.Date.ToString("yyyy-MM-dd")">
+                <div class="day-header">
+                    <div class="day-info">
+                        <h4 class="day-title">
+                            @dayGroup.Date.ToString("dd MMMM yyyy", new System.Globalization.CultureInfo("tr-TR"))
+                        </h4>
+                        <small class="day-stats">
+                            @dayGroup.OrderCount sipariş • ₺@dayGroup.TotalAmount.ToString("F2")
+                        </small>
+                    </div>
+                    <div class="day-total">
+                        <span class="total-badge">₺@dayGroup.TotalAmount.ToString("F2")</span>
+                    </div>
+                </div>
+
+                <div class="history-items">
+                    @foreach (var order in dayGroup.Orders)
+                    {
+                        <div class="history-item">
+                            <div class="item-header">
+                                <div class="item-time">
+                                    <i class="fas fa-clock me-1"></i>
+                                    @order.CreatedAt.ToString("HH:mm")
+                                </div>
+                                <div class="item-table">
+                                    <i class="fas fa-utensils me-1"></i>
+                                    @order.TableName
+                                </div>
+                            </div>
+
+                            <div class="item-product">
+                                <div class="product-info">
+                                    <h5 class="product-name">@order.ProductName</h5>
+                                    <div class="product-details">
+                                        @order.ProductQuantity x ₺@order.ProductPrice.ToString("F2") =
+                                        <strong>₺@order.TotalPrice.ToString("F2")</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(order.ShorLabel))
+                            {
+                                <div class="item-note">
+                                    <i class="fas fa-sticky-note me-1"></i>
+                                    @order.ShorLabel
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="no-history" id="noHistory" style="display: none;">
+        <i class="fas fa-history fa-3x"></i>
+        <h3>Sipariş Geçmişi Yok</h3>
+        <p>Seçilen tarih aralığında sipariş bulunamadı.</p>
+        <button class="btn-reset-filter" onclick="resetFilter()">
+            <i class="fas fa-refresh me-2"></i>
+            Filtreyi Sıfırla
+        </button>
+    </div>
+</div>
+
+<!-- 🔄 Pull to Refresh Indicator -->
+<div class="pull-refresh" id="pullRefresh" style="display: none;">
+    <i class="fas fa-arrow-down"></i>
+    <span>Yenilemek için çekin</span>
+</div>
+
+@section Scripts {
+    <script src="~/js/order-history.js" asp-append-version="true"></script>
+}

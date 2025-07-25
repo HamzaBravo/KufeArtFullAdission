@@ -11,8 +11,8 @@
     <title>@ViewData["Title"] - KufeArt Garson</title>
 
     <!-- 📱 PWA Support -->
-    <link rel="manifest" href="~/manifest.json" />
-    <link rel="apple-touch-icon" href="~/images/icon-192.png" />
+@*     <link rel="manifest" href="~/manifest.json" />
+    <link rel="apple-touch-icon" href="~/images/icon-192.png" /> *@
 
     <!-- 🎨 Styles -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
@@ -20,6 +20,9 @@
     <link rel="stylesheet" href="~/css/garson-layout.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/order-page.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/customer-create.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/profile-page.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/order-history.css" asp-append-version="true" />
 
 </head>
 <body>
@@ -66,7 +69,10 @@
     <!-- 🔔 Notification Panel -->
     <div class="notification-panel" id="notificationPanel">
         <div class="panel-header">
-            <h5>Bildirimler</h5>
+            <h5>
+                <i class="fas fa-bell me-2"></i>
+                Bildirimler
+            </h5>
             <button class="panel-close" id="closeNotifications">
                 <i class="fas fa-times"></i>
             </button>
@@ -79,13 +85,121 @@
         </div>
     </div>
 
-    <!-- 🔄 Loading Overlay -->
-    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
-        <div class="loading-spinner">
-            <i class="fas fa-spinner fa-spin"></i>
-            <p>Yükleniyor...</p>
+    <!-- 👤 Profile Panel -->
+    <div class="profile-panel" id="profilePanel">
+        <div class="panel-header">
+            <h5>
+                <i class="fas fa-user me-2"></i>
+                Profil Menüsü
+            </h5>
+            <button class="panel-close" id="closeProfile">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="panel-body">
+            <!-- 👤 Garson Bilgileri -->
+            <div class="profile-info">
+                <div class="profile-avatar">
+                    @if (User.FindFirst("ProfileImage")?.Value != null && !string.IsNullOrEmpty(User.FindFirst("ProfileImage").Value))
+                    {
+                        <img src="@User.FindFirst("ProfileImage").Value" alt="Profil" />
+                    }
+                    else
+                    {
+                        <i class="fas fa-user"></i>
+                    }
+                </div>
+                <div class="profile-details">
+                    <h4>@User.Identity.Name</h4>
+                    <small>@User.FindFirst("Username")?.Value</small>
+                    <span class="role-badge">
+                        @(User.IsInRole("Admin") ? "👑 Yönetici" : "👨‍💼 Garson")
+                    </span>
+                </div>
+            </div>
+
+            <!-- 🎯 Hızlı İşlemler -->
+            <div class="profile-section">
+                <h6 class="section-title">
+                    <i class="fas fa-bolt me-2"></i>
+                    Hızlı İşlemler
+                </h6>
+                <div class="profile-actions">
+                    <button class="profile-action-btn" onclick="window.location.href='/Customer/Create'">
+                        <div class="action-icon">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <div class="action-text">
+                            <span>Yeni Müşteri</span>
+                            <small>Müşteri kaydı oluştur</small>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+
+                    <button class="profile-action-btn" onclick="searchCustomer()">
+                        <div class="action-icon">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <div class="action-text">
+                            <span>Müşteri Ara</span>
+                            <small>Kayıtlı müşteri bul</small>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ⚙️ Ayarlar -->
+            <div class="profile-section">
+                <h6 class="section-title">
+                    <i class="fas fa-cog me-2"></i>
+                    Hesap Ayarları
+                </h6>
+                <div class="profile-actions">
+                    <button class="profile-action-btn" onclick="changePassword()">
+                        <div class="action-icon">
+                            <i class="fas fa-key"></i>
+                        </div>
+                        <div class="action-text">
+                            <span>Şifreyi Değiştir</span>
+                            <small>Güvenlik ayarları</small>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+
+                    <button class="profile-action-btn" onclick="viewProfile()">
+                        <div class="action-icon">
+                            <i class="fas fa-user-edit"></i>
+                        </div>
+                        <div class="action-text">
+                            <span>Profil Bilgileri</span>
+                            <small>Kişisel bilgilerim</small>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 🚪 Çıkış -->
+            <div class="profile-section">
+                <div class="profile-actions">
+                    <button class="profile-action-btn logout" onclick="logout()">
+                        <div class="action-icon">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </div>
+                        <div class="action-text">
+                            <span>Güvenli Çıkış</span>
+                            <small>Oturumu sonlandır</small>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
+
+    <!-- 🌙 Overlay -->
+    <div class="panel-overlay" id="panelOverlay"></div>
 
     <!-- ⚡ Scripts -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
@@ -94,9 +208,4 @@
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>
-
-@section Scripts {
-    <script src="https://unpkg.com/@@microsoft/signalr@latest/dist/browser/signalr.min.js"></script>
-        @await RenderSectionAsync("Scripts", required: false)
-}
 </html>
