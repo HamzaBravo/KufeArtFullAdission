@@ -21,10 +21,20 @@ public class OrderHub : Hub
         await Clients.Caller.SendAsync("JoinedWaiterGroup", $"Garson grubu: {waiterName}");
     }
 
+    // 🚀 YENİ: PrinterManager grubu için
+    public async Task JoinPrinterGroup()
+    {
+        await Groups.AddToGroupAsync(Context.ConnectionId, "PrinterManagers");
+        await Clients.Caller.SendAsync("JoinedPrinterGroup", "PrinterManager grubuna katıldı");
+    }
+
     public async Task NotifyNewOrder(object orderData)
     {
         // Admin paneline yeni sipariş bildirimi
         await Clients.Group("AdminPanel").SendAsync("NewOrderReceived", orderData);
+
+        // 🎯 YENİ: PrinterManager'a da gönder
+        await Clients.Group("PrinterManagers").SendAsync("NewOrderReceived", orderData);
     }
 
     public async Task NotifyTableStatusChange(object tableData)

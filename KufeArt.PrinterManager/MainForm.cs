@@ -1,339 +1,510 @@
 using KufeArt.PrinterManager.Models;
+using KufeArt.PrinterManager.Services;
 using Newtonsoft.Json;
-using System.Drawing.Printing; // ? Bu System.Drawing.Printing.PrinterSettings için
+using System.Drawing.Printing;
 
-namespace KufeArt.PrinterManager
+namespace KufeArt.PrinterManager;
+
+public partial class MainForm : Form
 {
-    public partial class MainForm : Form
+    #region Mevcut Alanlar (Korundu)
+    private PrinterManagerConfig _printerConfig;
+    private string _configFilePath;
+    #endregion
+
+    #region Yeni Alanlar (Background Services)
+    private SignalRClientService? _signalRService;
+    private PrintingService? _printingService;
+    private bool _backgroundServicesStarted = false;
+    #endregion
+
+    public MainForm()
     {
-        // ? DEÐÝÞÝKLÝK: _printerSettings ? _printerConfig
-        private PrinterManagerConfig _printerConfig;
-        private string _configFilePath;
+        InitializeComponent();
+        _printerConfig = new PrinterManagerConfig();
 
-        public MainForm()
+        var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        var configDir = Path.Combine(appDataPath, "KufeArt", "PrinterManager");
+        Directory.CreateDirectory(configDir);
+        _configFilePath = Path.Combine(configDir, "printer-settings.json");
+    }
+
+    private async void MainForm_Load(object sender, EventArgs e)
+    {
+        // Mevcut iþlevsellik (Korundu)
+        LoadSystemPrinters();
+        LoadSavedSettings();
+        UpdateAssignedPrintersView();
+        UpdateStatus("Form yüklendi - Yazýcýlar listelendi");
+
+        // ?? YENÝ: Background services baþlat (yazýcý ayarlarý varsa)
+        if (HasConfiguredPrinters())
         {
-            InitializeComponent();
-            // ? DEÐÝÞÝKLÝK: PrinterSettings ? PrinterManagerConfig
-            _printerConfig = new PrinterManagerConfig();
-
-            // Konfigürasyon dosyasý yolu
-            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var configDir = Path.Combine(appDataPath, "KufeArt", "PrinterManager");
-            Directory.CreateDirectory(configDir);
-            _configFilePath = Path.Combine(configDir, "printer-settings.json");
+            await InitializeBackgroundServicesAsync();
         }
+    }
 
-        private void MainForm_Load(object sender, EventArgs e)
+    private async void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+    {
+        // Background services'i temizle
+        try
         {
-            LoadSystemPrinters();
-            LoadSavedSettings();
-            UpdateAssignedPrintersView();
-            UpdateStatus("Form yüklendi - Yazýcýlar listelendi");
-        }
-
-        private void LoadSystemPrinters()
-        {
-            try
+            if (_signalRService != null)
             {
-                listBoxPrinters.Items.Clear();
-
-                // ? System.Drawing.Printing.PrinterSettings kullanýmý
-                foreach (string printerName in PrinterSettings.InstalledPrinters)
-                {
-                    listBoxPrinters.Items.Add(printerName);
-                }
-
-                UpdateStatus($"{listBoxPrinters.Items.Count} yazýcý bulundu");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Yazýcýlar yüklenirken hata oluþtu:\n{ex.Message}",
-                              "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                UpdateStatus("Yazýcý yükleme hatasý!");
+                await _signalRService.DisconnectAsync();
             }
         }
-
-        private void LoadPrinterSettings(string printerName)
+        catch (Exception ex)
         {
-            lblPrinterName.Text = printerName;
+            Console.WriteLine($"Form kapatma hatasý: {ex.Message}");
+        }
+    }
 
-            // ? DEÐÝÞÝKLÝK: _printerSettings ? _printerConfig
+    #region Mevcut Ýþlevsellik (Deðiþmeden korundu)
+    private void LoadSystemPrinters()
+    {
+        try
+        {
+            listBoxPrinters.Items.Clear();
+
+            // System.Drawing.Printing.PrinterSettings kullanýmý
+            foreach (string printerName in PrinterSettings.InstalledPrinters)
+            {
+                listBoxPrinters.Items.Add(printerName);
+            }
+
+            UpdateStatus($"{listBoxPrinters.Items.Count} yazýcý bulundu");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Yazýcýlar yüklenirken hata oluþtu:\n{ex.Message}",
+                          "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            UpdateStatus("Yazýcý yükleme hatasý!");
+        }
+    }
+
+    private void LoadPrinterSettings(string printerName)
+    {
+        lblPrinterName.Text = printerName;
+
+        var existingConfig = _printerConfig.Printers.FirstOrDefault(p => p.Name == printerName);
+
+        if (existingConfig != null)
+        {
+            switch (existingConfig.Type)
+            {
+                case "Mutfak":
+                    rbMutfak.Checked = true;
+                    break;
+                case "Bar":
+                    rbBar.Checked = true;
+                    break;
+                default:
+                    rbAtanmamis.Checked = true;
+                    break;
+            }
+            chkEnabled.Checked = existingConfig.IsEnabled;
+        }
+        else
+        {
+            rbAtanmamis.Checked = true;
+            chkEnabled.Checked = true;
+        }
+    }
+
+    private async void btnSavePrinter_Click(object sender, EventArgs e)
+    {
+        if (listBoxPrinters.SelectedItem == null)
+        {
+            MessageBox.Show("Lütfen bir yazýcý seçin!", "Uyarý",
+                          MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        try
+        {
+            string printerName = listBoxPrinters.SelectedItem.ToString()!;
+            string printerType = GetSelectedPrinterType();
+            bool isEnabled = chkEnabled.Checked;
+
             var existingConfig = _printerConfig.Printers.FirstOrDefault(p => p.Name == printerName);
 
             if (existingConfig != null)
             {
-                switch (existingConfig.Type)
-                {
-                    case "Mutfak":
-                        rbMutfak.Checked = true;
-                        break;
-                    case "Bar":
-                        rbBar.Checked = true;
-                        break;
-                    default:
-                        rbAtanmamis.Checked = true;
-                        break;
-                }
-                chkEnabled.Checked = existingConfig.IsEnabled;
+                existingConfig.Type = printerType;
+                existingConfig.IsEnabled = isEnabled;
+                existingConfig.LastModified = DateTime.Now;
             }
             else
             {
-                rbAtanmamis.Checked = true;
-                chkEnabled.Checked = true;
+                _printerConfig.Printers.Add(new PrinterConfig
+                {
+                    Name = printerName,
+                    Type = printerType,
+                    IsEnabled = isEnabled,
+                    LastModified = DateTime.Now
+                });
             }
+
+            UpdateAssignedPrintersView();
+            UpdateStatus($"{printerName} yazýcýsý {printerType} olarak kaydedildi");
+
+            // ?? YENÝ: Background services'i baþlat/güncelle
+            if (HasConfiguredPrinters() && !_backgroundServicesStarted)
+            {
+                await InitializeBackgroundServicesAsync();
+            }
+
+            MessageBox.Show($"? {printerName} yazýcýsý baþarýyla kaydedildi!\n\nTür: {printerType}\nDurum: {(isEnabled ? "Aktif" : "Pasif")}",
+                          "Baþarýlý", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
-
-        private void btnSavePrinter_Click(object sender, EventArgs e)
+        catch (Exception ex)
         {
-            if (listBoxPrinters.SelectedItem == null)
-            {
-                MessageBox.Show("Lütfen bir yazýcý seçin!", "Uyarý",
-                              MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            try
-            {
-                string printerName = listBoxPrinters.SelectedItem.ToString()!;
-                string printerType = GetSelectedPrinterType();
-                bool isEnabled = chkEnabled.Checked;
-
-                // ? DEÐÝÞÝKLÝK: _printerSettings ? _printerConfig
-                var existingConfig = _printerConfig.Printers.FirstOrDefault(p => p.Name == printerName);
-
-                if (existingConfig != null)
-                {
-                    existingConfig.Type = printerType;
-                    existingConfig.IsEnabled = isEnabled;
-                    existingConfig.LastModified = DateTime.Now;
-                }
-                else
-                {
-                    _printerConfig.Printers.Add(new PrinterConfig
-                    {
-                        Name = printerName,
-                        Type = printerType,
-                        IsEnabled = isEnabled,
-                        LastModified = DateTime.Now
-                    });
-                }
-
-                UpdateAssignedPrintersView();
-                UpdateStatus($"{printerName} yazýcýsý {printerType} olarak kaydedildi");
-
-                MessageBox.Show($"? {printerName} yazýcýsý baþarýyla kaydedildi!\n\nTür: {printerType}\nDurum: {(isEnabled ? "Aktif" : "Pasif")}",
-                              "Baþarýlý", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Yazýcý kaydedilirken hata oluþtu:\n{ex.Message}",
-                              "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            MessageBox.Show($"Yazýcý kaydedilirken hata oluþtu:\n{ex.Message}",
+                          "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
+    }
 
-        private void PrintTestPage(string printerName, string printerType)
+    private void PrintTestPage(string printerName, string printerType)
+    {
+        using var printDoc = new PrintDocument();
+
+        printDoc.PrinterSettings.PrinterName = printerName;
+
+        printDoc.PrintPage += (sender, e) =>
         {
-            // ? System.Drawing.Printing.PrintDocument kullanýmý
-            using var printDoc = new PrintDocument();
+            if (e.Graphics == null) return;
 
-            // ? System.Drawing.Printing.PrinterSettings kullanýmý
-            printDoc.PrinterSettings.PrinterName = printerName;
+            var font = new Font("Courier New", 10);
+            var brush = Brushes.Black;
+            float y = 50;
+            float lineHeight = font.GetHeight();
 
-            printDoc.PrintPage += (sender, e) =>
+            var testContent = new[]
             {
-                if (e.Graphics == null) return;
-
-                var font = new Font("Courier New", 10);
-                var brush = Brushes.Black;
-                float y = 50;
-                float lineHeight = font.GetHeight();
-
-                var testContent = new[]
-                {
-                    "=============================",
-                    "    KUFE ART TEST SAYFASI",
-                    "=============================",
-                    "",
-                    $"Yazýcý Adý: {printerName}",
-                    $"Atanan Tür: {printerType}",
-                    $"Test Tarihi: {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
-                    "",
-                    "Bu bir test sayfasýdýr.",
-                    "Yazýcý düzgün çalýþýyorsa",
-                    "bu metni görebilmelisiniz.",
-                    "",
-                    "=============================",
-                    "        TEST TAMAMLANDI",
-                    "============================="
-                };
-
-                for (int i = 0; i < testContent.Length; i++)
-                {
-                    e.Graphics.DrawString(testContent[i], font, brush, 50, y + (i * lineHeight));
-                }
-
-                font.Dispose();
+                "=============================",
+                "    KUFE ART TEST SAYFASI",
+                "=============================",
+                "",
+                $"Yazýcý Adý: {printerName}",
+                $"Atanan Tür: {printerType}",
+                $"Test Tarihi: {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
+                "",
+                "Bu bir test sayfasýdýr.",
+                "Yazýcý düzgün çalýþýyorsa",
+                "bu metni görebilmelisiniz.",
+                "",
+                "=============================",
+                "        TEST TAMAMLANDI",
+                "============================="
             };
 
-            printDoc.Print();
-        }
-
-        private void UpdateAssignedPrintersView()
-        {
-            // ? DEÐÝÞÝKLÝK: _printerSettings ? _printerConfig
-            listBoxMutfak.Items.Clear();
-            var kitchenPrinters = _printerConfig.Printers
-                .Where(p => p.Type == "Mutfak" && p.IsEnabled)
-                .Select(p => $"? {p.Name}");
-
-            foreach (var printer in kitchenPrinters)
+            for (int i = 0; i < testContent.Length; i++)
             {
-                listBoxMutfak.Items.Add(printer);
+                e.Graphics.DrawString(testContent[i], font, brush, 50, y + (i * lineHeight));
             }
 
-            listBoxBar.Items.Clear();
-            var barPrinters = _printerConfig.Printers
-                .Where(p => p.Type == "Bar" && p.IsEnabled)
-                .Select(p => $"? {p.Name}");
+            font.Dispose();
+        };
 
-            foreach (var printer in barPrinters)
-            {
-                listBoxBar.Items.Add(printer);
-            }
+        printDoc.Print();
+    }
 
-            lblMutfak.Text = $"??? Mutfak ({listBoxMutfak.Items.Count}):";
-            lblBar.Text = $"?? Bar ({listBoxBar.Items.Count}):";
+    private void UpdateAssignedPrintersView()
+    {
+        listBoxMutfak.Items.Clear();
+        var kitchenPrinters = _printerConfig.Printers
+            .Where(p => p.Type == "Mutfak" && p.IsEnabled)
+            .Select(p => $"? {p.Name}");
+
+        foreach (var printer in kitchenPrinters)
+        {
+            listBoxMutfak.Items.Add(printer);
         }
 
-        private void btnSaveAll_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                SaveSettingsToFile();
-                MessageBox.Show("? Tüm ayarlar baþarýyla kaydedildi!\n\n" +
-                              $"?? Konum: {_configFilePath}\n" +
-                              $"?? Toplam: {_printerConfig.Printers.Count} yazýcý\n" +
-                              $"??? Mutfak: {_printerConfig.Printers.Count(p => p.Type == "Mutfak")} yazýcý\n" +
-                              $"?? Bar: {_printerConfig.Printers.Count(p => p.Type == "Bar")} yazýcý",
-                              "Baþarýlý", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        listBoxBar.Items.Clear();
+        var barPrinters = _printerConfig.Printers
+            .Where(p => p.Type == "Bar" && p.IsEnabled)
+            .Select(p => $"? {p.Name}");
 
-                UpdateStatus("Tüm ayarlar JSON dosyasýna kaydedildi");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ayarlar kaydedilirken hata oluþtu:\n{ex.Message}",
-                              "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+        foreach (var printer in barPrinters)
+        {
+            listBoxBar.Items.Add(printer);
         }
 
-        private void SaveSettingsToFile()
-        {
-            // ? DEÐÝÞÝKLÝK: _printerSettings ? _printerConfig
-            _printerConfig.LastUpdate = DateTime.Now;
-            _printerConfig.ConfigPath = _configFilePath;
+        lblMutfak.Text = $"??? Mutfak ({listBoxMutfak.Items.Count}):";
+        lblBar.Text = $"?? Bar ({listBoxBar.Items.Count}):";
+    }
 
-            var json = JsonConvert.SerializeObject(_printerConfig, Formatting.Indented);
-            File.WriteAllText(_configFilePath, json);
-        }
-
-        private void LoadSavedSettings()
+    private async void btnSaveAll_Click(object sender, EventArgs e)
+    {
+        try
         {
-            if (File.Exists(_configFilePath))
+            SaveSettingsToFile();
+
+            // ?? YENÝ: Background services'i yeniden baþlat
+            if (HasConfiguredPrinters())
             {
-                var json = File.ReadAllText(_configFilePath);
-                // ? DEÐÝÞÝKLÝK: PrinterSettings ? PrinterManagerConfig
-                var loadedSettings = JsonConvert.DeserializeObject<PrinterManagerConfig>(json);
+                await RestartBackgroundServicesAsync();
+            }
 
-                if (loadedSettings != null)
-                {
-                    // ? DEÐÝÞÝKLÝK: _printerSettings ? _printerConfig
-                    _printerConfig = loadedSettings;
-                }
+            MessageBox.Show("? Tüm ayarlar baþarýyla kaydedildi!\n\n" +
+                          $"?? Konum: {_configFilePath}\n" +
+                          $"?? Toplam: {_printerConfig.Printers.Count} yazýcý\n" +
+                          $"??? Mutfak: {_printerConfig.Printers.Count(p => p.Type == "Mutfak")} yazýcý\n" +
+                          $"?? Bar: {_printerConfig.Printers.Count(p => p.Type == "Bar")} yazýcý",
+                          "Baþarýlý", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            UpdateStatus("Tüm ayarlar JSON dosyasýna kaydedildi");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Ayarlar kaydedilirken hata oluþtu:\n{ex.Message}",
+                          "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void SaveSettingsToFile()
+    {
+        _printerConfig.LastUpdate = DateTime.Now;
+        _printerConfig.ConfigPath = _configFilePath;
+
+        var json = JsonConvert.SerializeObject(_printerConfig, Formatting.Indented);
+        File.WriteAllText(_configFilePath, json);
+    }
+
+    private void LoadSavedSettings()
+    {
+        if (File.Exists(_configFilePath))
+        {
+            var json = File.ReadAllText(_configFilePath);
+            var loadedSettings = JsonConvert.DeserializeObject<PrinterManagerConfig>(json);
+
+            if (loadedSettings != null)
+            {
+                _printerConfig = loadedSettings;
             }
         }
+    }
 
-        // Diðer metodlar ayný kalýyor...
-        private string GetSelectedPrinterType()
+    private string GetSelectedPrinterType()
+    {
+        if (rbMutfak.Checked) return "Mutfak";
+        if (rbBar.Checked) return "Bar";
+        return "Atanmamýþ";
+    }
+
+    private void btnRefreshPrinters_Click(object sender, EventArgs e)
+    {
+        btnRefreshPrinters.Enabled = false;
+        btnRefreshPrinters.Text = "Yükleniyor...";
+
+        try
         {
-            if (rbMutfak.Checked) return "Mutfak";
-            if (rbBar.Checked) return "Bar";
-            return "Atanmamýþ";
+            LoadSystemPrinters();
+            UpdateAssignedPrintersView();
+            UpdateStatus("Yazýcý listesi yenilendi");
+        }
+        finally
+        {
+            btnRefreshPrinters.Enabled = true;
+            btnRefreshPrinters.Text = "?? Yenile";
+        }
+    }
+
+    private void listBoxPrinters_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        if (listBoxPrinters.SelectedItem != null)
+        {
+            string selectedPrinter = listBoxPrinters.SelectedItem.ToString()!;
+            LoadPrinterSettings(selectedPrinter);
+            UpdateStatus($"Seçili yazýcý: {selectedPrinter}");
+        }
+    }
+
+    private void btnTestPrint_Click(object sender, EventArgs e)
+    {
+        if (listBoxPrinters.SelectedItem == null)
+        {
+            MessageBox.Show("Lütfen bir yazýcý seçin!", "Uyarý",
+                          MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
         }
 
-        private void btnRefreshPrinters_Click(object sender, EventArgs e)
+        try
         {
-            btnRefreshPrinters.Enabled = false;
-            btnRefreshPrinters.Text = "Yükleniyor...";
+            string printerName = listBoxPrinters.SelectedItem.ToString()!;
+            string printerType = GetSelectedPrinterType();
 
-            try
-            {
-                LoadSystemPrinters();
-                UpdateAssignedPrintersView();
-                UpdateStatus("Yazýcý listesi yenilendi");
-            }
-            finally
-            {
-                btnRefreshPrinters.Enabled = true;
-                btnRefreshPrinters.Text = "?? Yenile";
-            }
+            PrintTestPage(printerName, printerType);
+            UpdateStatus($"{printerName} yazýcýsýna test sayfasý gönderildi");
         }
-
-        private void listBoxPrinters_SelectedIndexChanged(object sender, EventArgs e)
+        catch (Exception ex)
         {
-            if (listBoxPrinters.SelectedItem != null)
-            {
-                string selectedPrinter = listBoxPrinters.SelectedItem.ToString()!;
-                LoadPrinterSettings(selectedPrinter);
-                UpdateStatus($"Seçili yazýcý: {selectedPrinter}");
-            }
+            MessageBox.Show($"Test yazdýrma hatasý:\n{ex.Message}",
+                          "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
+    }
 
-        private void btnTestPrint_Click(object sender, EventArgs e)
+    private void btnLoadSettings_Click(object sender, EventArgs e)
+    {
+        try
         {
-            if (listBoxPrinters.SelectedItem == null)
+            LoadSavedSettings();
+            UpdateAssignedPrintersView();
+
+            MessageBox.Show("? Ayarlar baþarýyla yüklendi!",
+                          "Baþarýlý", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            UpdateStatus("Kaydedilmiþ ayarlar yüklendi");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Ayarlar yüklenirken hata oluþtu:\n{ex.Message}",
+                          "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+    #endregion
+
+    #region Background Services (YENÝ)
+    private bool HasConfiguredPrinters()
+    {
+        return _printerConfig.Printers.Any(p => p.IsEnabled && (p.Type == "Mutfak" || p.Type == "Bar"));
+    }
+
+    private async Task InitializeBackgroundServicesAsync()
+    {
+        try
+        {
+            if (_backgroundServicesStarted) return;
+
+            UpdateStatus("?? Background servisler baþlatýlýyor...");
+
+            // PrintingService'i baþlat
+            _printingService = new PrintingService();
+            _printingService.LogMessageReceived += OnServiceLogMessage;
+            _printingService.PrintCompleted += OnPrintCompleted;
+            _printingService.LoadPrinterConfig(); // Mevcut config'i yükle
+
+            // SignalR Service'i baþlat
+            _signalRService = new SignalRClientService();
+            _signalRService.LogMessageReceived += OnServiceLogMessage;
+            _signalRService.ConnectionStatusChanged += OnConnectionStatusChanged;
+            _signalRService.OrderReceived += OnOrderReceived; // ?? Ana event
+
+            // SignalR'ý baðla
+            await _signalRService.ConnectAsync();
+
+            _backgroundServicesStarted = true;
+            UpdateStatus("? Background servisler aktif - Sipariþler bekleniyor");
+
+            // Title'ý güncelle
+            this.Text = "??? KufeArt Yazýcý Yöneticisi - ?? Aktif";
+        }
+        catch (Exception ex)
+        {
+            UpdateStatus($"? Background servis hatasý: {ex.Message}");
+            _backgroundServicesStarted = false;
+        }
+    }
+
+    private async Task RestartBackgroundServicesAsync()
+    {
+        try
+        {
+            if (_signalRService != null)
             {
-                MessageBox.Show("Lütfen bir yazýcý seçin!", "Uyarý",
-                              MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                await _signalRService.DisconnectAsync();
+            }
+
+            _backgroundServicesStarted = false;
+            await InitializeBackgroundServicesAsync();
+        }
+        catch (Exception ex)
+        {
+            UpdateStatus($"Servis yeniden baþlatma hatasý: {ex.Message}");
+        }
+    }
+
+    // ?? EN ÖNEMLÝ METHOD - Sipariþ geldiðinde otomatik yazdýr
+    private async void OnOrderReceived(OrderNotificationModel order)
+    {
+        try
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action<OrderNotificationModel>(OnOrderReceived), order);
                 return;
             }
 
-            try
-            {
-                string printerName = listBoxPrinters.SelectedItem.ToString()!;
-                string printerType = GetSelectedPrinterType();
+            UpdateStatus($"?? Sipariþ alýndý: {order.TableName} - {order.WaiterName}");
+            lblTitle.ForeColor = Color.Orange; // Görsel feedback
 
-                PrintTestPage(printerName, printerType);
-                UpdateStatus($"{printerName} yazýcýsýna test sayfasý gönderildi");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Test yazdýrma hatasý:\n{ex.Message}",
-                              "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            // ??? Otomatik yazdýr
+            await _printingService!.ProcessOrderAsync(order);
+
+            UpdateStatus($"? Yazdýrma tamamlandý: {order.TableName}");
+            lblTitle.ForeColor = Color.Green;
+
+            // 2 saniye sonra normal renge dön
+            await Task.Delay(2000);
+            lblTitle.ForeColor = Color.DarkBlue;
         }
-
-        private void btnLoadSettings_Click(object sender, EventArgs e)
+        catch (Exception ex)
         {
-            try
-            {
-                LoadSavedSettings();
-                UpdateAssignedPrintersView();
-
-                MessageBox.Show("? Ayarlar baþarýyla yüklendi!",
-                              "Baþarýlý", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-                UpdateStatus("Kaydedilmiþ ayarlar yüklendi");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ayarlar yüklenirken hata oluþtu:\n{ex.Message}",
-                              "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            UpdateStatus($"? Sipariþ iþleme hatasý: {ex.Message}");
+            lblTitle.ForeColor = Color.Red;
         }
+    }
 
-        private void UpdateStatus(string message)
+    private void OnConnectionStatusChanged(bool isConnected)
+    {
+        if (InvokeRequired)
         {
-            lblStatus.Text = $"{DateTime.Now:HH:mm:ss} - {message}";
+            Invoke(new Action<bool>(OnConnectionStatusChanged), isConnected);
+            return;
         }
+
+        var statusIcon = isConnected ? "??" : "??";
+        var statusText = isConnected ? "Baðlý" : "Baðlantý Yok";
+
+        this.Text = $"??? KufeArt Yazýcý Yöneticisi - {statusIcon} {statusText}";
+        UpdateStatus($"SignalR: {statusText}");
+    }
+
+    private void OnPrintCompleted(PrintLogModel printLog)
+    {
+        if (InvokeRequired)
+        {
+            Invoke(new Action<PrintLogModel>(OnPrintCompleted), printLog);
+            return;
+        }
+
+        var status = printLog.Status == "Success" ? "?" : "?";
+        UpdateStatus($"{status} {printLog.PrinterName}: {printLog.TableName}");
+    }
+
+    private void OnServiceLogMessage(string message)
+    {
+        if (InvokeRequired)
+        {
+            Invoke(new Action<string>(OnServiceLogMessage), message);
+            return;
+        }
+
+        // Console'a log yaz (debug için)
+        Console.WriteLine(message);
+
+        // Status'a önemli mesajlarý göster
+        if (message.Contains("Sipariþ") || message.Contains("Baðlantý") || message.Contains("Yazdýr"))
+        {
+            UpdateStatus(message.Replace("[", "").Replace("]", "").Substring(9)); // Timestamp'i temizle
+        }
+    }
+    #endregion
+
+    private void UpdateStatus(string message)
+    {
+        lblStatus.Text = $"{DateTime.Now:HH:mm:ss} - {message}";
     }
 }
