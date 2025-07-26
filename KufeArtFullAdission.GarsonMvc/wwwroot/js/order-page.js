@@ -25,6 +25,7 @@ class OrderPage {
     bindEvents() {
         console.log('🔍 Events binding...');
 
+
         // Sepet açma
         const openCartBtn = document.getElementById('openCartBtn');
         if (openCartBtn) {
@@ -34,47 +35,26 @@ class OrderPage {
             });
         }
 
-        // ✅ SEPET KAPAT BUTONU - BASİT VE GARANTİLİ
+        // ✅ TEK BİR CART CLOSE EVENT LISTENER - BASIT VE ÇALIŞAN
         document.addEventListener('click', (e) => {
-            if (e.target.id === 'closeCartBtn') {
-                console.log('❌ Cart close button clicked');
-                this.closeCartModal();
-            }
-        });
-
-        // Diğer event'ler...
-        document.getElementById('showHistoryBtn').addEventListener('click', () => {
-            this.showOrderHistory();
-        });
-
-        // ✅ Event Delegation - Öncelik ile
-        document.addEventListener('click', (e) => {
-            // Close button kontrolü
             if (e.target.id === 'closeCartBtn' || e.target.closest('#closeCartBtn')) {
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation(); // ✅ Diğer listener'ları durdur
+                e.stopImmediatePropagation();
                 console.log('❌ Close button clicked');
                 this.closeCartModal();
-                return false;
+                return;
             }
 
-            // Overlay kontrolü
             if (e.target.id === 'cartOverlay') {
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation(); // ✅ Diğer listener'ları durdur
+                e.stopImmediatePropagation();
                 console.log('📱 Overlay clicked');
                 this.closeCartModal();
-                return false;
+                return;
             }
-        }, true); // ✅ Capture phase - daha erken yakalama
+        });
 
-        // ✅ ESC tuşu event'i
+        // ESC tuşu
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.isCartModalOpen) {
-                e.preventDefault();
-                e.stopPropagation();
                 console.log('⌨️ ESC pressed');
                 this.closeCartModal();
             }
@@ -322,8 +302,6 @@ class OrderPage {
             }
         }
     }
-
-    // updateCartUI fonksiyonunu güncelle
 
     updateCartUI() {
         const totalItems = this.cart.reduce((sum, item) => sum + item.quantity, 0);
