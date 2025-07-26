@@ -34,8 +34,10 @@ class WaiterSignalRClient {
     }
 
     // 🆕 Basit uyarı handler
+    // garson-signalr-client.js - handleInactiveTableAlert metodunda
     handleInactiveTableAlert(alertData) {
-        // Bildirim objesi oluştur
+        console.log("🚨 MASA UYARISI GELDİ:", alertData); // 🔥 Bu mesajı görmeli
+
         const notification = {
             id: Date.now(),
             type: 'InactiveTable',
@@ -49,16 +51,11 @@ class WaiterSignalRClient {
             priority: 'normal'
         };
 
-        // Bildirim listesine ekle
+        console.log("🔔 Bildirim oluşturuldu:", notification); // 🔥 Bu da görülmeli
+
         this.addNotification(notification);
-
-        // Uyarı sesi çal
         this.playWarningSound();
-
-        // Badge güncelle
         this.updateNotificationBadge();
-
-        console.log(`🔔 ${alertData.TableName} için uyarı eklendi`);
     }
 
 
