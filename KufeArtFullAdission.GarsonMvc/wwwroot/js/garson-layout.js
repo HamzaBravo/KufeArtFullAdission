@@ -10,6 +10,28 @@ class GarsonLayout {
     }
 
     bindEvents() {
+        // bindEvents() metodunda önceliği artırın
+        document.addEventListener('click', (e) => {
+            // Önce cart modal kontrolü yap
+            if (e.target.id === 'closeCartBtn' || e.target.closest('#closeCartBtn')) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation(); // ✅ Bu satırı ekleyin
+                console.log('❌ Close button clicked');
+                this.closeCartModal();
+                return false; // ✅ Bu satırı ekleyin
+            }
+
+            if (e.target.id === 'cartOverlay') {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation(); // ✅ Bu satırı ekleyin
+                console.log('📱 Overlay clicked');
+                this.closeCartModal();
+                return false; // ✅ Bu satırı ekleyin
+            }
+        }, true); // ✅ true parametresi = capture phase'de dinle
+
         // Notification panel
         document.getElementById('notificationBtn')?.addEventListener('click', () => {
             this.toggleNotifications();

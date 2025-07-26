@@ -23,8 +23,6 @@ class OrderPage {
     }
 
     bindEvents() {
-        let cartButtonCooldown = false;
-
         console.log('🔍 Events binding...');
 
         // Sepet açma
@@ -38,12 +36,11 @@ class OrderPage {
             });
         }
 
-        // Sepet kapatma - daha spesifik selector'lar
+        // Sepet kapatma event'leri
         document.addEventListener('click', (e) => {
-            // Close button - hem ID hem class kontrolü
+            // Close button kontrolü
             if (e.target.id === 'closeCartBtn' ||
-                e.target.closest('#closeCartBtn') ||
-                e.target.classList.contains('btn-close')) {
+                e.target.closest('#closeCartBtn')) {
                 e.preventDefault();
                 e.stopPropagation();
                 console.log('❌ Close button clicked');
@@ -51,14 +48,21 @@ class OrderPage {
                 return;
             }
 
-            // Overlay click
-            if (e.target.id === 'cartOverlay' ||
-                e.target.classList.contains('modal-overlay')) {
+            // Overlay kontrolü
+            if (e.target.id === 'cartOverlay') {
                 e.preventDefault();
                 e.stopPropagation();
                 console.log('📱 Overlay clicked');
                 this.closeCartModal();
                 return;
+            }
+        });
+
+        // ✅ ESC TUŞU EVENT'İNİ EKLEYİN
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.isCartModalOpen) {
+                console.log('⌨️ ESC pressed');
+                this.closeCartModal();
             }
         });
 
@@ -85,8 +89,6 @@ class OrderPage {
             this.filterProducts();
             this.toggleClearButton();
         });
-
-        // ❌ Tüm duplikasyon kısmını SİLİN - artık event delegation kullanıyoruz
     }
 
     async loadTableDetails() {

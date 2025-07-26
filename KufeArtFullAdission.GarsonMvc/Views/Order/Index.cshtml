@@ -110,13 +110,19 @@
 
 <!-- 🛒 Sepet Modal -->
 <div class="cart-modal" id="cartModal">
+    <!-- ✅ OVERLAY EKLENDİ -->
+    <div class="modal-overlay" id="cartOverlay"></div>
+
     <div class="modal-container">
         <div class="modal-header">
             <h4>
                 <i class="fas fa-shopping-cart me-2"></i>
                 Sepet (@Model.TableName)
             </h4>
-
+            <!-- ✅ CLOSE BUTTON EKLENDİ -->
+            <button class="btn-close" id="closeCartBtn">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
 
         <div class="modal-body">

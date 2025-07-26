@@ -878,13 +878,14 @@
     display: flex !important;
 }
 .cart-modal {
-    z-index: 2000 !important;
+    z-index: 3000 !important; /* Layout'taki 2000'den yüksek */
 }
 
 .modal-overlay {
-    z-index: 2001 !important;
+    z-index: 3001 !important;
 }
 
 .modal-container {
-    z-index: 2002 !important;
+    z-index: 3002 !important;
 }
+/* order-page.css'te bu değerleri değiştirin */
