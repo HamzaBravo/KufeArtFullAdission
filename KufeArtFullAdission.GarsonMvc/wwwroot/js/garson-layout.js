@@ -10,7 +10,21 @@ class GarsonLayout {
     }
 
     bindEvents() {
-        // bindEvents() metodunda önceliği artırın
+
+
+        document.getElementById('notificationBtn')?.addEventListener('click', () => {
+            this.toggleNotifications();
+        });
+
+        document.getElementById('closeNotifications')?.addEventListener('click', () => {
+            this.closeNotifications();
+        });
+
+        document.getElementById('panelOverlay')?.addEventListener('click', () => {
+            this.closeNotifications();
+        });
+
+
         document.addEventListener('click', (e) => {
             // Önce cart modal kontrolü yap
             if (e.target.id === 'closeCartBtn' || e.target.closest('#closeCartBtn')) {
@@ -65,15 +79,21 @@ class GarsonLayout {
         const panel = document.getElementById('notificationPanel');
         const overlay = document.getElementById('panelOverlay');
 
-        // Diğer panelleri kapat
-        this.closeProfile();
+        if (panel && overlay) {
+            const isOpen = panel.classList.contains('open');
 
-        if (panel.classList.contains('open')) {
-            this.closeNotifications();
-        } else {
-            panel.classList.add('open');
-            overlay.classList.add('active');
-            document.body.style.overflow = 'hidden';
+            if (isOpen) {
+                this.closeNotifications();
+            } else {
+                panel.classList.add('open');
+                overlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+
+                // Bildirimleri render et
+                if (window.waiterSignalR) {
+                    window.waiterSignalR.renderNotificationPanel();
+                }
+            }
         }
     }
 
@@ -81,9 +101,11 @@ class GarsonLayout {
         const panel = document.getElementById('notificationPanel');
         const overlay = document.getElementById('panelOverlay');
 
-        panel.classList.remove('open');
-        overlay.classList.remove('active');
-        document.body.style.overflow = '';
+        if (panel && overlay) {
+            panel.classList.remove('open');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
     }
 
     toggleProfile() {
@@ -152,7 +174,7 @@ function logout() {
     }
 }
 
-// Sayfa yüklendiğinde başlat
+// Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    window.garsonLayout = new GarsonLayout();
-});
+    new GarsonLayout();
+})

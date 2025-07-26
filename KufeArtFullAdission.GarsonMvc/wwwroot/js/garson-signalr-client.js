@@ -34,44 +34,9 @@ class WaiterSignalRClient {
         }
     }
 
-    // 🆕 Basit uyarı handler
-    // garson-signalr-client.js - handleInactiveTableAlert metodunda
-    handleInactiveTableAlert(alertData) {
-        console.log("🚨 MASA UYARISI GELDİ:", alertData); // 🔥 Bu mesajı görmeli
-
-        const notification = {
-            id: Date.now(),
-            type: 'InactiveTable',
-            title: '⏰ Masa Takip',
-            message: alertData.Message,
-            icon: 'fas fa-clock',
-            color: 'warning',
-            timestamp: new Date(alertData.Timestamp),
-            data: alertData,
-            isRead: false,
-            priority: 'normal'
-        };
-
-        console.log("🔔 Bildirim oluşturuldu:", notification); // 🔥 Bu da görülmeli
-
-        this.addNotification(notification);
-        this.playWarningSound();
-        this.updateNotificationBadge();
-    }
-
-
-    playWarningSound() {
-        try {
-            // Basit bir uyarı sesi
-            const audio = new Audio('/sounds/table-warning.mp3');
-            audio.volume = 0.5;
-            audio.play().catch(e => console.log("Uyarı sesi çalınamadı:", e));
-        } catch (error) {
-            console.log("Ses çalma hatası:", error);
-        }
-    }
-
+    // garson-signalr-client.js - bindSignalREvents() metodunu tamamlayın
     bindSignalREvents() {
+        console.log("🔧 SignalR events bağlanıyor...");
 
         // 🆕 İnaktif masa uyarısı - sadece ses + bildirim
         this.connection.on("InactiveTableAlert", (alertData) => {
@@ -82,12 +47,9 @@ class WaiterSignalRClient {
         // Admin bildirimi
         this.connection.on("AdminNotification", (data) => {
             console.log("📢 Admin bildirimi:", data);
-
             if (data.Type === "TableUpdate") {
-                // Masa listesini yenile
                 this.refreshPageData();
             }
-
             this.showToast(data.Message, 'info');
         });
 
@@ -101,12 +63,6 @@ class WaiterSignalRClient {
         this.connection.on("TableStatusChanged", (tableData) => {
             console.log("🔄 Masa durumu değişti:", tableData);
             this.handleTableStatusChange(tableData);
-        });
-
-        // Admin'den genel bildirimler
-        this.connection.on("AdminNotification", (notificationData) => {
-            console.log("📢 Admin bildirimi:", notificationData);
-            this.handleAdminNotification(notificationData);
         });
 
         // Bağlantı durumu
@@ -140,6 +96,41 @@ class WaiterSignalRClient {
             console.log("🔄 SignalR yeniden bağlanıyor:", error);
             this.updateConnectionStatus(false);
         });
+    }
+
+    // handleInactiveTableAlert metodunu da ekleyin (eksikse)
+    handleInactiveTableAlert(alertData) {
+        console.log("🚨 MASA UYARISI GELDİ:", alertData);
+
+        const notification = {
+            id: Date.now(),
+            type: 'InactiveTable',
+            title: '⏰ Masa Takip',
+            message: alertData.Message,
+            icon: 'fas fa-clock',
+            color: 'warning',
+            timestamp: new Date(alertData.Timestamp),
+            data: alertData,
+            isRead: false,
+            priority: 'normal'
+        };
+
+        console.log("🔔 Bildirim oluşturuldu:", notification);
+
+        this.addNotification(notification);
+        this.playWarningSound();
+        this.updateNotificationBadge();
+    }
+
+    // playWarningSound metodunu da ekleyin
+    playWarningSound() {
+        try {
+            const audio = new Audio('/sounds/table-warning.mp3');
+            audio.volume = 0.5;
+            audio.play().catch(e => console.log("Uyarı sesi çalınamadı:", e));
+        } catch (error) {
+            console.log("Ses çalma hatası:", error);
+        }
     }
 
 
