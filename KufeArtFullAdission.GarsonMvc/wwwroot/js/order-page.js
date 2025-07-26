@@ -36,37 +36,54 @@ class OrderPage {
             });
         }
 
-        // Sepet kapatma event'leri
+        // ✅ HEADER KAPAT BUTONU - BASIT VE GARANTİLİ
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'cartHeaderCloseBtn' ||
+                e.target.closest('#cartHeaderCloseBtn')) {
+                console.log('✅ Header close button clicked');
+                this.closeCartModal();
+            }
+        });
+
+        // Diğer event'ler...
+        document.getElementById('showHistoryBtn').addEventListener('click', () => {
+            this.showOrderHistory();
+        });
+
+        // ✅ Event Delegation - Öncelik ile
         document.addEventListener('click', (e) => {
             // Close button kontrolü
-            if (e.target.id === 'closeCartBtn' ||
-                e.target.closest('#closeCartBtn')) {
+            if (e.target.id === 'closeCartBtn' || e.target.closest('#closeCartBtn')) {
                 e.preventDefault();
                 e.stopPropagation();
+                e.stopImmediatePropagation(); // ✅ Diğer listener'ları durdur
                 console.log('❌ Close button clicked');
                 this.closeCartModal();
-                return;
+                return false;
             }
 
             // Overlay kontrolü
             if (e.target.id === 'cartOverlay') {
                 e.preventDefault();
                 e.stopPropagation();
+                e.stopImmediatePropagation(); // ✅ Diğer listener'ları durdur
                 console.log('📱 Overlay clicked');
                 this.closeCartModal();
-                return;
+                return false;
             }
-        });
+        }, true); // ✅ Capture phase - daha erken yakalama
 
-        // ✅ ESC TUŞU EVENT'İNİ EKLEYİN
+        // ✅ ESC tuşu event'i
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.isCartModalOpen) {
+                e.preventDefault();
+                e.stopPropagation();
                 console.log('⌨️ ESC pressed');
                 this.closeCartModal();
             }
         });
 
-        // Header actions
+        // Diğer event'ler...
         document.getElementById('showHistoryBtn').addEventListener('click', () => {
             this.showOrderHistory();
         });
