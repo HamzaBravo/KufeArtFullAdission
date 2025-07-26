@@ -79,10 +79,16 @@
         </div>
         <div class="panel-body">
             <div id="notificationList">
-                <!-- Bildirimler buraya gelecek -->
+                <div class="no-notifications">
+                    <i class="fas fa-bell-slash"></i>
+                    <p>Henüz bildirim yok</p>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- 🌙 Panel Overlay -->
+    <div class="panel-overlay" id="panelOverlay"></div>
 
     <!-- 👤 Profile Panel -->
     <div class="profile-panel" id="profilePanel">
@@ -197,8 +203,6 @@
         </div>
     </div>
 
-    <!-- 🌙 Overlay -->
-    <div class="panel-overlay" id="panelOverlay"></div>
 
     <!-- ⚡ Scripts -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

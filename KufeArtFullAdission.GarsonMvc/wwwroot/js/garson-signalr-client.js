@@ -519,17 +519,4 @@ document.addEventListener('DOMContentLoaded', () => {
     // Storage'dan eski bildirimleri yükle
     waiterSignalR.loadNotificationsFromStorage();
 
-    // Layout events
-    bindNotificationPanelEvents();
 });
-
-function bindNotificationPanelEvents() {
-    // Notification panel toggle
-    const notificationBtn = document.getElementById('notificationBtn');
-    if (notificationBtn) {
-        notificationBtn.addEventListener('click', () => {
-            waiterSignalR.renderNotificationPanel();
-            // Panel açma/kapama layout.js'de hallediliyor
-        });
-    }
-}
