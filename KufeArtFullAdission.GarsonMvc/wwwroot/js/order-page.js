@@ -60,6 +60,15 @@ class OrderPage {
             }
         });
 
+        // ✅ SİPARİŞ GÖNDER BUTONU EVENT LİSTENER
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'submitOrderBtn' || e.target.closest('#submitOrderBtn')) {
+                e.preventDefault();
+                console.log('📤 Submit order button clicked');
+                this.submitOrder();
+            }
+        });
+
         // Diğer event'ler...
         document.getElementById('showHistoryBtn').addEventListener('click', () => {
             this.showOrderHistory();

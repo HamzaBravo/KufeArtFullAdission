@@ -143,18 +143,22 @@
 
         <div class="modal-footer">
             <div class="cart-summary">
+                <!-- ✅ SOL: KAPAT BUTONU -->
                 <button class="btn-cart-close" onclick="window.orderPageInstance.closeCartModal();">
-                    <i class="fas fa-arrow-down me-2"></i>
-                    Sepeti Kapat
+                    <i class="fas fa-arrow-down me-1"></i>
+                    Kapat
                 </button>
 
+                <!-- ✅ ORTA: TOPLAM -->
                 <div class="total-section">
                     <span class="total-label">Toplam:</span>
                     <span class="total-amount" id="cartTotalAmount">₺0.00</span>
                 </div>
+
+                <!-- ✅ SAĞ: GÖNDER BUTONU -->
                 <button class="btn-submit-order" id="submitOrderBtn" disabled>
-                    <i class="fas fa-paper-plane me-2"></i>
-                    Sipariş Gönder
+                    <i class="fas fa-paper-plane me-1"></i>
+                    Gönder
                 </button>
             </div>
         </div>
