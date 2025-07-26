@@ -34,11 +34,18 @@ class WaiterSignalRClient {
         }
     }
 
-    // garson-signalr-client.js - bindSignalREvents() metodunu tamamlayın
+
+    deleteNotification(notificationId) {
+        this.notifications = this.notifications.filter(n => n.id !== notificationId);
+        this.updateNotificationBadge();
+        this.renderNotificationPanel();
+        this.saveNotificationsToStorage();
+    }
+
     bindSignalREvents() {
         console.log("🔧 SignalR events bağlanıyor...");
 
-        // 🆕 İnaktif masa uyarısı - sadece ses + bildirim
+        // İnaktif masa uyarısı
         this.connection.on("InactiveTableAlert", (alertData) => {
             console.log("⏰ Masa takip uyarısı:", alertData);
             this.handleInactiveTableAlert(alertData);
@@ -65,7 +72,7 @@ class WaiterSignalRClient {
             this.handleTableStatusChange(tableData);
         });
 
-        // Bağlantı durumu
+        // Bağlantı durumu events
         this.connection.on("Connected", (connectionId) => {
             console.log("🔗 Garson SignalR bağlandı:", connectionId);
         });
@@ -98,7 +105,6 @@ class WaiterSignalRClient {
         });
     }
 
-    // handleInactiveTableAlert metodunu da ekleyin (eksikse)
     handleInactiveTableAlert(alertData) {
         console.log("🚨 MASA UYARISI GELDİ:", alertData);
 
@@ -106,23 +112,22 @@ class WaiterSignalRClient {
             id: Date.now(),
             type: 'InactiveTable',
             title: '⏰ Masa Takip',
-            message: alertData.Message,
+            message: `${alertData.tableName} - ${alertData.inactiveMinutes} dakikadır sipariş yok`, // 🔥 Küçük harflerle
             icon: 'fas fa-clock',
             color: 'warning',
-            timestamp: new Date(alertData.Timestamp),
+            timestamp: new Date(),
             data: alertData,
             isRead: false,
             priority: 'normal'
         };
 
         console.log("🔔 Bildirim oluşturuldu:", notification);
-
         this.addNotification(notification);
         this.playWarningSound();
         this.updateNotificationBadge();
     }
 
-    // playWarningSound metodunu da ekleyin
+    // Uyarı sesi çalma
     playWarningSound() {
         try {
             const audio = new Audio('/sounds/table-warning.mp3');
@@ -132,17 +137,6 @@ class WaiterSignalRClient {
             console.log("Ses çalma hatası:", error);
         }
     }
-
-
-    refreshPageData() {
-        // Mevcut sayfa Dashboard ise masaları yenile
-        if (window.location.pathname === '/' && window.GarsonDashboard) {
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
-        }
-    }
-
 
     handleOrderCompleteNotification(orderData) {
         const notification = {
@@ -159,29 +153,23 @@ class WaiterSignalRClient {
         };
 
         this.addNotification(notification);
-
-        // Özel işlemler
         this.showMobileNotification(notification);
         this.playNotificationSound();
         this.showToast(notification.message, 'success');
 
-        // Vibration (mobile)
         if ('vibrate' in navigator) {
             navigator.vibrate([200, 100, 200, 100, 200]);
         }
 
-        // Update UI
         this.updateNotificationBadge();
     }
 
     handleTableStatusChange(tableData) {
-        // Masa durumu değişikliği
         console.log("Masa durumu güncellendi:", tableData.TableName);
 
-        // Dashboard sayfasındaysak masa listesini güncelle
         if (window.location.pathname === '/' && window.GarsonDashboard) {
             setTimeout(() => {
-                window.location.reload(); // Simple refresh for now
+                window.location.reload();
             }, 1000);
         }
     }
@@ -208,17 +196,14 @@ class WaiterSignalRClient {
     addNotification(notification) {
         this.notifications.unshift(notification);
 
-        // En fazla 50 bildirim sakla
         if (this.notifications.length > 50) {
             this.notifications = this.notifications.slice(0, 50);
         }
 
-        // Local storage'a kaydet
         this.saveNotificationsToStorage();
     }
 
     showMobileNotification(notification) {
-        // Browser notification
         if ("Notification" in window && Notification.permission === "granted") {
             const browserNotification = new Notification(notification.title, {
                 body: notification.message,
@@ -229,7 +214,6 @@ class WaiterSignalRClient {
                 requireInteraction: notification.priority === 'high'
             });
 
-            // Tıklandığında ilgili sayfaya git
             browserNotification.onclick = () => {
                 window.focus();
                 if (notification.data.TableId) {
@@ -240,41 +224,19 @@ class WaiterSignalRClient {
         }
     }
 
-    async sendOrderToAdmin(orderData) {
-        try {
-            if (!this.isConnected) {
-                throw new Error('SignalR bağlantısı yok');
-            }
-
-            // Admin paneline HTTP request gönder
-            const adminPanelUrl = this.getAdminPanelUrl();
-            const response = await fetch(`${adminPanelUrl}/api/notification/new-order`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(orderData)
-            });
-
-            if (response.ok) {
-                console.log("✅ Sipariş bildirimi admin paneline gönderildi");
-                return true;
-            } else {
-                console.error("❌ Admin panel bildirimi başarısız:", response.status);
-                return false;
-            }
-        } catch (error) {
-            console.error("❌ SignalR sipariş bildirimi hatası:", error);
-            return false;
+    refreshPageData() {
+        if (window.location.pathname === '/' && window.GarsonDashboard) {
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
         }
     }
 
     // Notification Management
     updateNotificationBadge() {
         const unreadCount = this.notifications.filter(n => !n.isRead).length;
-
-        // Layout'taki notification badge'i güncelle
         const badge = document.getElementById('notificationCount');
+
         if (badge) {
             if (unreadCount > 0) {
                 badge.style.display = 'flex';
@@ -313,21 +275,22 @@ class WaiterSignalRClient {
         const priorityClass = notification.priority === 'high' ? 'high-priority' : '';
 
         return `
-            <div class="notification-item ${!notification.isRead ? 'unread' : ''} ${priorityClass}" 
-                 data-notification-id="${notification.id}">
-                <div class="notification-icon ${notification.color}">
-                    <i class="${notification.icon}"></i>
-                </div>
-                <div class="notification-content">
-                    <div class="notification-title">${notification.title}</div>
-                    <div class="notification-message">${notification.message}</div>
-                    <div class="notification-time">${timeAgo}</div>
-                </div>
-                <div class="notification-actions">
-                    ${!notification.isRead ? '<button class="mark-read-btn"><i class="fas fa-check"></i></button>' : ''}
-                </div>
+        <div class="notification-item ${!notification.isRead ? 'unread' : ''} ${priorityClass}" 
+             data-notification-id="${notification.id}">
+            <div class="notification-icon ${notification.color}">
+                <i class="${notification.icon}"></i>
             </div>
-        `;
+            <div class="notification-content">
+                <div class="notification-title">${notification.title}</div>
+                <div class="notification-message">${notification.message}</div>
+                <div class="notification-time">${timeAgo}</div>
+            </div>
+            <div class="notification-actions">
+                ${!notification.isRead ? '<button class="mark-read-btn" title="Okundu işaretle"><i class="fas fa-check"></i></button>' : ''}
+                <button class="delete-notification-btn" title="Sil"><i class="fas fa-trash"></i></button>
+            </div>
+        </div>
+    `;
     }
 
     bindNotificationPanelEvents() {
@@ -337,6 +300,15 @@ class WaiterSignalRClient {
                 e.stopPropagation();
                 const notificationId = parseInt(btn.closest('.notification-item').dataset.notificationId);
                 this.markAsRead(notificationId);
+            });
+        });
+
+        // 🔥 YENİ: Delete notification
+        document.querySelectorAll('.delete-notification-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const notificationId = parseInt(btn.closest('.notification-item').dataset.notificationId);
+                this.deleteNotification(notificationId);
             });
         });
 
@@ -360,7 +332,6 @@ class WaiterSignalRClient {
     }
 
     navigateToTable(tableId, tableName) {
-        // Masa sipariş sayfasına git
         window.location.href = `/Order/Index?tableId=${tableId}&tableName=${encodeURIComponent(tableName)}&isOccupied=true`;
     }
 
@@ -389,7 +360,7 @@ class WaiterSignalRClient {
             console.log(`🔄 SignalR yeniden bağlanma denemesi: ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
             setTimeout(() => {
                 this.init();
-            }, 5000 * this.reconnectAttempts); // Exponential backoff
+            }, 5000 * this.reconnectAttempts);
         } else {
             console.error("❌ SignalR maksimum bağlantı denemesi aşıldı");
             this.showToast("Canlı bildirimler devre dışı. Sayfa yenileyin.", "warning");
@@ -397,27 +368,23 @@ class WaiterSignalRClient {
     }
 
     updateConnectionStatus(isConnected) {
-        // Layout'taki connection indicator'ı güncelle
         const indicator = document.querySelector('.connection-status');
         if (indicator) {
             indicator.className = `connection-status ${isConnected ? 'connected' : 'disconnected'}`;
             indicator.title = isConnected ? 'Canlı bağlantı aktif' : 'Bağlantı kopuk';
         }
 
-        // Nav bar'da online/offline durumu
         document.body.classList.toggle('signalr-offline', !isConnected);
     }
 
     // Utility Methods
     getAdminPanelUrl() {
-        // Development ve production URL'leri
         return window.location.hostname === 'localhost'
-            ? 'https://localhost:7164'  // Development
-            : 'https://adisyon.kufeart.com'; // Production
+            ? 'https://localhost:7164'
+            : 'https://adisyon.kufeart.com';
     }
 
     getWaiterName() {
-        // Layout'tan garson adını al
         const nameElement = document.querySelector('.waiter-name');
         return nameElement ? nameElement.textContent.trim() : 'Garson';
     }
@@ -433,11 +400,9 @@ class WaiterSignalRClient {
     }
 
     showToast(message, type = 'info') {
-        // Mevcut toast sistemini kullan
         if (window.showToast) {
             window.showToast(message, type);
         } else {
-            // Fallback toast
             console.log(`Toast [${type}]: ${message}`);
         }
     }
@@ -507,16 +472,11 @@ let waiterSignalR = null;
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    // Notification permission iste
     if ("Notification" in window && Notification.permission === "default") {
         Notification.requestPermission();
     }
 
-    // SignalR client'ı başlat
     waiterSignalR = new WaiterSignalRClient();
-    window.waiterSignalR = waiterSignalR; // Global access
-
-    // Storage'dan eski bildirimleri yükle
+    window.waiterSignalR = waiterSignalR;
     waiterSignalR.loadNotificationsFromStorage();
-
 });

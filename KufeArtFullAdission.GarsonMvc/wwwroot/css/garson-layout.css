@@ -859,3 +859,21 @@ body {
         opacity: 1;
         visibility: visible;
     }
+/* garson-layout.css'e ekleyin */
+.delete-notification-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: #ef4444;
+    color: white;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.2s ease;
+    margin-left: 5px;
+}
+
+    .delete-notification-btn:hover {
+        background: #dc2626;
+        transform: scale(1.1);
+    }

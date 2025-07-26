@@ -10,8 +10,7 @@ class GarsonLayout {
     }
 
     bindEvents() {
-
-
+        // Notification panel events
         document.getElementById('notificationBtn')?.addEventListener('click', () => {
             this.toggleNotifications();
         });
@@ -24,38 +23,7 @@ class GarsonLayout {
             this.closeNotifications();
         });
 
-
-        document.addEventListener('click', (e) => {
-            // Önce cart modal kontrolü yap
-            if (e.target.id === 'closeCartBtn' || e.target.closest('#closeCartBtn')) {
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation(); // ✅ Bu satırı ekleyin
-                console.log('❌ Close button clicked');
-                this.closeCartModal();
-                return false; // ✅ Bu satırı ekleyin
-            }
-
-            if (e.target.id === 'cartOverlay') {
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation(); // ✅ Bu satırı ekleyin
-                console.log('📱 Overlay clicked');
-                this.closeCartModal();
-                return false; // ✅ Bu satırı ekleyin
-            }
-        }, true); // ✅ true parametresi = capture phase'de dinle
-
-        // Notification panel
-        document.getElementById('notificationBtn')?.addEventListener('click', () => {
-            this.toggleNotifications();
-        });
-
-        document.getElementById('closeNotifications')?.addEventListener('click', () => {
-            this.closeNotifications();
-        });
-
-        // Profile panel
+        // Profile panel events
         document.getElementById('profileBtn')?.addEventListener('click', () => {
             this.toggleProfile();
         });
@@ -64,10 +32,26 @@ class GarsonLayout {
             this.closeProfile();
         });
 
-        // Panel overlay
-        document.getElementById('panelOverlay')?.addEventListener('click', () => {
-            this.closeAllPanels();
-        });
+        // Cart modal events (existing functionality)
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'closeCartBtn' || e.target.closest('#closeCartBtn')) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                console.log('❌ Close button clicked');
+                this.closeCartModal();
+                return false;
+            }
+
+            if (e.target.id === 'cartOverlay') {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                console.log('📱 Overlay clicked');
+                this.closeCartModal();
+                return false;
+            }
+        }, true);
 
         // Navigation
         window.addEventListener('popstate', () => {
@@ -78,6 +62,8 @@ class GarsonLayout {
     toggleNotifications() {
         const panel = document.getElementById('notificationPanel');
         const overlay = document.getElementById('panelOverlay');
+
+        console.log('🔔 Notification butonuna tıklandı');
 
         if (panel && overlay) {
             const isOpen = panel.classList.contains('open');
@@ -94,6 +80,8 @@ class GarsonLayout {
                     window.waiterSignalR.renderNotificationPanel();
                 }
             }
+        } else {
+            console.error('❌ Panel veya overlay bulunamadı');
         }
     }
 
@@ -112,12 +100,11 @@ class GarsonLayout {
         const panel = document.getElementById('profilePanel');
         const overlay = document.getElementById('panelOverlay');
 
-        // Diğer panelleri kapat
         this.closeNotifications();
 
-        if (panel.classList.contains('open')) {
+        if (panel && panel.classList.contains('open')) {
             this.closeProfile();
-        } else {
+        } else if (panel) {
             panel.classList.add('open');
             overlay.classList.add('active');
             document.body.style.overflow = 'hidden';
@@ -128,14 +115,16 @@ class GarsonLayout {
         const panel = document.getElementById('profilePanel');
         const overlay = document.getElementById('panelOverlay');
 
-        panel.classList.remove('open');
-        overlay.classList.remove('active');
-        document.body.style.overflow = '';
+        if (panel && overlay) {
+            panel.classList.remove('open');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
     }
 
-    closeAllPanels() {
-        this.closeNotifications();
-        this.closeProfile();
+    closeCartModal() {
+        // Existing cart modal functionality
+        console.log('Cart modal kapatıldı');
     }
 
     updateActiveNav() {
@@ -152,19 +141,16 @@ class GarsonLayout {
     }
 }
 
-// Global functions for profile actions
+// Global functions
 function searchCustomer() {
-    // Modal veya yeni sayfa
     alert('Müşteri arama özelliği yakında...');
 }
 
 function changePassword() {
-    // Şifre değiştirme modalı
     alert('Şifre değiştirme özelliği yakında...');
 }
 
 function viewProfile() {
-    // Profil görüntüleme sayfası
     window.location.href = '/Profile';
 }
 
@@ -177,4 +163,4 @@ function logout() {
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     new GarsonLayout();
-})
+});

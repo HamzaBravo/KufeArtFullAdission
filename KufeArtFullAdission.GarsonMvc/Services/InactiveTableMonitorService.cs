@@ -10,8 +10,8 @@ public class InactiveTableMonitorService : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly IHubContext<WaiterHub> _hubContext;
     private readonly ILogger<InactiveTableMonitorService> _logger;
-    private readonly int _checkIntervalMinutes = 1; // Her 5 dakikada bir kontrol et
-    private readonly int _inactiveThresholdMinutes = 2; // 15 dakika eşik
+    private readonly int _checkIntervalMinutes = 6; // Her 5 dakikada bir kontrol et
+    private readonly int _inactiveThresholdMinutes = 35; // 15 dakika eşik
 
     public InactiveTableMonitorService(
         IServiceProvider serviceProvider,
