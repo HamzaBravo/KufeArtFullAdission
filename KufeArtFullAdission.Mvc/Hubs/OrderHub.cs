@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace KufeArtFullAdission.Mvc.Hubs;
 
-[Authorize]
+
 public class OrderHub : Hub
 {
     public async Task JoinAdminGroup()

@@ -34,6 +34,10 @@ public class NotificationController(IHubContext<OrderHub> _hubContext) : Control
                 Color = "success"
             };
 
+            // 🎯 YENİ: PrinterManager'a da gönder
+            await _hubContext.Clients.Group("PrinterManagers").SendAsync("NewOrderReceived", orderData);
+
+
             // Admin paneline bildirim gönder
             await _hubContext.Clients.Group("AdminPanel").SendAsync("NewOrderReceived", orderData);
 

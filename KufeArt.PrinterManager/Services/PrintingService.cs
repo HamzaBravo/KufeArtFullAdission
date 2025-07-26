@@ -18,7 +18,10 @@ namespace KufeArt.PrinterManager.Services
 
         public PrintingService()
         {
-            _configPath = Path.Combine(Application.StartupPath, "printer-config.json");
+            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var configDir = Path.Combine(appDataPath, "KufeArt", "PrinterManager");
+
+            _configPath = Path.Combine(configDir, "printer-settings.json");
         }
 
         public async Task ProcessOrderAsync(OrderNotificationModel orderNotification)
