@@ -877,3 +877,14 @@
 .cart-badge-btn.active + .cart-close-btn {
     display: flex !important;
 }
+.cart-modal {
+    z-index: 2000 !important;
+}
+
+.modal-overlay {
+    z-index: 2001 !important;
+}
+
+.modal-container {
+    z-index: 2002 !important;
+}

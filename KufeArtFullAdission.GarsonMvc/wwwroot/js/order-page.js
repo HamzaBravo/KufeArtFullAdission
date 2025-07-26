@@ -27,42 +27,38 @@ class OrderPage {
 
         console.log('🔍 Events binding...');
 
-        // Sepet butonu - normal event listener
-        document.getElementById('openCartBtn').addEventListener('click', (e) => {
-            console.log('🛒 Cart button clicked, modal open:', this.isCartModalOpen);
+        // Sepet açma
+        const openCartBtn = document.getElementById('openCartBtn');
+        if (openCartBtn) {
+            openCartBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🛒 Cart button clicked');
+                this.toggleCartModal();
+            });
+        }
 
-            if (cartButtonCooldown) return;
-            cartButtonCooldown = true;
-            setTimeout(() => cartButtonCooldown = false, 300);
-
-            this.toggleCartModal();
-        });
-
-        // ✅ EVENT DELEGATION ile modal kapatma - document üzerinden dinleyelim
+        // Sepet kapatma - daha spesifik selector'lar
         document.addEventListener('click', (e) => {
-            // Close button
-            if (e.target.id === 'closeCartBtn' || e.target.closest('#closeCartBtn')) {
+            // Close button - hem ID hem class kontrolü
+            if (e.target.id === 'closeCartBtn' ||
+                e.target.closest('#closeCartBtn') ||
+                e.target.classList.contains('btn-close')) {
+                e.preventDefault();
+                e.stopPropagation();
                 console.log('❌ Close button clicked');
                 this.closeCartModal();
+                return;
             }
 
-            // Overlay
-            if (e.target.id === 'cartOverlay') {
+            // Overlay click
+            if (e.target.id === 'cartOverlay' ||
+                e.target.classList.contains('modal-overlay')) {
+                e.preventDefault();
+                e.stopPropagation();
                 console.log('📱 Overlay clicked');
                 this.closeCartModal();
-            }
-
-            // History close button
-            if (e.target.id === 'closeHistoryBtn' || e.target.closest('#closeHistoryBtn')) {
-                this.closeHistoryModal();
-            }
-        });
-
-        // ESC tuşu ile modal kapatma
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.isCartModalOpen) {
-                console.log('⌨️ ESC pressed');
-                this.closeCartModal();
+                return;
             }
         });
 
