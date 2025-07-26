@@ -33,7 +33,53 @@ class WaiterSignalRClient {
         }
     }
 
+    // 🆕 Basit uyarı handler
+    handleInactiveTableAlert(alertData) {
+        // Bildirim objesi oluştur
+        const notification = {
+            id: Date.now(),
+            type: 'InactiveTable',
+            title: '⏰ Masa Takip',
+            message: alertData.Message,
+            icon: 'fas fa-clock',
+            color: 'warning',
+            timestamp: new Date(alertData.Timestamp),
+            data: alertData,
+            isRead: false,
+            priority: 'normal'
+        };
+
+        // Bildirim listesine ekle
+        this.addNotification(notification);
+
+        // Uyarı sesi çal
+        this.playWarningSound();
+
+        // Badge güncelle
+        this.updateNotificationBadge();
+
+        console.log(`🔔 ${alertData.TableName} için uyarı eklendi`);
+    }
+
+
+    playWarningSound() {
+        try {
+            // Basit bir uyarı sesi
+            const audio = new Audio('/sounds/table-warning.mp3');
+            audio.volume = 0.5;
+            audio.play().catch(e => console.log("Uyarı sesi çalınamadı:", e));
+        } catch (error) {
+            console.log("Ses çalma hatası:", error);
+        }
+    }
+
     bindSignalREvents() {
+
+        // 🆕 İnaktif masa uyarısı - sadece ses + bildirim
+        this.connection.on("InactiveTableAlert", (alertData) => {
+            console.log("⏰ Masa takip uyarısı:", alertData);
+            this.handleInactiveTableAlert(alertData);
+        });
 
         // Admin bildirimi
         this.connection.on("AdminNotification", (data) => {

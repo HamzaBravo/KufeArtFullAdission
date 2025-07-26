@@ -6,6 +6,15 @@ namespace KufeArtFullAdission.Mvc.Extensions;
 public static class UserExtensions
 {
     /// <summary>
+    /// Süper admin olup olmadığını kontrol eder
+    /// </summary>
+    public static bool IsSuperAdmin(this ClaimsPrincipal user)
+    {
+        var isSuperAdminClaim = user.FindFirst("IsSuperAdmin")?.Value;
+        return bool.TryParse(isSuperAdminClaim, out var isSuperAdmin) && isSuperAdmin;
+    }
+
+    /// <summary>
     /// Giriş yapmış kullanıcının ID'sini alır
     /// </summary>
     public static Guid GetUserId(this ClaimsPrincipal user)

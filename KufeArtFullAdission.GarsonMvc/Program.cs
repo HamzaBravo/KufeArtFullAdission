@@ -1,5 +1,6 @@
 ﻿using AppDbContext;
 using KufeArtFullAdission.GarsonMvc.Hubs;
+using KufeArtFullAdission.GarsonMvc.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,6 +8,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 
 builder.Services.AddSignalR();
+
+
+builder.Services.AddHostedService<InactiveTableMonitorService>();
 
 // 🎯 DATABASE
 builder.Services.AddDbContext<DBContext>(options =>

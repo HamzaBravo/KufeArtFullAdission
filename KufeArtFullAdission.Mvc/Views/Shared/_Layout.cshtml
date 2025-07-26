@@ -62,12 +62,15 @@
                                         <i class="fas fa-box me-2"></i>Ürün Yönetimi
                                     </a>
                                 </li>
-                                <li>
-                                    <a class="dropdown-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Person" ? "active" : "")"
-                                       asp-controller="Person" asp-action="Index">
-                                        <i class="fas fa-users me-2"></i>Personel Yönetimi
-                                    </a>
-                                </li>
+                                @if (User.IsSuperAdmin())
+                                    {
+                                        <li>
+                                            <a class="dropdown-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Person" ? "active" : "")"
+                                               asp-controller="Person" asp-action="Index">
+                                                <i class="fas fa-users me-2"></i>Personel Yönetimi
+                                            </a>
+                                        </li>
+                                    }
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <a class="dropdown-item" href="#">
@@ -78,82 +81,86 @@
                             </ul>
                         </li>
 
-                            <!-- 🎯 YENİ RAPORLAR MENÜSÜ -->
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Report" ? "active" : "")"
-                                   href="#" role="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-chart-line me-1"></i>Raporlar & Analiz
-                                </a>
-                                <ul class="dropdown-menu">
-                                    <li>
-                                        <a class="dropdown-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Index" && ViewContext.RouteData.Values["Controller"]?.ToString() == "Report" ? "active" : "")"
-                                           asp-controller="Report" asp-action="Index">
-                                            <i class="fas fa-home me-2"></i>Rapor Dashboard
-                                        </a>
-                                    </li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <h6 class="dropdown-header">
-                                            <i class="fas fa-chart-bar me-1"></i>Performans Analizi
-                                        </h6>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "StaffPerformance" ? "active" : "")"
-                                           asp-controller="Report" asp-action="StaffPerformance">
-                                            <i class="fas fa-users me-2"></i>Personel Performansı
-                                            <span class="badge bg-success ms-2">Prim</span>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "SalesAnalysis" ? "active" : "")"
-                                           asp-controller="Report" asp-action="SalesAnalysis">
-                                            <i class="fas fa-chart-area me-2"></i>Ciro Analizi
-                                            <span class="badge bg-info ms-2">Trend</span>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "TableHeatmap" ? "active" : "")"
-                                           asp-controller="Report" asp-action="TableHeatmap">
-                                            <i class="fas fa-fire me-2"></i>Masa Isı Haritası
-                                            <span class="badge bg-warning ms-2">🔥 HOT</span>
-                                        </a>
-                                    </li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <h6 class="dropdown-header">
-                                            <i class="fas fa-calendar me-1"></i>Hızlı Raporlar
-                                        </h6>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="#" onclick="openQuickReport('daily')">
-                                            <i class="fas fa-calendar-day me-2"></i>Günlük Rapor
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="#" onclick="openQuickReport('weekly')">
-                                            <i class="fas fa-calendar-week me-2"></i>Haftalık Rapor
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="#" onclick="openQuickReport('monthly')">
-                                            <i class="fas fa-calendar-alt me-2"></i>Aylık Rapor
-                                        </a>
-                                    </li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <a class="dropdown-item" href="#" onclick="ToastHelper.info('Gelişmiş özellikler yakında!')">
-                                            <i class="fas fa-cog me-2"></i>Özel Rapor Oluştur
-                                            <span class="badge bg-primary ms-2">Pro</span>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="#" onclick="ToastHelper.info('Excel export yakında!')">
-                                            <i class="fas fa-file-excel me-2"></i>Excel Raporu
-                                            <span class="badge bg-success ms-2">Excel</span>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </li>
+                            @if (User.IsSuperAdmin())
+                            {
+                                <!-- 🎯 YENİ RAPORLAR MENÜSÜ -->
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Report" ? "active" : "")"
+                                       href="#" role="button" data-bs-toggle="dropdown">
+                                        <i class="fas fa-chart-line me-1"></i>Raporlar & Analiz
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Index" && ViewContext.RouteData.Values["Controller"]?.ToString() == "Report" ? "active" : "")"
+                                               asp-controller="Report" asp-action="Index">
+                                                <i class="fas fa-home me-2"></i>Rapor Dashboard
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <h6 class="dropdown-header">
+                                                <i class="fas fa-chart-bar me-1"></i>Performans Analizi
+                                            </h6>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "StaffPerformance" ? "active" : "")"
+                                               asp-controller="Report" asp-action="StaffPerformance">
+                                                <i class="fas fa-users me-2"></i>Personel Performansı
+                                                <span class="badge bg-success ms-2">Prim</span>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "SalesAnalysis" ? "active" : "")"
+                                               asp-controller="Report" asp-action="SalesAnalysis">
+                                                <i class="fas fa-chart-area me-2"></i>Ciro Analizi
+                                                <span class="badge bg-info ms-2">Trend</span>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "TableHeatmap" ? "active" : "")"
+                                               asp-controller="Report" asp-action="TableHeatmap">
+                                                <i class="fas fa-fire me-2"></i>Masa Isı Haritası
+                                                <span class="badge bg-warning ms-2">🔥 HOT</span>
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <h6 class="dropdown-header">
+                                                <i class="fas fa-calendar me-1"></i>Hızlı Raporlar
+                                            </h6>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="#" onclick="openQuickReport('daily')">
+                                                <i class="fas fa-calendar-day me-2"></i>Günlük Rapor
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="#" onclick="openQuickReport('weekly')">
+                                                <i class="fas fa-calendar-week me-2"></i>Haftalık Rapor
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="#" onclick="openQuickReport('monthly')">
+                                                <i class="fas fa-calendar-alt me-2"></i>Aylık Rapor
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item" href="#" onclick="ToastHelper.info('Gelişmiş özellikler yakında!')">
+                                                <i class="fas fa-cog me-2"></i>Özel Rapor Oluştur
+                                                <span class="badge bg-primary ms-2">Pro</span>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="#" onclick="ToastHelper.info('Excel export yakında!')">
+                                                <i class="fas fa-file-excel me-2"></i>Excel Raporu
+                                                <span class="badge bg-success ms-2">Excel</span>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </li>
+                            }
+                
 
                             <!-- Diğer menüler... -->
                         </ul>
@@ -334,12 +341,6 @@
     <script src="~/js/loader-helper.js" asp-append-version="true"></script>
     <script src="~/js/profile-manager.js" asp-append-version="true"></script>
     <script src="~/js/footer-effects.js" asp-append-version="true"></script>
-
-
-
-
-
-
 
     <!-- _Layout.cshtml'e ekle -->
     <script src="https://unpkg.com/@@microsoft/signalr@latest/dist/browser/signalr.min.js"></script>

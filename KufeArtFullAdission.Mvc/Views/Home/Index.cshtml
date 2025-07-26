@@ -5,10 +5,8 @@
 
 <div class="container-fluid">
     <!-- Dashboard Başlık -->
-
-
-    <!-- Dashboard Kartları -->
     <div class="row g-3 mb-4">
+
         <!-- Günlük Ciro -->
         <div class="col-xl-3 col-md-6">
             <div class="card border-0 shadow-sm">
@@ -16,7 +14,15 @@
                     <div class="d-flex align-items-center">
                         <div class="flex-grow-1">
                             <h6 class="text-muted fw-normal mb-1">Günlük Ciro</h6>
-                            <h3 class="mb-0 fw-bold text-success">₺@Model.DailySales.ToString("N2")</h3>
+                            @if (User.IsSuperAdmin())
+                            {
+                                <h3 class="mb-0 fw-bold text-success">₺@Model.DailySales.ToString("N2")</h3>
+                            }
+                            else
+                            {
+                                <h3 class="mb-0 fw-bold text-success">***</h3>
+                            }
+
                         </div>
                         <div class="text-success">
                             <i class="fas fa-lira-sign fa-2x opacity-75"></i>

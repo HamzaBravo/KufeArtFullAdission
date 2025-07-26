@@ -64,7 +64,8 @@ public class AuthController(DBContext _dbContext) : Controller
                 new(ClaimTypes.Name, user.FullName),
                 new("Username", user.Username),
                 new(ClaimTypes.Role, user.AccessType.ToString()),
-                new("ProfileImage", user.ProfileImagePath ?? "")
+                new("ProfileImage", user.ProfileImagePath ?? ""),
+                new("IsSuperAdmin", (user.IsSuperAdmin == true).ToString()) // 🆕 Yeni claim
             };
 
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
