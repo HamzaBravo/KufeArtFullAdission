@@ -29,18 +29,15 @@ class OrderPage {
         const openCartBtn = document.getElementById('openCartBtn');
         if (openCartBtn) {
             openCartBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
                 console.log('🛒 Cart button clicked');
                 this.toggleCartModal();
             });
         }
 
-        // ✅ HEADER KAPAT BUTONU - BASIT VE GARANTİLİ
+        // ✅ SEPET KAPAT BUTONU - BASİT VE GARANTİLİ
         document.addEventListener('click', (e) => {
-            if (e.target.id === 'cartHeaderCloseBtn' ||
-                e.target.closest('#cartHeaderCloseBtn')) {
-                console.log('✅ Header close button clicked');
+            if (e.target.id === 'closeCartBtn') {
+                console.log('❌ Cart close button clicked');
                 this.closeCartModal();
             }
         });
