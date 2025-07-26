@@ -30,33 +30,42 @@ namespace KufeArtFullAdission.Mvc.Services
             if (files == null || !files.Any()) return uploadedPaths;
 
             var uploadsFolder = Path.Combine(_physicalRoot, folderName);
-            Directory.CreateDirectory(uploadsFolder); // klasör yoksa oluştur
+            Directory.CreateDirectory(uploadsFolder);
 
             foreach (var file in files)
             {
                 if (file.Length > 0)
                 {
-                    if (file.Length > 10 * 1024 * 1024)
-                        throw new InvalidOperationException($"Dosya çok büyük: {file.FileName}. Maksimum 10MB olmalı.");
-
-                    var fileName = $"{Guid.NewGuid()}.webp";
-                    var filePath = Path.Combine(uploadsFolder, fileName);
-
-                    using var image = await Image.LoadAsync(file.OpenReadStream());
-
-                    if (image.Width > 1920 || image.Height > 1920)
+                    try
                     {
-                        var ratio = Math.Min(1920.0 / image.Width, 1920.0 / image.Height);
-                        var newWidth = (int)(image.Width * ratio);
-                        var newHeight = (int)(image.Height * ratio);
-                        image.Mutate(x => x.Resize(newWidth, newHeight));
+                        var fileName = $"{Guid.NewGuid()}.webp";
+                        var filePath = Path.Combine(uploadsFolder, fileName);
+
+                        using var memoryStream = new MemoryStream();
+                        await file.CopyToAsync(memoryStream);
+                        memoryStream.Position = 0;
+
+                        using var image = await Image.LoadAsync(memoryStream);
+
+                        if (image.Width > 1920 || image.Height > 1920)
+                        {
+                            var ratio = Math.Min(1920.0 / image.Width, 1920.0 / image.Height);
+                            var newWidth = (int)(image.Width * ratio);
+                            var newHeight = (int)(image.Height * ratio);
+                            image.Mutate(x => x.Resize(newWidth, newHeight));
+                        }
+
+                        var encoder = new WebpEncoder { Quality = 85 };
+                        await image.SaveAsync(filePath, encoder);
+
+                        var webPath = $"{_webRootPrefix}/{folderName}/{fileName}";
+                        uploadedPaths.Add(webPath);
                     }
-
-                    var encoder = new WebpEncoder { Quality = 85 };
-                    await image.SaveAsync(filePath, encoder);
-
-                    var webPath = $"{_webRootPrefix}/{folderName}/{fileName}";
-                    uploadedPaths.Add(webPath);
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Dosya işleme hatası {file.FileName}: {ex.Message}");
+                        continue;
+                    }
                 }
             }
 

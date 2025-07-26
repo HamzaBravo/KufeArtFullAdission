@@ -256,7 +256,7 @@
                 return;
             }
 
-            // ✅ FORM SUBMIT EVENT
+            // ✅ FORM SUBMIT EVENT (MEVcut kodunuz - korundu)
             form.addEventListener('submit', function(e) {
                 console.log('Form submit edildi');
 
@@ -281,7 +281,7 @@
                 }, 150);
             });
 
-            // ✅ KÜFE POINT HESAPLAMA
+            // ✅ KÜFE POINT HESAPLAMA (MEVcut kodunuz - korundu)
             const kufePointsInput = document.querySelector('input[name="KufePoints"]');
             const pointValueSpan = document.getElementById('pointValue');
 
@@ -298,8 +298,179 @@
                 updatePointValue(); // Sayfa yüklendiğinde hesapla
             }
 
-            // Diğer toggle'lar ve resim işlemleri...
-            // (Kalan kodun burada olacak)
+            // ✅ KÜFE POINT TOGGLE (Edit view için - Model'den gelen değerlere göre)
+            const kufePointToggle = document.getElementById('kufePointToggle');
+            const kufePointFields = document.getElementById('kufePointFields');
+
+            if (kufePointToggle && kufePointFields) {
+                kufePointToggle.addEventListener('change', function() {
+                    kufePointFields.style.display = this.checked ? 'block' : 'none';
+
+                    if (!this.checked && kufePointsInput) {
+                        kufePointsInput.value = 0;
+                        updatePointValue();
+                    }
+                });
+            }
+
+            // ✅ KOMİSYON TOGGLE (Edit view için - Model'den gelen değerlere göre)
+            const commissionToggle = document.getElementById('commissionToggle');
+            const commissionFields = document.getElementById('commissionFields');
+            const commissionRate = document.querySelector('input[name="CommissionRate"]');
+
+            if (commissionToggle && commissionFields) {
+                commissionToggle.addEventListener('change', function() {
+                    if (this.checked) {
+                        commissionFields.style.display = 'block';
+                        if (commissionRate) {
+                            commissionRate.setAttribute('required', 'required');
+                        }
+                    } else {
+                        commissionFields.style.display = 'none';
+                        if (commissionRate) {
+                            commissionRate.removeAttribute('required');
+                            commissionRate.value = '0';
+                        }
+                    }
+                });
+            }
+
+            // ✅ YENİ: PROGRESS BAR İLE RESİM ÖNİZLEME (ERR_UPLOAD_FILE_CHANGED FİXLİ)
+            const imageInput = document.querySelector('input[name="images"]');
+            const imagePreview = document.getElementById('imagePreview');
+
+            // Progress container'ı oluştur
+            if (imageInput) {
+                if (typeof ImageProgressHelper !== 'undefined') {
+                    ImageProgressHelper.createProgressContainer(imageInput.id || 'newImageUpload');
+                }
+            }
+
+            if (imageInput && imagePreview) {
+                imageInput.addEventListener('change', async function(e) {
+                    const files = Array.from(e.target.files);
+
+                    if (files.length > 0) {
+                        console.log(`${files.length} dosya seçildi, güvenli işleme başlıyor...`);
+
+                        try {
+                            // Önce container'ı temizle
+                            imagePreview.innerHTML = '';
+
+                            // ✅ Progress bar varsa kullan, yoksa basit preview
+                            if (typeof ImageProgressHelper !== 'undefined') {
+                                // ✅ GÜVENLI PROGRESS BAR İLE İŞLEME
+                                await ImageProgressHelper.processFiles(files, imagePreview);
+                            } else {
+                                // ✅ Fallback: Basit resim önizleme (eski yöntem)
+                                console.warn('ImageProgressHelper bulunamadı, basit önizleme kullanılıyor');
+
+                                files.forEach(file => {
+                                    if (file.type.startsWith('image/')) {
+                                        const reader = new FileReader();
+                                        reader.onload = function(e) {
+                                            const preview = document.createElement('div');
+                                            preview.className = 'image-preview-item d-inline-block me-2 mb-2';
+                                            preview.innerHTML = `
+                                                <div class="position-relative">
+                                                    <img src="${e.target.result}" alt="Preview"
+                                                         style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #0d6efd;">
+                                                    <small class="d-block text-center mt-1 text-muted">${file.name}</small>
+                                                </div>
+                                            `;
+                                            imagePreview.appendChild(preview);
+                                        };
+                                        reader.readAsDataURL(file);
+                                    }
+                                });
+                            }
+
+                        } catch (error) {
+                            console.error('Resim işleme hatası:', error);
+                            if (typeof ToastHelper !== 'undefined') {
+                                ToastHelper.error('Resim işlenirken hata oluştu: ' + error.message);
+                            } else {
+                                alert('Resim işlenirken hata oluştu: ' + error.message);
+                            }
+                        }
+                    } else {
+                        // Dosya seçimi iptal edildi
+                        if (imagePreview) imagePreview.innerHTML = '';
+                        if (typeof ImageProgressHelper !== 'undefined') {
+                            ImageProgressHelper.hide();
+                        }
+                    }
+                });
+            }
+
+            // ✅ MEVcut resim silme checkbox'ları (varsa)
+            const deleteCheckboxes = document.querySelectorAll('input[name="deleteImageIds"]');
+
+            if (deleteCheckboxes.length > 0) {
+                deleteCheckboxes.forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        const imageContainer = this.closest('.existing-image-item');
+
+                        if (imageContainer) {
+                            if (this.checked) {
+                                imageContainer.style.opacity = '0.5';
+                                imageContainer.style.filter = 'grayscale(100%)';
+
+                                // Silinecek efekti ekle
+                                const overlay = document.createElement('div');
+                                overlay.className = 'delete-overlay';
+                                overlay.style.cssText = `
+                                    position: absolute;
+                                    top: 0;
+                                    left: 0;
+                                    width: 100%;
+                                    height: 100%;
+                                    background: rgba(220, 53, 69, 0.8);
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    color: white;
+                                    font-weight: bold;
+                                    border-radius: 8px;
+                                    z-index: 10;
+                                `;
+                                overlay.innerHTML = '<i class="fas fa-trash fa-2x"></i>';
+
+                                const existingOverlay = imageContainer.querySelector('.delete-overlay');
+                                if (!existingOverlay) {
+                                    imageContainer.style.position = 'relative';
+                                    imageContainer.appendChild(overlay);
+                                }
+
+                            } else {
+                                imageContainer.style.opacity = '1';
+                                imageContainer.style.filter = 'none';
+
+                                // Silinecek efektini kaldır
+                                const overlay = imageContainer.querySelector('.delete-overlay');
+                                if (overlay) {
+                                    overlay.remove();
+                                }
+                            }
+                        }
+                    });
+                });
+            }
+
+            // ✅ Sayfa yüklendiğinde mevcut değerleri kontrol et
+            console.log('Edit view JavaScript yüklendi, mevcut değerler kontrol ediliyor...');
+
+            // Puan değerini güncelle
+            updatePointValue();
+
+            // Toggle durumlarını kontrol et
+            if (kufePointToggle && kufePointFields) {
+                kufePointFields.style.display = kufePointToggle.checked ? 'block' : 'none';
+            }
+
+            if (commissionToggle && commissionFields) {
+                commissionFields.style.display = commissionToggle.checked ? 'block' : 'none';
+            }
         });
     </script>
 }

@@ -214,7 +214,7 @@
                 return;
             }
 
-            // ✅ FORM SUBMIT EVENT (Eski kodundaki gibi)
+            // ✅ FORM SUBMIT EVENT (MEVcut kodunuz - değişmedi)
             form.addEventListener('submit', function(e) {
                 console.log('Form submit edildi');
 
@@ -243,7 +243,7 @@
                 }, 150);
             });
 
-            // ✅ KÜFE POINT TOGGLE VE HESAPLAMA
+            // ✅ KÜFE POINT TOGGLE VE HESAPLAMA (MEVcut kodunuz - değişmedi)
             const kufePointToggle = document.getElementById('kufePointToggle');
             const kufePointFields = document.getElementById('kufePointFields');
             const kufePointsInput = document.querySelector('input[name="KufePoints"]');
@@ -260,7 +260,7 @@
                 });
             }
 
-            // Puan değeri hesaplama fonksiyonu
+            // Puan değeri hesaplama fonksiyonu (MEVcut kodunuz - değişmedi)
             function updatePointValue() {
                 if (!kufePointsInput || !pointValueSpan) return;
 
@@ -269,13 +269,13 @@
                 pointValueSpan.textContent = `₺${value}`;
             }
 
-            // Puan input'unda değişiklik olduğunda hesapla
+            // Puan input'unda değişiklik olduğunda hesapla (MEVcut kodunuz - değişmedi)
             if (kufePointsInput) {
                 kufePointsInput.addEventListener('input', updatePointValue);
                 updatePointValue(); // İlk yüklemede hesapla
             }
 
-            // ✅ KOMİSYON TOGGLE
+            // ✅ KOMİSYON TOGGLE (MEVcut kodunuz - değişmedi)
             const commissionToggle = document.getElementById('commissionToggle');
             const commissionFields = document.getElementById('commissionFields');
             const commissionRate = document.querySelector('input[name="CommissionRate"]');
@@ -297,32 +297,40 @@
                 });
             }
 
-            // ✅ RESİM ÖNİZLEME
+            // ✅ YENİ: PROGRESS BAR İLE RESİM ÖNİZLEME (ERR_UPLOAD_FILE_CHANGED FİXLİ)
             const imageUpload = document.getElementById('imageUpload');
             const imagePreview = document.getElementById('imagePreview');
 
-            if (imageUpload && imagePreview) {
-                imageUpload.addEventListener('change', function(e) {
-                    imagePreview.innerHTML = '';
+            // Progress container'ı oluştur
+            if (imageUpload) {
+                ImageProgressHelper.createProgressContainer('imageUpload');
+            }
 
-                    Array.from(e.target.files).forEach(file => {
-                        if (file.type.startsWith('image/')) {
-                            const reader = new FileReader();
-                            reader.onload = function(e) {
-                                const preview = document.createElement('div');
-                                preview.className = 'image-preview-item d-inline-block me-2 mb-2';
-                                preview.innerHTML = `
-                                    <div class="position-relative">
-                                        <img src="${e.target.result}" alt="Preview"
-                                             style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #28a745;">
-                                        <small class="d-block text-center mt-1 text-muted">${file.name}</small>
-                                    </div>
-                                `;
-                                imagePreview.appendChild(preview);
-                            };
-                            reader.readAsDataURL(file);
+            if (imageUpload && imagePreview) {
+                imageUpload.addEventListener('change', async function(e) {
+                    const files = Array.from(e.target.files);
+
+                    if (files.length > 0) {
+                        console.log(`${files.length} dosya seçildi, güvenli işleme başlıyor...`);
+
+                        try {
+                            // Önce container'ı temizle
+                            imagePreview.innerHTML = '';
+
+                            // ✅ GÜVENLI PROGRESS BAR İLE İŞLEME
+                            await ImageProgressHelper.processFiles(files, imagePreview);
+
+                        } catch (error) {
+                            console.error('Resim işleme hatası:', error);
+                            if (typeof ToastHelper !== 'undefined') {
+                                ToastHelper.error('Resim işlenirken hata oluştu: ' + error.message);
+                            }
                         }
-                    });
+                    } else {
+                        // Dosya seçimi iptal edildi
+                        imagePreview.innerHTML = '';
+                        ImageProgressHelper.hide();
+                    }
                 });
             }
         });

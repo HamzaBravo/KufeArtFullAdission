@@ -57,3 +57,83 @@
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
+
+
+/* Image Upload Progress Bar */
+.image-upload-progress {
+    display: none;
+    margin-top: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.progress-title {
+    font-weight: 600;
+    color: #495057;
+    margin: 0;
+}
+
+.progress-percentage {
+    font-weight: bold;
+    color: #28a745;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #28a745, #20c997);
+    width: 0%;
+    transition: width 0.3s ease;
+    border-radius: 4px;
+}
+
+.processing-files {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin: 0;
+}
+
+.file-status {
+    margin-top: 8px;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    padding: 4px 0;
+    font-size: 0.875rem;
+}
+
+    .file-item i {
+        margin-right: 8px;
+        width: 16px;
+    }
+
+.file-completed {
+    color: #28a745;
+}
+
+.file-processing {
+    color: #ffc107;
+}
+
+.file-error {
+    color: #dc3545;
+}
