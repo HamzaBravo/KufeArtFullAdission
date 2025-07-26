@@ -110,8 +110,7 @@
 
 <!-- 🛒 Sepet Modal -->
 <div class="cart-modal" id="cartModal">
-    <!-- ✅ OVERLAY EKLENDİ -->
-    <div class="modal-overlay" id="cartOverlay"></div>
+    <div class="modal-overlay" id="cartOverlay" onclick="window.orderPageInstance.closeCartModal();"></div>
 
     <div class="modal-container">
         <div class="modal-header">
@@ -119,8 +118,8 @@
                 <i class="fas fa-shopping-cart me-2"></i>
                 Sepet (@Model.TableName)
             </h4>
-            <!-- ✅ CLOSE BUTTON EKLENDİ - History modal'daki gibi -->
-            <button class="btn-close" id="closeCartBtn">
+            <!-- ✅ INLINE ONCLICK - GARANTİLİ ÇALIŞIR -->
+            <button class="btn-close" onclick="window.orderPageInstance.closeCartModal();">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -144,6 +143,11 @@
 
         <div class="modal-footer">
             <div class="cart-summary">
+                <button class="btn-cart-close" onclick="window.orderPageInstance.closeCartModal();">
+                    <i class="fas fa-arrow-down me-2"></i>
+                    Sepeti Kapat
+                </button>
+
                 <div class="total-section">
                     <span class="total-label">Toplam:</span>
                     <span class="total-amount" id="cartTotalAmount">₺0.00</span>

@@ -913,3 +913,59 @@
     .cart-header-close:active {
         transform: scale(0.95);
     }
+/* ✅ Sepeti Kapat Butonu Stilleri */
+.btn-cart-close {
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #6c757d, #545862);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
+}
+
+    .btn-cart-close:hover {
+        background: linear-gradient(135deg, #5a6268, #4a4f55);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
+    }
+
+    .btn-cart-close:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 6px rgba(108, 117, 125, 0.3);
+    }
+
+/* Cart Summary güncelleme - 3 buton için */
+.cart-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+    .cart-summary {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .btn-cart-close,
+    .btn-submit-order {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .total-section {
+        width: 100%;
+        text-align: center;
+        order: -1; /* Toplam en üstte olsun */
+    }
+}
