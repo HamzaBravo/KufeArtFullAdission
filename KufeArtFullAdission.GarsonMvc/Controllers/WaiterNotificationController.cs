@@ -1,7 +1,6 @@
 ﻿// KufeArtFullAdission.GarsonMvc/Controllers/WaiterNotificationController.cs
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using KufeArtFullAdission.GarsonMvc.Hubs;
 
 namespace KufeArtFullAdission.GarsonMvc.Controllers;
 
@@ -9,12 +8,13 @@ namespace KufeArtFullAdission.GarsonMvc.Controllers;
 [Route("api/[controller]")]
 public class WaiterNotificationController(IHubContext<WaiterHub> _hubContext) : ControllerBase
 {
+    // KufeArtFullAdission.GarsonMvc/Controllers/WaiterNotificationController.cs
     [HttpPost]
     public async Task<IActionResult> ReceiveNotification([FromBody] WaiterNotificationDto notification)
     {
         try
         {
-            // Tüm garsonlara bildirim gönder
+            // 🔥 Eski haline döndür - mevcut sistemi bozmayalım
             await _hubContext.Clients.Group("AllWaiters").SendAsync("AdminNotification", new
             {
                 Type = notification.Type,

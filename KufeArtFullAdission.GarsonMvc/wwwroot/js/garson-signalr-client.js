@@ -13,17 +13,18 @@ class WaiterSignalRClient {
 
     async init() {
         try {
-            // Kendi hub'ına bağlan
             this.connection = new signalR.HubConnectionBuilder()
-                .withUrl("/waiterHub")  // Kendi hub'ı
+                .withUrl("/waiterHub")
                 .withAutomaticReconnect([0, 2000, 10000, 30000])
                 .build();
 
             this.bindSignalREvents();
             await this.connection.start();
+            console.log("🔗 SignalR bağlantısı kuruldu");
 
             this.waiterName = this.getWaiterName();
             await this.connection.invoke("JoinWaiterGroup", this.waiterName);
+            console.log("👥 Garson grubuna katıldı:", this.waiterName);
 
             this.isConnected = true;
             console.log("✅ Garson Hub'ına bağlandı");

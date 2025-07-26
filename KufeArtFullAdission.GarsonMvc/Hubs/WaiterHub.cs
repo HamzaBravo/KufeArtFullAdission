@@ -1,22 +1,23 @@
 ﻿// KufeArtFullAdission.GarsonMvc/Hubs/WaiterHub.cs
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Authorization;
-
-namespace KufeArtFullAdission.GarsonMvc.Hubs;
+using Microsoft.AspNetCore.SignalR;
+using System.Text.RegularExpressions;
 
 [Authorize]
 public class WaiterHub : Hub
 {
     public async Task JoinWaiterGroup(string waiterName)
     {
-        // 🔥 "Waiters" grubunu kullan (BackgroundService ile uyumlu)
-        await Groups.AddToGroupAsync(Context.ConnectionId, "Waiters");
+        // Her iki gruba da katıl
+        await Groups.AddToGroupAsync(Context.ConnectionId, "AllWaiters"); // Mevcut sistem
+        await Groups.AddToGroupAsync(Context.ConnectionId, "Waiters");    // Yeni inaktivite sistemi
+
         await Clients.Caller.SendAsync("JoinedWaiterGroup", $"Garson: {waiterName}");
     }
 
     public async Task RefreshTableData()
     {
-        await Clients.Group("Waiters").SendAsync("RefreshTables");
+        await Clients.Group("AllWaiters").SendAsync("RefreshTables");
     }
 
     public override async Task OnConnectedAsync()
@@ -27,6 +28,7 @@ public class WaiterHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception exception)
     {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, "AllWaiters");
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, "Waiters");
         await base.OnDisconnectedAsync(exception);
     }

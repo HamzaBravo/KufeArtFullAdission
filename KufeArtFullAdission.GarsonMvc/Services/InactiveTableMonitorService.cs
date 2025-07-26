@@ -1,11 +1,7 @@
 ﻿// KufeArtFullAdission.GarsonMvc/Services/InactiveTableMonitorService.cs
 using AppDbContext;
-using KufeArtFullAdission.GarsonMvc.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace KufeArtFullAdission.GarsonMvc.Services;
 
@@ -46,6 +42,7 @@ public class InactiveTableMonitorService : BackgroundService
         }
     }
 
+    // InactiveTableMonitorService.cs - CheckInactiveTables metodunda
     private async Task CheckInactiveTables()
     {
         using var scope = _serviceProvider.CreateScope();
@@ -53,9 +50,18 @@ public class InactiveTableMonitorService : BackgroundService
 
         var thresholdTime = DateTime.Now.AddMinutes(-_inactiveThresholdMinutes);
 
-        // Sadece aktif masaları kontrol et
+        _logger.LogInformation($"🔍 Masa kontrolü başlıyor. Şu an: {DateTime.Now}, Eşik: {thresholdTime}");
+
+        // Önce tüm aktif masaları listele
+        var allActiveTables = await dbContext.Tables
+            .Where(t => t.IsActive && t.AddionStatus.HasValue)
+            .Select(t => new { t.Name, t.AddionStatus })
+            .ToListAsync();
+
+        _logger.LogInformation($"📋 Aktif masa sayısı: {allActiveTables.Count}");
+
         var inactiveTables = await dbContext.Tables
-            .Where(t => t.IsActive && t.AddionStatus.HasValue) // Dolu masalar
+            .Where(t => t.IsActive && t.AddionStatus.HasValue)
             .Select(t => new
             {
                 t.Id,
@@ -67,15 +73,13 @@ public class InactiveTableMonitorService : BackgroundService
             .Where(t => t.LastOrderTime < thresholdTime)
             .ToListAsync();
 
+        _logger.LogInformation($"⏰ İnaktif masa sayısı: {inactiveTables.Count}");
+
         foreach (var table in inactiveTables)
         {
             var inactiveMinutes = (int)(DateTime.Now - table.LastOrderTime).TotalMinutes;
+            _logger.LogInformation($"🚨 {table.Name} masası {inactiveMinutes} dakikadır inaktif - Bildirim gönderiliyor");
             await SendWaiterAlert(table.Id, table.Name, inactiveMinutes);
-        }
-
-        if (inactiveTables.Any())
-        {
-            _logger.LogInformation($"🔔 {inactiveTables.Count} masa için garson uyarısı gönderildi");
         }
     }
 
@@ -91,7 +95,11 @@ public class InactiveTableMonitorService : BackgroundService
             Timestamp = DateTime.Now
         };
 
+        _logger.LogInformation($"📤 {tableName} için bildirim gönderiliyor: {alertData.Message}");
+
         // Sadece garsonlara bildirim gönder
         await _hubContext.Clients.Group("Waiters").SendAsync("InactiveTableAlert", alertData);
+
+        _logger.LogInformation($"✅ {tableName} bildirimi gönderildi");
     }
 }
