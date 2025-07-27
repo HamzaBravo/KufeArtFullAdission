@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AppDbContext\AppDbContext.csproj" />
+    <ProjectReference Include="..\KufeArtFullAdission.Mvc\KufeArtFullAdission.Mvc.csproj" />
   </ItemGroup>
 
 </Project>

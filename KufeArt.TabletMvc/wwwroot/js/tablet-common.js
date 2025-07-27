@@ -1,234 +1,518 @@
 ﻿// KufeArt.TabletMvc/wwwroot/js/tablet-common.js
 
-// Global utility functions
-window.TabletUtils = {
-    // Format tarih/saat
-    formatTime: function (dateString) {
-        const date = new Date(dateString);
+class TabletUtils {
+    // 💰 PARA FORMATLAMA
+    static formatCurrency(amount) {
+        if (typeof amount !== 'number') {
+            amount = parseFloat(amount) || 0;
+        }
+        return new Intl.NumberFormat('tr-TR', {
+            style: 'currency',
+            currency: 'TRY',
+            minimumFractionDigits: 2
+        }).format(amount);
+    }
+
+    // ⏰ ZAMAN FORMATLAMA
+    static formatTime(date) {
+        if (!(date instanceof Date)) {
+            date = new Date(date);
+        }
         return date.toLocaleTimeString('tr-TR', {
             hour: '2-digit',
             minute: '2-digit'
         });
-    },
+    }
 
-    // Geçen süre hesaplama
-    getElapsedTime: function (dateString) {
+    static formatDateTime(date) {
+        if (!(date instanceof Date)) {
+            date = new Date(date);
+        }
+        return date.toLocaleString('tr-TR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    // ⏱️ ZAMAN FARKI HESAPLAMA
+    static getTimeElapsed(startTime) {
         const now = new Date();
-        const orderTime = new Date(dateString);
-        const diffMinutes = Math.floor((now - orderTime) / (1000 * 60));
+        const start = new Date(startTime);
+        const diffMs = now - start;
+        const diffMins = Math.floor(diffMs / (1000 * 60));
 
-        if (diffMinutes < 1) return 'Şimdi';
-        if (diffMinutes < 60) return `${diffMinutes} dk önce`;
+        if (diffMins < 1) return 'Az önce';
+        if (diffMins < 60) return `${diffMins} dk önce`;
 
-        const hours = Math.floor(diffMinutes / 60);
-        const minutes = diffMinutes % 60;
-        return `${hours}s ${minutes}dk önce`;
-    },
+        const hours = Math.floor(diffMins / 60);
+        const remainingMins = diffMins % 60;
+        return `${hours}s ${remainingMins}dk önce`;
+    }
 
-    // Para formatı
-    formatCurrency: function (amount) {
-        return new Intl.NumberFormat('tr-TR', {
-            style: 'currency',
-            currency: 'TRY'
-        }).format(amount);
-    },
+    // 🔔 TOAST BİLDİRİMLER
+    static showToast(message, type = 'info', duration = 4000) {
+        // Toast container varsa kullan, yoksa oluştur
+        let toastContainer = document.getElementById('toastContainer');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toastContainer';
+            toastContainer.className = 'toast-container';
+            document.body.appendChild(toastContainer);
+        }
 
-    // Toast notification göster
-    showToast: function (message, type = 'info', duration = 5000) {
-        const toastContainer = document.querySelector('.toast-container');
-        if (!toastContainer) return;
-
+        // Toast element oluştur
         const toastId = 'toast_' + Date.now();
-        const toastHtml = `
-            <div id="${toastId}" class="toast show" role="alert">
-                <div class="toast-header">
-                    <i class="fas ${this.getToastIcon(type)} text-${type} me-2"></i>
-                    <strong class="me-auto">${this.getToastTitle(type)}</strong>
-                    <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
-                </div>
-                <div class="toast-body">
-                    ${message}
-                </div>
+        const toast = document.createElement('div');
+        toast.id = toastId;
+        toast.className = `toast-notification toast-${type}`;
+
+        // Icon belirleme
+        const icons = {
+            'success': 'fas fa-check-circle',
+            'error': 'fas fa-exclamation-circle',
+            'warning': 'fas fa-exclamation-triangle',
+            'info': 'fas fa-info-circle'
+        };
+
+        toast.innerHTML = `
+            <div class="toast-content">
+                <i class="${icons[type] || icons.info}"></i>
+                <span class="toast-message">${message}</span>
+                <button class="toast-close" onclick="TabletUtils.closeToast('${toastId}')">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
         `;
 
-        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+        // Toast'ı ekle ve animasyon
+        toastContainer.appendChild(toast);
 
-        // Auto remove
+        // Slide in animation
+        requestAnimationFrame(() => {
+            toast.classList.add('toast-show');
+        });
+
+        // Otomatik kapat
         setTimeout(() => {
-            const toast = document.getElementById(toastId);
-            if (toast) {
-                toast.remove();
-            }
+            TabletUtils.closeToast(toastId);
         }, duration);
-    },
 
-    getToastIcon: function (type) {
-        const icons = {
-            'success': 'fa-check-circle',
-            'error': 'fa-exclamation-circle',
-            'warning': 'fa-exclamation-triangle',
-            'info': 'fa-info-circle'
-        };
-        return icons[type] || 'fa-bell';
-    },
-
-    getToastTitle: function (type) {
-        const titles = {
-            'success': 'Başarılı',
-            'error': 'Hata',
-            'warning': 'Uyarı',
-            'info': 'Bilgi'
-        };
-        return titles[type] || 'Bildirim';
-    },
-
-    // Ses çal
-    playNotificationSound: function () {
-        const audio = document.getElementById('notificationSound');
-        if (audio) {
-            audio.currentTime = 0;
-            audio.play().catch(e => {
-                console.log('Ses çalınamadı:', e);
-            });
-        }
-    },
-
-    // Vibration (mobil cihazlarda)
-    vibrate: function (pattern = [200, 100, 200]) {
-        if ('vibrate' in navigator) {
-            navigator.vibrate(pattern);
-        }
-    },
-
-    // Local storage helpers
-    setStorage: function (key, value) {
-        try {
-            localStorage.setItem(key, JSON.stringify(value));
-        } catch (e) {
-            console.error('Storage error:', e);
-        }
-    },
-
-    getStorage: function (key, defaultValue = null) {
-        try {
-            const value = localStorage.getItem(key);
-            return value ? JSON.parse(value) : defaultValue;
-        } catch (e) {
-            console.error('Storage error:', e);
-            return defaultValue;
-        }
-    },
-
-    // AJAX helper
-    ajax: function (url, options = {}) {
-        const defaultOptions = {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        };
-
-        const finalOptions = { ...defaultOptions, ...options };
-
-        if (finalOptions.body && typeof finalOptions.body === 'object') {
-            finalOptions.body = JSON.stringify(finalOptions.body);
-        }
-
-        return fetch(url, finalOptions)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .catch(error => {
-                console.error('AJAX Error:', error);
-                throw error;
-            });
+        return toastId;
     }
-};
 
-// Logout function
+    static closeToast(toastId) {
+        const toast = document.getElementById(toastId);
+        if (toast) {
+            toast.classList.remove('toast-show');
+            toast.classList.add('toast-hide');
+
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        }
+    }
+
+    // 🔊 SES ÇALMA
+    static playNotificationSound() {
+        try {
+            const audio = document.getElementById('notificationSound');
+            if (audio) {
+                // Volume ayarla (0.0 - 1.0)
+                audio.volume = 0.5;
+
+                // Ses çal
+                const playPromise = audio.play();
+
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.log('Ses çalınamadı (kullanıcı etkileşimi gerekli):', error);
+                    });
+                }
+            }
+        } catch (error) {
+            console.log('Bildirim sesi çalınamadı:', error);
+        }
+    }
+
+    // 📳 VİBRASYON
+    static vibrate(pattern = [200, 100, 200]) {
+        if ('vibrate' in navigator) {
+            try {
+                navigator.vibrate(pattern);
+            } catch (error) {
+                console.log('Vibrasyon desteklenmiyor:', error);
+            }
+        }
+    }
+
+    // 🏷️ STATUS BADGE OLUŞTURMA
+    static createStatusBadge(status) {
+        const statusConfig = {
+            'New': { class: 'new', icon: 'clock', text: 'Yeni' },
+            'Preparing': { class: 'preparing', icon: 'fire', text: 'Hazırlanıyor' },
+            'Ready': { class: 'ready', icon: 'check-circle', text: 'Hazır' }
+        };
+
+        const config = statusConfig[status] || statusConfig['New'];
+
+        return `
+            <span class="status-badge ${config.class}">
+                <i class="fas fa-${config.icon}"></i>
+                ${config.text}
+            </span>
+        `;
+    }
+
+    // 📱 CİHAZ BİLGİLERİ
+    static getDeviceInfo() {
+        return {
+            isMobile: /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+            isTablet: /iPad|Android/i.test(navigator.userAgent) && !/Mobile/i.test(navigator.userAgent),
+            isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent),
+            isAndroid: /Android/.test(navigator.userAgent),
+            screenWidth: window.screen.width,
+            screenHeight: window.screen.height,
+            orientation: window.screen.orientation?.type || 'unknown'
+        };
+    }
+
+    // 🌐 NETWORK DURUMU
+    static checkNetworkStatus() {
+        if ('onLine' in navigator) {
+            return navigator.onLine;
+        }
+        return true; // Varsayılan olarak online kabul et
+    }
+
+    static onNetworkChange(callback) {
+        window.addEventListener('online', () => callback(true));
+        window.addEventListener('offline', () => callback(false));
+    }
+
+    // 💾 LOCAL STORAGE YÖNETİMİ
+    static setStorageItem(key, value) {
+        try {
+            const data = {
+                value: value,
+                timestamp: Date.now(),
+                expires: Date.now() + (24 * 60 * 60 * 1000) // 24 saat
+            };
+            localStorage.setItem(`tablet_${key}`, JSON.stringify(data));
+            return true;
+        } catch (error) {
+            console.error('Storage error:', error);
+            return false;
+        }
+    }
+
+    static getStorageItem(key) {
+        try {
+            const item = localStorage.getItem(`tablet_${key}`);
+            if (!item) return null;
+
+            const data = JSON.parse(item);
+
+            // Expire kontrolü
+            if (data.expires && Date.now() > data.expires) {
+                localStorage.removeItem(`tablet_${key}`);
+                return null;
+            }
+
+            return data.value;
+        } catch (error) {
+            console.error('Storage read error:', error);
+            return null;
+        }
+    }
+
+    static removeStorageItem(key) {
+        try {
+            localStorage.removeItem(`tablet_${key}`);
+            return true;
+        } catch (error) {
+            console.error('Storage remove error:', error);
+            return false;
+        }
+    }
+
+    // 🔄 DEBOUNCE UTILITY
+    static debounce(func, wait, immediate = false) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                timeout = null;
+                if (!immediate) func(...args);
+            };
+            const callNow = immediate && !timeout;
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+            if (callNow) func(...args);
+        };
+    }
+
+    // 📊 PERFORMANS ÖLÇÜMÜ
+    static measurePerformance(name, fn) {
+        const start = performance.now();
+        const result = fn();
+        const end = performance.now();
+        console.log(`⚡ ${name}: ${(end - start).toFixed(2)}ms`);
+        return result;
+    }
+
+    // 🎨 TEMA YÖNETİMİ
+    static setTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        TabletUtils.setStorageItem('theme', theme);
+    }
+
+    static getTheme() {
+        return TabletUtils.getStorageItem('theme') || 'light';
+    }
+
+    // 🔍 ELEMENT UTILITIES
+    static $(selector) {
+        return document.querySelector(selector);
+    }
+
+    static $$(selector) {
+        return document.querySelectorAll(selector);
+    }
+
+    static createElement(tag, className, innerHTML) {
+        const element = document.createElement(tag);
+        if (className) element.className = className;
+        if (innerHTML) element.innerHTML = innerHTML;
+        return element;
+    }
+
+    // 📱 FULL SCREEN YÖNETİMİ
+    static async requestFullscreen() {
+        try {
+            const element = document.documentElement;
+            if (element.requestFullscreen) {
+                await element.requestFullscreen();
+            } else if (element.webkitRequestFullscreen) {
+                await element.webkitRequestFullscreen();
+            } else if (element.msRequestFullscreen) {
+                await element.msRequestFullscreen();
+            }
+            return true;
+        } catch (error) {
+            console.error('Fullscreen error:', error);
+            return false;
+        }
+    }
+
+    static async exitFullscreen() {
+        try {
+            if (document.exitFullscreen) {
+                await document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                await document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                await document.msExitFullscreen();
+            }
+            return true;
+        } catch (error) {
+            console.error('Exit fullscreen error:', error);
+            return false;
+        }
+    }
+
+    // 🔐 GÜVENLİK UTILITIES
+    static sanitizeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    static escapeHtml(str) {
+        const div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+    }
+
+    // 📝 FORM UTILITIES
+    static serializeForm(form) {
+        const formData = new FormData(form);
+        const data = {};
+        for (let [key, value] of formData.entries()) {
+            if (data[key]) {
+                if (!Array.isArray(data[key])) {
+                    data[key] = [data[key]];
+                }
+                data[key].push(value);
+            } else {
+                data[key] = value;
+            }
+        }
+        return data;
+    }
+
+    // 🎯 INIT FUNCTIONS
+    static initializeTablet() {
+        console.log('🚀 Tablet Utils başlatılıyor...');
+
+        // Network durumu
+        TabletUtils.onNetworkChange((isOnline) => {
+            const statusElement = document.getElementById('connectionStatus');
+            if (statusElement) {
+                statusElement.className = `connection-status ${isOnline ? '' : 'disconnected'}`;
+                statusElement.title = isOnline ? 'Bağlantı aktif' : 'Bağlantı kopuk';
+            }
+
+            if (!isOnline) {
+                TabletUtils.showToast('İnternet bağlantısı kesildi!', 'warning');
+            } else {
+                TabletUtils.showToast('İnternet bağlantısı yeniden kuruldu', 'success', 2000);
+            }
+        });
+
+        // Saat güncelleme
+        TabletUtils.updateClock();
+        setInterval(TabletUtils.updateClock, 1000);
+
+        // Tema yükle
+        const savedTheme = TabletUtils.getTheme();
+        TabletUtils.setTheme(savedTheme);
+
+        console.log('✅ Tablet Utils hazır!');
+    }
+
+    static updateClock() {
+        const clockElement = document.getElementById('currentTime');
+        if (clockElement) {
+            const now = new Date();
+            clockElement.textContent = TabletUtils.formatTime(now);
+        }
+    }
+}
+
+// 🎨 CSS STYLES (Toast için)
+const toastStyles = `
+<style>
+.toast-container {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 9999;
+    max-width: 400px;
+}
+
+.toast-notification {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    margin-bottom: 10px;
+    transform: translateX(100%);
+    transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    border-left: 4px solid #007bff;
+    overflow: hidden;
+}
+
+.toast-notification.toast-show {
+    transform: translateX(0);
+}
+
+.toast-notification.toast-hide {
+    transform: translateX(100%);
+    opacity: 0;
+}
+
+.toast-notification.toast-success { border-left-color: #28a745; }
+.toast-notification.toast-error { border-left-color: #dc3545; }
+.toast-notification.toast-warning { border-left-color: #ffc107; }
+.toast-notification.toast-info { border-left-color: #17a2b8; }
+
+.toast-content {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    gap: 12px;
+}
+
+.toast-content i:first-child {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.toast-success .toast-content i:first-child { color: #28a745; }
+.toast-error .toast-content i:first-child { color: #dc3545; }
+.toast-warning .toast-content i:first-child { color: #ffc107; }
+.toast-info .toast-content i:first-child { color: #17a2b8; }
+
+.toast-message {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    line-height: 1.4;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.toast-close:hover {
+    background: #f8f9fa;
+    color: #333;
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+    .toast-container {
+        left: 20px;
+        right: 20px;
+        top: 70px;
+        max-width: none;
+    }
+    
+    .toast-content {
+        padding: 12px 16px;
+    }
+    
+    .toast-message {
+        font-size: 13px;
+    }
+}
+</style>
+`;
+
+// Global utilities
+window.TabletUtils = TabletUtils;
+
+// Logout function (global)
 window.logout = function () {
-    if (confirm('Tablet oturumunu sonlandırmak istediğinizden emin misiniz?')) {
+    if (confirm('Çıkış yapmak istediğinizden emin misiniz?')) {
         window.location.href = '/Home/Logout';
     }
 };
 
-// Sayfa yüklendiğinde çalışacak genel ayarlar
+// DOM hazır olduğunda başlat
 document.addEventListener('DOMContentLoaded', function () {
-    // Gerçek zamanlı saat gösterimi
-    function updateTime() {
-        const timeElement = document.getElementById('currentTime');
-        if (timeElement) {
-            const now = new Date();
-            timeElement.textContent = now.toLocaleTimeString('tr-TR', {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        }
+    // Toast CSS'ini ekle
+    document.head.insertAdjacentHTML('beforeend', toastStyles);
+
+    // Tablet utils'i başlat
+    TabletUtils.initializeTablet();
+
+    // SignalR'ı başlat (authenticated ise)
+    if (document.body.classList.contains('authenticated')) {
+        TabletSignalR.init();
     }
 
-    // Saati başlat ve her dakika güncelle
-    updateTime();
-    setInterval(updateTime, 60000);
-
-    // Touch events için optimizasyon
-    document.addEventListener('touchstart', function () { }, { passive: true });
-
-    // Scroll restoration
-    if ('scrollRestoration' in history) {
-        history.scrollRestoration = 'manual';
+    // Dashboard'ı başlat (dashboard sayfasındaysa)
+    if (document.getElementById('ordersContainer')) {
+        TabletDashboard.init();
     }
-
-    // Connection status checker
-    function checkConnection() {
-        const statusElement = document.getElementById('connectionStatus');
-        if (statusElement) {
-            if (navigator.onLine) {
-                statusElement.classList.remove('disconnected');
-                statusElement.title = 'Bağlantı aktif';
-            } else {
-                statusElement.classList.add('disconnected');
-                statusElement.title = 'Bağlantı kopuk';
-            }
-        }
-    }
-
-    window.addEventListener('online', checkConnection);
-    window.addEventListener('offline', checkConnection);
-    checkConnection();
-
-    // Prevent zoom on double tap (iOS Safari)
-    let lastTouchEnd = 0;
-    document.addEventListener('touchend', function (event) {
-        const now = (new Date()).getTime();
-        if (now - lastTouchEnd <= 300) {
-            event.preventDefault();
-        }
-        lastTouchEnd = now;
-    }, false);
-});
-
-// Performance monitoring
-window.addEventListener('load', function () {
-    // Page load performance
-    if ('performance' in window) {
-        const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
-        console.log(`Sayfa yükleme süresi: ${loadTime}ms`);
-    }
-});
-
-// Error handling
-window.addEventListener('error', function (event) {
-    console.error('Global error:', event.error);
-    TabletUtils.showToast('Beklenmeyen bir hata oluştu', 'error');
-});
-
-// Unhandled promise rejections
-window.addEventListener('unhandledrejection', function (event) {
-    console.error('Unhandled promise rejection:', event.reason);
-    event.preventDefault();
 });

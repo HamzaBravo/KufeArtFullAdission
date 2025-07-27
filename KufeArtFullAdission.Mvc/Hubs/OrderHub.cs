@@ -9,6 +9,29 @@ namespace KufeArtFullAdission.Mvc.Hubs;
 
 public class OrderHub : Hub
 {
+
+    public async Task JoinKitchenGroup()
+    {
+        await Groups.AddToGroupAsync(Context.ConnectionId, "Kitchen");
+        await Clients.Caller.SendAsync("JoinedKitchenGroup", "Mutfak grubuna katıldınız");
+    }
+
+    public async Task JoinBarGroup()
+    {
+        await Groups.AddToGroupAsync(Context.ConnectionId, "Bar");
+        await Clients.Caller.SendAsync("JoinedBarGroup", "Bar grubuna katıldınız");
+    }
+
+    public async Task NotifyKitchenOrder(object orderData)
+    {
+        await Clients.Group("Kitchen").SendAsync("NewOrderReceived", orderData);
+    }
+
+    public async Task NotifyBarOrder(object orderData)
+    {
+        await Clients.Group("Bar").SendAsync("NewOrderReceived", orderData);
+    }
+
     public async Task JoinAdminGroup()
     {
         await Groups.AddToGroupAsync(Context.ConnectionId, "AdminPanel");
@@ -21,7 +44,6 @@ public class OrderHub : Hub
         await Clients.Caller.SendAsync("JoinedWaiterGroup", $"Garson grubu: {waiterName}");
     }
 
-    // 🚀 YENİ: PrinterManager grubu için
     public async Task JoinPrinterGroup()
     {
         await Groups.AddToGroupAsync(Context.ConnectionId, "PrinterManagers");

@@ -1,4 +1,4 @@
-﻿// KufeArt.TabletMvc/wwwroot/js/tablet-dashboard.js
+﻿// KufeArt.TabletMvc/wwwroot/js/tablet-dashboard.js (API bağlantılı versiyon)
 
 class TabletDashboard {
     constructor() {
@@ -6,6 +6,11 @@ class TabletDashboard {
         this.currentFilter = 'all';
         this.refreshInterval = null;
         this.department = window.tabletSession?.department || '';
+        this.apiEndpoints = {
+            getOrders: '/api/orders',
+            getOrderDetail: '/api/orders',
+            markAsReady: '/api/orders'
+        };
     }
 
     static init() {
@@ -22,7 +27,6 @@ class TabletDashboard {
         this.bindEvents();
         this.loadOrders();
         this.startAutoRefresh();
-        this.updateStats();
     }
 
     bindEvents() {
@@ -54,79 +58,194 @@ class TabletDashboard {
         }
     }
 
+    // 🔄 GERÇEK API BAĞLANTISI
     async loadOrders() {
         try {
             this.showLoading(true);
 
-            // Şimdilik mock data kullanıyoruz - sonra API'ye bağlayacağız
-            const response = await this.getMockOrders();
+            const url = `${this.apiEndpoints.getOrders}?status=${this.currentFilter}`;
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin'
+            });
 
-            this.orders = response.orders || [];
-            this.renderOrders();
-            this.updateStats();
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.orders = result.data.orders || [];
+                this.renderOrders();
+                this.updateStats();
+
+                // Empty state kontrolü
+                if (this.orders.length === 0) {
+                    this.showEmptyState();
+                }
+            } else {
+                throw new Error(result.message || 'Siparişler yüklenemedi');
+            }
 
         } catch (error) {
             console.error('Siparişler yüklenemedi:', error);
-            TabletUtils.showToast('Siparişler yüklenemedi', 'error');
+            TabletUtils.showToast('Siparişler yüklenemedi: ' + error.message, 'error');
+            this.showEmptyState();
         } finally {
             this.showLoading(false);
         }
     }
 
-    // Şimdilik mock data - sonra gerçek API'ye değiştirilecek
-    async getMockOrders() {
-        return new Promise(resolve => {
-            setTimeout(() => {
-                resolve({
-                    orders: [
-                        {
-                            orderBatchId: '123e4567-e89b-12d3-a456-426614174000',
-                            tableId: '456e7890-e89b-12d3-a456-426614174001',
-                            tableName: 'Masa 5',
-                            waiterName: 'Ahmet Yılmaz',
-                            orderTime: new Date(Date.now() - 10 * 60000), // 10 dk önce
-                            status: 'New',
-                            totalAmount: 125.50,
-                            items: [
-                                {
-                                    productName: this.department === 'Kitchen' ? 'Lahmacun' : 'Çay',
-                                    quantity: 2,
-                                    price: 25.00,
-                                    productType: this.department,
-                                    categoryName: this.department === 'Kitchen' ? 'Ana Yemek' : 'Sıcak İçecek'
-                                }
-                            ],
-                            isNew: true
-                        },
-                        {
-                            orderBatchId: '789e0123-e89b-12d3-a456-426614174002',
-                            tableId: '012e3456-e89b-12d3-a456-426614174003',
-                            tableName: 'Masa 12',
-                            waiterName: 'Fatma Demir',
-                            orderTime: new Date(Date.now() - 25 * 60000), // 25 dk önce
-                            status: 'InProgress',
-                            totalAmount: 87.25,
-                            items: [
-                                {
-                                    productName: this.department === 'Kitchen' ? 'Döner' : 'Kahve',
-                                    quantity: 1,
-                                    price: 35.00,
-                                    productType: this.department,
-                                    categoryName: this.department === 'Kitchen' ? 'Ana Yemek' : 'Sıcak İçecek'
-                                }
-                            ],
-                            isNew: false
-                        }
-                    ]
-                });
-            }, 500);
-        });
+    // 🔍 SİPARİŞ DETAY YÜKLEME
+    async loadOrderDetails(orderId) {
+        try {
+            const response = await fetch(`${this.apiEndpoints.getOrderDetail}/${orderId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.renderOrderDetails(result.data);
+            } else {
+                throw new Error(result.message || 'Sipariş detayı yüklenemedi');
+            }
+
+        } catch (error) {
+            console.error('Sipariş detayı yüklenemedi:', error);
+            TabletUtils.showToast('Sipariş detayı yüklenemedi: ' + error.message, 'error');
+        }
+    }
+
+    renderOrderDetails(orderDetail) {
+        const modalContent = document.getElementById('orderDetailContent');
+        if (!modalContent) return;
+
+        modalContent.innerHTML = `
+            <div class="order-detail-header">
+                <h4>${orderDetail.tableName} - Sipariş Detayı</h4>
+                <div class="detail-meta">
+                    <span><i class="fas fa-clock"></i> ${TabletUtils.formatTime(new Date(orderDetail.orderTime))}</span>
+                    <span><i class="fas fa-user"></i> ${orderDetail.waiterName}</span>
+                    <span class="status-badge ${orderDetail.status.toLowerCase()}">${this.getStatusText(orderDetail.status)}</span>
+                </div>
+                ${orderDetail.note ? `<div class="order-note"><i class="fas fa-sticky-note"></i> ${orderDetail.note}</div>` : ''}
+            </div>
+            
+            <div class="order-detail-items">
+                <h5>Sipariş Kalemleri</h5>
+                <div class="items-list">
+                    ${orderDetail.items.map(item => `
+                        <div class="detail-item">
+                            <div class="item-info">
+                                <strong>${item.productName}</strong>
+                                ${item.description ? `<small>${item.description}</small>` : ''}
+                            </div>
+                            <div class="item-quantity">
+                                <span class="quantity-badge">${item.quantity}</span>
+                                <div class="item-prices">
+                                    <small>Birim: ${TabletUtils.formatCurrency(item.unitPrice)}</small>
+                                    <strong>Toplam: ${TabletUtils.formatCurrency(item.totalPrice)}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <div class="order-detail-total">
+                <strong>Genel Toplam: ${TabletUtils.formatCurrency(orderDetail.totalAmount)}</strong>
+            </div>
+        `;
+
+        // Mark as ready button durumu
+        const markReadyBtn = document.getElementById('markAsReadyBtn');
+        if (markReadyBtn) {
+            markReadyBtn.style.display = orderDetail.status === 'Ready' ? 'none' : 'block';
+            markReadyBtn.dataset.orderId = orderDetail.orderBatchId;
+        }
+    }
+
+    // ✅ SİPARİŞ HAZIR İŞARETLEME
+    async markOrderAsReady() {
+        const markReadyBtn = document.getElementById('markAsReadyBtn');
+        const orderId = markReadyBtn?.dataset.orderId;
+
+        if (!orderId) {
+            TabletUtils.showToast('Sipariş ID bulunamadı', 'error');
+            return;
+        }
+
+        try {
+            // Button loading state
+            const originalText = markReadyBtn.innerHTML;
+            markReadyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> İşleniyor...';
+            markReadyBtn.disabled = true;
+
+            const response = await fetch(`${this.apiEndpoints.markAsReady}/${orderId}/ready`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({}) // Boş body
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                TabletUtils.showToast('Sipariş hazır olarak işaretlendi!', 'success');
+
+                // Modal'ı kapat
+                const modal = bootstrap.Modal.getInstance(document.getElementById('orderDetailModal'));
+                if (modal) modal.hide();
+
+                // Sipariş listesini yenile
+                await this.loadOrders();
+
+                // SignalR ile bildirim gönder (opsiyonel)
+                if (window.tabletSignalR && window.tabletSignalR.isConnectionActive()) {
+                    await window.tabletSignalR.sendMessage('NotifyOrderStatusChange', {
+                        orderBatchId: orderId,
+                        status: 'Ready',
+                        department: this.department
+                    });
+                }
+
+            } else {
+                throw new Error(result.message || 'Sipariş durumu güncellenemedi');
+            }
+
+        } catch (error) {
+            console.error('Sipariş güncellenemedi:', error);
+            TabletUtils.showToast('Sipariş güncellenemedi: ' + error.message, 'error');
+        } finally {
+            // Button'u eski haline getir
+            if (markReadyBtn) {
+                markReadyBtn.innerHTML = originalText;
+                markReadyBtn.disabled = false;
+            }
+        }
     }
 
     renderOrders() {
         const container = document.getElementById('ordersContainer');
-        if (!container) return;
-
         const filteredOrders = this.getFilteredOrders();
 
         if (filteredOrders.length === 0) {
@@ -134,44 +253,37 @@ class TabletDashboard {
             return;
         }
 
-        let html = '';
-        filteredOrders.forEach(order => {
-            html += this.renderOrderCard(order);
-        });
+        const ordersHTML = filteredOrders.map(order => this.renderOrderCard(order)).join('');
+        container.innerHTML = ordersHTML;
 
-        container.innerHTML = html;
         this.bindOrderEvents();
     }
 
     renderOrderCard(order) {
-        const elapsedTime = TabletUtils.getElapsedTime(order.orderTime);
         const statusClass = order.status.toLowerCase();
-        const statusText = this.getStatusText(order.status);
+        const timeElapsed = this.getTimeElapsed(new Date(order.orderTime));
 
         return `
-            <div class="order-card status-${statusClass}" data-order-id="${order.orderBatchId}">
+            <div class="order-card status-${statusClass} ${order.isNew ? 'new-order' : ''}" 
+                 data-order-id="${order.orderBatchId}">
+                
                 <div class="order-header">
                     <div class="order-meta">
                         <div class="table-info">
-                            <h4>
-                                <i class="fas fa-utensils"></i>
-                                ${order.tableName}
-                            </h4>
-                            <small>Garson: ${order.waiterName}</small>
+                            <h4><i class="fas fa-utensils"></i> ${order.tableName}</h4>
+                            <small><i class="fas fa-user"></i> ${order.waiterName}</small>
                         </div>
                         <div class="order-time">
-                            <div class="time-badge">
-                                ${TabletUtils.formatTime(order.orderTime)}
-                            </div>
-                            <div class="elapsed-time">${elapsedTime}</div>
+                            <div class="time-badge">${TabletUtils.formatTime(new Date(order.orderTime))}</div>
+                            <small class="elapsed-time">${timeElapsed}</small>
                         </div>
                     </div>
+                    
                     <div class="order-status">
-                        <span class="status-badge ${statusClass}">${statusText}</span>
-                        <div class="waiter-info">
-                            <i class="fas fa-user"></i>
-                            ${order.waiterName}
-                        </div>
+                        <span class="status-badge ${statusClass}">
+                            ${this.getStatusIcon(order.status)} ${this.getStatusText(order.status)}
+                        </span>
+                        <div class="order-total">${TabletUtils.formatCurrency(order.totalAmount)}</div>
                     </div>
                 </div>
                 
@@ -199,18 +311,49 @@ class TabletDashboard {
                             <i class="fas fa-check"></i>
                             Hazır
                         </button>
-                    ` : ''}
+                    ` : `
+                        <span class="btn-action btn-completed">
+                            <i class="fas fa-check-circle"></i>
+                            Hazır
+                        </span>
+                    `}
                 </div>
             </div>
         `;
     }
 
+    // Helper Methods
+    getTimeElapsed(orderTime) {
+        const elapsed = (Date.now() - orderTime.getTime()) / 1000 / 60; // dakika
+        if (elapsed < 1) return 'Az önce';
+        if (elapsed < 60) return Math.floor(elapsed) + ' dk önce';
+        const hours = Math.floor(elapsed / 60);
+        const minutes = Math.floor(elapsed % 60);
+        return `${hours}s ${minutes}dk önce`;
+    }
+
+    getStatusIcon(status) {
+        const icons = {
+            'New': '<i class="fas fa-clock"></i>',
+            'Preparing': '<i class="fas fa-fire"></i>',
+            'Ready': '<i class="fas fa-check-circle"></i>'
+        };
+        return icons[status] || '<i class="fas fa-question"></i>';
+    }
+
+    getStatusText(status) {
+        const texts = {
+            'New': 'Yeni',
+            'Preparing': 'Hazırlanıyor',
+            'Ready': 'Hazır'
+        };
+        return texts[status] || status;
+    }
+
     bindOrderEvents() {
-        // Order card click events
         document.querySelectorAll('.order-card').forEach(card => {
             card.addEventListener('click', (e) => {
-                if (e.target.closest('.btn-action')) return; // Button clicks ignore
-
+                if (e.target.closest('.btn-action')) return;
                 const orderId = card.dataset.orderId;
                 this.showOrderDetails(orderId);
             });
@@ -221,7 +364,15 @@ class TabletDashboard {
         if (this.currentFilter === 'all') {
             return this.orders;
         }
-        return this.orders.filter(order => order.status === this.currentFilter);
+
+        const filterMap = {
+            'new': 'New',
+            'preparing': 'Preparing',
+            'ready': 'Ready'
+        };
+
+        const targetStatus = filterMap[this.currentFilter.toLowerCase()];
+        return this.orders.filter(order => order.status === targetStatus);
     }
 
     setFilter(status) {
@@ -231,116 +382,27 @@ class TabletDashboard {
         document.querySelectorAll('.filter-tab').forEach(tab => {
             tab.classList.remove('active');
         });
-        document.querySelector(`[data-status="${status}"]`).classList.add('active');
+        document.querySelector(`[data-status="${status}"]`)?.classList.add('active');
 
-        this.renderOrders();
-    }
-
-    getStatusText(status) {
-        const statusTexts = {
-            'New': 'Yeni',
-            'InProgress': 'Hazırlanıyor',
-            'Ready': 'Hazır'
-        };
-        return statusTexts[status] || status;
-    }
-
-    showOrderDetails(orderId) {
-        const order = this.orders.find(o => o.orderBatchId === orderId);
-        if (!order) return;
-
-        // Modal content
-        const modalContent = document.getElementById('orderDetailContent');
-        if (!modalContent) return;
-
-        modalContent.innerHTML = `
-            <div class="order-detail-header">
-                <h4>${order.tableName} - Sipariş Detayı</h4>
-                <div class="detail-meta">
-                    <span><i class="fas fa-clock"></i> ${TabletUtils.formatTime(order.orderTime)}</span>
-                    <span><i class="fas fa-user"></i> ${order.waiterName}</span>
-                    <span class="status-badge ${order.status.toLowerCase()}">${this.getStatusText(order.status)}</span>
-                </div>
-            </div>
-            
-            <div class="order-detail-items">
-                <h5>Sipariş Kalemleri</h5>
-                <div class="items-list">
-                    ${order.items.map(item => `
-                        <div class="detail-item">
-                            <div class="item-info">
-                                <strong>${item.productName}</strong>
-                                <small>${item.categoryName}</small>
-                            </div>
-                            <div class="item-quantity">
-                                <span class="quantity-badge">${item.quantity}</span>
-                                <small>${TabletUtils.formatCurrency(item.price)}</small>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-            
-            <div class="order-detail-total">
-                <strong>Toplam: ${TabletUtils.formatCurrency(order.totalAmount)}</strong>
-            </div>
-        `;
-
-        // Modal'ı göster
-        const modal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
-        modal.show();
-
-        // Mark as ready button
-        const markReadyBtn = document.getElementById('markAsReadyBtn');
-        if (markReadyBtn) {
-            markReadyBtn.style.display = order.status === 'Ready' ? 'none' : 'block';
-            markReadyBtn.onclick = () => this.markAsReady(orderId);
-        }
-    }
-
-    async markAsReady(orderId) {
-        try {
-            // Gerçek API call burada olacak
-            console.log('Sipariş hazır olarak işaretleniyor:', orderId);
-
-            // Mock update
-            const order = this.orders.find(o => o.orderBatchId === orderId);
-            if (order) {
-                order.status = 'Ready';
-                this.renderOrders();
-                this.updateStats();
-            }
-
-            TabletUtils.showToast('Sipariş hazır olarak işaretlendi', 'success');
-
-            // Modal'ı kapat
-            const modal = bootstrap.Modal.getInstance(document.getElementById('orderDetailModal'));
-            if (modal) modal.hide();
-
-        } catch (error) {
-            console.error('Sipariş güncellenemedi:', error);
-            TabletUtils.showToast('Sipariş güncellenemedi', 'error');
-        }
+        this.loadOrders(); // Filtreyle yeniden yükle
     }
 
     updateStats() {
-        const pendingCount = this.orders.filter(o => o.status === 'New' || o.status === 'InProgress').length;
-        const todayCount = this.orders.length;
-        const completedCount = this.orders.filter(o => o.status === 'Ready').length;
+        const stats = {
+            pending: this.orders.filter(o => o.status === 'New' || o.status === 'Preparing').length,
+            today: this.orders.length,
+            completed: this.orders.filter(o => o.status === 'Ready').length
+        };
 
-        document.getElementById('pendingCount').textContent = pendingCount;
-        document.getElementById('todayCount').textContent = todayCount;
-        document.getElementById('completedCount').textContent = completedCount;
+        document.getElementById('pendingCount').textContent = stats.pending;
+        document.getElementById('todayCount').textContent = stats.today;
+        document.getElementById('completedCount').textContent = stats.completed;
     }
 
     showLoading(show) {
         const spinner = document.querySelector('.loading-spinner');
-        const container = document.getElementById('ordersContainer');
-
-        if (show) {
-            if (spinner) spinner.style.display = 'block';
-        } else {
-            if (spinner) spinner.style.display = 'none';
+        if (spinner) {
+            spinner.style.display = show ? 'block' : 'none';
         }
     }
 
@@ -353,10 +415,9 @@ class TabletDashboard {
     }
 
     startAutoRefresh() {
-        // Her 30 saniyede bir siparişleri yenile
         this.refreshInterval = setInterval(() => {
             this.refreshOrders();
-        }, 30000);
+        }, 30000); // 30 saniye
     }
 
     async refreshOrders() {
@@ -367,16 +428,36 @@ class TabletDashboard {
         }
     }
 
+    // SignalR event handlers
+    handleNewOrder(orderData) {
+        // Yeni sipariş geldiğinde liste yenile
+        this.refreshOrders();
+
+        // Bildirim göster
+        TabletUtils.showToast(`Yeni sipariş: ${orderData.TableName}`, 'info', 5000);
+    }
+
+    updateOrderStatus(statusData) {
+        // Sipariş durumu değiştiğinde güncelle
+        const order = this.orders.find(o => o.orderBatchId === statusData.orderBatchId);
+        if (order) {
+            order.status = statusData.status;
+            this.renderOrders();
+            this.updateStats();
+        }
+    }
+
     // Static methods for global access
     static showOrderDetails(orderId) {
         if (window.TabletDashboard) {
-            window.TabletDashboard.showOrderDetails(orderId);
+            window.TabletDashboard.loadOrderDetails(orderId);
         }
     }
 
     static markAsReady(orderId) {
         if (window.TabletDashboard) {
-            window.TabletDashboard.markAsReady(orderId);
+            // Modal açarak detaylı işlem yap
+            window.TabletDashboard.loadOrderDetails(orderId);
         }
     }
 }
