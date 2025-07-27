@@ -1,49 +1,82 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - KufeArt.TabletMvc</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#2c5530" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+    <title>@ViewData["Title"] - KufeArt Tablet</title>
+
+    <!-- 🎨 Styles -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/KufeArt.TabletMvc.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/tablet-layout.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/tablet-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/tablet-login.css" asp-append-version="true" />
+
+    <!-- 🎵 Ses dosyası için -->
+    <audio id="notificationSound" preload="auto">
+        <source src="~/sounds/notification.mp3" type="audio/mpeg">
+        <source src="~/sounds/notification.ogg" type="audio/ogg">
+    </audio>
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">KufeArt.TabletMvc</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <!-- 📱 Tablet Header (Sadece giriş yapılmışsa) -->
+        <nav class="tablet-header">
+            <div class="header-container">
+                <div class="tablet-info">
+                    <div class="tablet-icon">
+                        <i class="fas @(User.FindFirst("Department")?.Value == "Kitchen" ? "fa-utensils" : "fa-cocktail")"></i>
+                    </div>
+                    <div class="tablet-details">
+                        <h3>@User.FindFirst("Department")?.Value</h3>
+                        <small>@User.Identity.Name</small>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <div class="connection-status" id="connectionStatus">
+                        <i class="fas fa-wifi"></i>
+                    </div>
+                    <div class="current-time" id="currentTime">
+                        --:--
+                    </div>
+                    <button class="btn-logout" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
                 </div>
             </div>
         </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
+    }
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2025 - KufeArt.TabletMvc - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
+    <!-- 📱 Main Content -->
+    <main class="tablet-main @(User.Identity?.IsAuthenticated == true ? "authenticated" : "")">
+        @RenderBody()
+    </main>
+
+    <script src="https://unpkg.com/@@microsoft/signalr@latest/dist/browser/signalr.min.js"></script>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <!-- SignalR sadece authenticated kullanıcılar için -->
+        <script src="~/lib/microsoft-signalr/signalr.min.js"></script>
+    }
+
+    <script src="~/js/tablet-common.js" asp-append-version="true"></script>
+
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <script src="~/js/tablet-signalr.js" asp-append-version="true"></script>
+        <script src="~/js/tablet-dashboard.js" asp-append-version="true"></script>
+    }
+
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

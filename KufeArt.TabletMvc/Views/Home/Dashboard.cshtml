@@ -1,0 +1,150 @@
+﻿@model KufeArt.TabletMvc.Models.OrderDashboardModel
+@{
+    ViewData["Title"] = $"{Model.Session.Department} Dashboard";
+    Layout = "_Layout";
+}
+
+<div class="dashboard-container">
+    <!-- 📊 Dashboard Stats -->
+    <div class="stats-row">
+        <div class="stat-card pending">
+            <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-info">
+                <h3 id="pendingCount">0</h3>
+                <small>Bekleyen</small>
+            </div>
+        </div>
+        <div class="stat-card today">
+            <div class="stat-icon">
+                <i class="fas fa-calendar-day"></i>
+            </div>
+            <div class="stat-info">
+                <h3 id="todayCount">0</h3>
+                <small>Bugün</small>
+            </div>
+        </div>
+        <div class="stat-card completed">
+            <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-info">
+                <h3 id="completedCount">0</h3>
+                <small>Tamamlanan</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🔍 Filtreler -->
+    <div class="filters-section">
+        <div class="filter-tabs">
+            <button class="filter-tab active" data-status="all">
+                <i class="fas fa-th-large"></i>
+                Tümü
+            </button>
+            <button class="filter-tab" data-status="New">
+                <i class="fas fa-plus-circle"></i>
+                Yeni
+            </button>
+            <button class="filter-tab" data-status="InProgress">
+                <i class="fas fa-clock"></i>
+                Hazırlanıyor
+            </button>
+            <button class="filter-tab" data-status="Ready">
+                <i class="fas fa-check"></i>
+                Hazır
+            </button>
+        </div>
+    </div>
+
+    <!-- 📋 Sipariş Listesi -->
+    <div class="orders-container" id="ordersContainer">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Siparişler yükleniyor...</p>
+        </div>
+    </div>
+
+    <!-- 📢 Boş durum mesajı -->
+    <div class="empty-state" id="emptyState" style="display: none;">
+        <div class="empty-icon">
+            <i class="fas fa-clipboard-list"></i>
+        </div>
+        <h3>Henüz sipariş yok</h3>
+        <p>@Model.Session.Department departmanınıza ait siparişler burada görünecek.</p>
+    </div>
+</div>
+
+<!-- 📱 Sipariş Detay Modal -->
+<div class="modal fade" id="orderDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-receipt"></i>
+                    Sipariş Detayı
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="orderDetailContent">
+                <!-- AJAX ile doldurulacak -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Kapat
+                </button>
+                <button type="button" class="btn btn-success" id="markAsReadyBtn">
+                    <i class="fas fa-check"></i>
+                    Hazır Olarak İşaretle
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 🔊 Bildirim Toast -->
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="orderToast" class="toast" role="alert">
+        <div class="toast-header">
+            <i class="fas fa-bell text-primary me-2"></i>
+            <strong class="me-auto">Yeni Sipariş!</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">
+            <!-- Dinamik içerik -->
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Global değişkenler
+        window.tabletSession = {
+            department: '@Model.Session.Department',
+            tabletName: '@Model.Session.TabletName',
+            loginTime: '@Model.Session.LoginTime.ToString("yyyy-MM-dd HH:mm:ss")'
+        };
+
+        // Sayfa yüklendiğinde başlat
+        $(document).ready(function() {
+            try {
+                // Dashboard'ı başlat
+                if (typeof TabletDashboard !== 'undefined') {
+                    TabletDashboard.init();
+                } else {
+                    console.error('TabletDashboard tanımlı değil');
+                }
+
+                // SignalR'ı başlat (opsiyonel)
+                if (typeof TabletSignalR !== 'undefined') {
+                    TabletSignalR.init();
+                } else {
+                    console.warn('TabletSignalR henüz hazır değil - normal');
+                }
+            } catch (error) {
+                console.error('Dashboard initialization error:', error);
+            }
+        });
+    </script>
+}

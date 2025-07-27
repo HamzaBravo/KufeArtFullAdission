@@ -1,0 +1,129 @@
+﻿@model KufeArt.TabletMvc.Models.TabletLoginModel
+@{
+    ViewData["Title"] = "Tablet Girişi";
+    Layout = "_Layout";
+}
+
+<div class="login-container">
+    <div class="login-card">
+        <!-- 🏢 Logo ve Başlık -->
+        <div class="login-header">
+            <div class="logo">
+                <i class="fas fa-tablet-alt"></i>
+            </div>
+            <h2>KufeArt Tablet</h2>
+            <p>Mutfak & Bar Sipariş Sistemi</p>
+        </div>
+
+        <!-- 📝 Login Form -->
+        <form asp-action="Login" method="post" class="login-form">
+            <div asp-validation-summary="All" class="alert alert-danger" style="display: none;"></div>
+
+            <!-- 🏷️ Departman Seçimi -->
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fas fa-building"></i>
+                    Departman Seçin
+                </label>
+                <div class="department-selection">
+                    <div class="department-option">
+                        <input type="radio" id="kitchen" name="Department" value="Kitchen"
+                               asp-for="Department" class="department-radio" />
+                        <label for="kitchen" class="department-label kitchen">
+                            <div class="department-icon">
+                                <i class="fas fa-utensils"></i>
+                            </div>
+                            <div class="department-info">
+                                <h4>Mutfak</h4>
+                                <small>Yemek siparişleri</small>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="department-option">
+                        <input type="radio" id="bar" name="Department" value="Bar"
+                               asp-for="Department" class="department-radio" />
+                        <label for="bar" class="department-label bar">
+                            <div class="department-icon">
+                                <i class="fas fa-cocktail"></i>
+                            </div>
+                            <div class="department-info">
+                                <h4>Bar</h4>
+                                <small>İçecek siparişleri</small>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                <span asp-validation-for="Department" class="text-danger"></span>
+            </div>
+
+            <!-- 📱 Tablet Adı -->
+            <div class="form-group">
+                <label asp-for="TabletName" class="form-label">
+                    <i class="fas fa-tablet"></i>
+                    Tablet Adı
+                </label>
+                <input asp-for="TabletName" class="form-control"
+                       placeholder="Örn: Mutfak Tablet 1"
+                       maxlength="50" />
+                <span asp-validation-for="TabletName" class="text-danger"></span>
+            </div>
+
+            <!-- 📝 Not (Opsiyonel) -->
+            <div class="form-group">
+                <label asp-for="Note" class="form-label">
+                    <i class="fas fa-sticky-note"></i>
+                    Not (Opsiyonel)
+                </label>
+                <input asp-for="Note" class="form-control"
+                       placeholder="Vardiya, konum vb."
+                       maxlength="100" />
+            </div>
+
+            <!-- 🚀 Giriş Butonu -->
+            <button type="submit" class="btn-login">
+                <i class="fas fa-sign-in-alt"></i>
+                Tablet'e Giriş Yap
+            </button>
+        </form>
+
+        <!-- ℹ️ Bilgi Notu -->
+        <div class="login-info">
+            <i class="fas fa-info-circle"></i>
+            <div>
+                <strong>Bilgi:</strong> Seçtiğiniz departmana göre sadece o bölümle ilgili siparişler görüntülenecektir.
+                Giriş yaptıktan sonra tablet bu departmana atanmış olur.
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Form validation ve UX iyileştirmeleri
+        $(document).ready(function() {
+            // Departman seçimi renklendirme
+            $('.department-radio').on('change', function() {
+                $('.department-label').removeClass('selected');
+                $(this).closest('.department-option').find('.department-label').addClass('selected');
+            });
+
+            // Form submit loading state
+            $('.login-form').on('submit', function() {
+                const submitBtn = $('.btn-login');
+                submitBtn.prop('disabled', true)
+                        .html('<i class="fas fa-spinner fa-spin"></i> Giriş yapılıyor...');
+            });
+
+            // Tablet adı otomatik doldurma
+            $('.department-radio').on('change', function() {
+                const department = $(this).val();
+                const tabletNameInput = $('#TabletName');
+
+                if (!tabletNameInput.val()) {
+                    const suggestion = department === 'Kitchen' ? 'Mutfak Tablet 1' : 'Bar Tablet 1';
+                    tabletNameInput.val(suggestion);
+                }
+            });
+        });
+    </script>
+}

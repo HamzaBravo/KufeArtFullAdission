@@ -1,15 +1,36 @@
-using AppDbContext;
+﻿using AppDbContext;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllersWithViews();
-
-
-// Entity Framework
+// 🎯 DATABASE
 builder.Services.AddDbContext<DBContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("LiveServer")));
+
+// 🔐 AUTHENTICATION
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Home/Login";
+        options.Cookie.Name = "TabletAuth";
+        options.ExpireTimeSpan = TimeSpan.FromHours(12); // Tablet için daha uzun session
+    });
+
+// 🌐 SIGNALR
+builder.Services.AddSignalR();
+
+// 📞 HTTP CLIENT (Admin paneli ile iletişim)
+builder.Services.AddHttpClient("AdminPanel", client =>
+{
+    var adminUrl = builder.Environment.IsDevelopment()
+        ? "https://localhost:7164"
+        : "https://adisyon.kufeart.com";
+    client.BaseAddress = new Uri(adminUrl);
+});
+
+// MVC Services
+builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
@@ -17,7 +38,6 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -26,10 +46,11 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Home}/{action=Login}/{id?}");
 
 app.Run();

@@ -1,0 +1,445 @@
+﻿/* KufeArt.TabletMvc/wwwroot/css/tablet-dashboard.css */
+
+.dashboard-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* 📊 STATS CARDS */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 25px;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    transition: var(--transition);
+    border-left: 4px solid transparent;
+}
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    }
+
+    .stat-card.pending {
+        border-left-color: var(--warning);
+    }
+
+    .stat-card.today {
+        border-left-color: var(--info);
+    }
+
+    .stat-card.completed {
+        border-left-color: var(--success);
+    }
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.stat-card.pending .stat-icon {
+    background: linear-gradient(135deg, var(--warning), #e67e22);
+}
+
+.stat-card.today .stat-icon {
+    background: linear-gradient(135deg, var(--info), #2980b9);
+}
+
+.stat-card.completed .stat-icon {
+    background: linear-gradient(135deg, var(--success), #229954);
+}
+
+.stat-info h3 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--dark);
+    margin-bottom: 5px;
+}
+
+.stat-info small {
+    color: #64748b;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* 🔍 FILTERS */
+.filters-section {
+    margin-bottom: 25px;
+}
+
+.filter-tabs {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 5px;
+}
+
+.filter-tab {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 25px;
+    background: var(--white);
+    color: #64748b;
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+    .filter-tab.active {
+        background: var(--primary);
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .filter-tab:hover:not(.active) {
+        background: #f1f5f9;
+        transform: translateY(-1px);
+    }
+
+/* 📋 ORDERS CONTAINER */
+.orders-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+    min-height: 400px;
+}
+
+.order-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+    overflow: hidden;
+    cursor: pointer;
+    border-left: 4px solid transparent;
+}
+
+    .order-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    }
+
+    .order-card.status-new {
+        border-left-color: var(--info);
+        animation: newOrderPulse 2s ease-in-out infinite;
+    }
+
+    .order-card.status-inprogress {
+        border-left-color: var(--warning);
+    }
+
+    .order-card.status-ready {
+        border-left-color: var(--success);
+    }
+
+/* 📱 ORDER CARD HEADER */
+.order-header {
+    padding: 20px;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.order-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.table-info h4 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--dark);
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.table-info small {
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
+.order-time {
+    text-align: right;
+}
+
+.time-badge {
+    background: var(--primary);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.elapsed-time {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+.order-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+    .status-badge.new {
+        background: rgba(52, 152, 219, 0.1);
+        color: var(--info);
+    }
+
+    .status-badge.inprogress {
+        background: rgba(243, 156, 18, 0.1);
+        color: var(--warning);
+    }
+
+    .status-badge.ready {
+        background: rgba(39, 174, 96, 0.1);
+        color: var(--success);
+    }
+
+.waiter-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
+/* 📋 ORDER ITEMS */
+.order-items {
+    padding: 20px;
+}
+
+.item-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.order-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+    .order-item:last-child {
+        border-bottom: none;
+    }
+
+.item-info {
+    flex: 1;
+}
+
+.item-name {
+    font-weight: 600;
+    color: var(--dark);
+    margin-bottom: 4px;
+}
+
+.item-category {
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.item-quantity {
+    background: var(--primary);
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+/* 🚀 ORDER ACTIONS */
+.order-actions {
+    padding: 20px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    gap: 10px;
+}
+
+.btn-action {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: var(--radius);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-details {
+    background: var(--info);
+    color: white;
+}
+
+.btn-ready {
+    background: var(--success);
+    color: white;
+}
+
+.btn-action:hover {
+    transform: translateY(-2px);
+}
+
+/* 📢 EMPTY STATE */
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: #64748b;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    opacity: 0.3;
+}
+
+.empty-state h3 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+    color: var(--dark);
+}
+
+/* 🔊 LOADING SPINNER */
+.loading-spinner {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: #64748b;
+}
+
+    .loading-spinner i {
+        font-size: 2rem;
+        margin-bottom: 15px;
+        color: var(--primary);
+        animation: spin 1s linear infinite;
+    }
+
+/* 💫 ANIMATIONS */
+@keyframes newOrderPulse {
+    0%, 100% {
+        box-shadow: 0 4px 20px rgba(52, 152, 219, 0.2);
+    }
+
+    50% {
+        box-shadow: 0 4px 20px rgba(52, 152, 219, 0.4);
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 📱 RESPONSIVE */
+@media (max-width: 768px) {
+    .dashboard-container {
+        padding: 15px;
+    }
+
+    .stats-row {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .orders-container {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .order-meta {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .order-time {
+        text-align: left;
+    }
+
+    .order-actions {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 480px) {
+    .stat-card {
+        padding: 20px;
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 1.1rem;
+    }
+
+    .stat-info h3 {
+        font-size: 1.5rem;
+    }
+
+    .filter-tabs {
+        justify-content: flex-start;
+    }
+
+    .filter-tab {
+        padding: 10px 16px;
+        font-size: 0.85rem;
+    }
+}
