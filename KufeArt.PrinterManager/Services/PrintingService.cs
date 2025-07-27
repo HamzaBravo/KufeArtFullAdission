@@ -155,14 +155,16 @@ namespace KufeArt.PrinterManager.Services
         #endregion
 
         #region Print Document Oluşturma
+        // KufeArt.PrinterManager/Services/PrintingService.cs
         private PrintDocument CreatePrintDocument(PrinterConfig printer, DetailedOrderModel order, List<OrderItemModel> items, string header)
         {
             var printDocument = new PrintDocument();
             printDocument.PrinterSettings.PrinterName = printer.Name;
 
-            // 58mm termal yazıcı için ayarlar
-            printDocument.DefaultPageSettings.PaperSize = new PaperSize("Custom", 220, 0); // 58mm genişlik
-            printDocument.DefaultPageSettings.Margins = new Margins(5, 5, 5, 5);
+            // 🎯 Termal yazıcı için optimize edilmiş ayarlar
+            var paperSize = new PaperSize("Thermal", 280, 0); // 80mm genişlik (daha geniş)
+            printDocument.DefaultPageSettings.PaperSize = paperSize;
+            printDocument.DefaultPageSettings.Margins = new Margins(10, 10, 10, 10); // Daha geniş margin
 
             string receiptContent = GenerateReceiptContent(order, items, header);
 
@@ -170,22 +172,67 @@ namespace KufeArt.PrinterManager.Services
             {
                 if (e.Graphics == null) return;
 
-                var font = new Font("Courier New", 8, FontStyle.Regular);
-                var boldFont = new Font("Courier New", 8, FontStyle.Bold);
-                var brush = Brushes.Black;
+                // 🚀 İYİLEŞTİRİLMİŞ FONT'LAR
+                var titleFont = new Font("Arial", 12, FontStyle.Bold);      // Büyük başlık
+                var headerFont = new Font("Arial", 10, FontStyle.Bold);     // Alt başlıklar
+                var normalFont = new Font("Arial", 9, FontStyle.Regular);   // Normal metin
+                var smallFont = new Font("Arial", 8, FontStyle.Regular);    // Küçük detaylar
 
-                float yPosition = 10;
-                float lineHeight = font.GetHeight();
+                var blackBrush = Brushes.Black;
+
+                float yPosition = 15;
+                float leftMargin = 15;
+                float lineHeight = 16; // Satır yüksekliği artırıldı
 
                 var lines = receiptContent.Split('\n');
+
                 foreach (var line in lines)
                 {
-                    var currentFont = line.StartsWith("**") && line.EndsWith("**") ? boldFont : font;
-                    var text = line.Replace("**", "").Trim();
+                    var currentFont = normalFont;
+                    var text = line.Trim();
 
-                    e.Graphics.DrawString(text, currentFont, brush, 5, yPosition);
-                    yPosition += lineHeight + 2;
+                    // 🎯 Font seçimi
+                    if (text.Contains("MUTFAK SİPARİŞİ") || text.Contains("BAR SİPARİŞİ"))
+                    {
+                        currentFont = titleFont;
+                        lineHeight = 18;
+                    }
+                    else if (text.StartsWith("Masa:") || text.StartsWith("Garson:") || text.StartsWith("Tarih:") || text.Contains("Toplam:"))
+                    {
+                        currentFont = headerFont;
+                        lineHeight = 16;
+                    }
+                    else if (text.Contains("Yazdırma:") || text.Contains("==="))
+                    {
+                        currentFont = smallFont;
+                        lineHeight = 14;
+                    }
+                    else
+                    {
+                        currentFont = normalFont;
+                        lineHeight = 16;
+                    }
+
+                    // Kalın çizgi için özel işlem
+                    if (text.Contains("==="))
+                    {
+                        // Çizgi çiz
+                        e.Graphics.DrawLine(new Pen(Color.Black, 1), leftMargin, yPosition + 8, 250, yPosition + 8);
+                    }
+                    else if (!string.IsNullOrEmpty(text))
+                    {
+                        // Metin yazdır
+                        e.Graphics.DrawString(text, currentFont, blackBrush, leftMargin, yPosition);
+                    }
+
+                    yPosition += lineHeight;
                 }
+
+                // Font'ları temizle
+                titleFont.Dispose();
+                headerFont.Dispose();
+                normalFont.Dispose();
+                smallFont.Dispose();
             };
 
             return printDocument;
@@ -195,33 +242,38 @@ namespace KufeArt.PrinterManager.Services
         {
             var receipt = new StringBuilder();
 
-            // Header
+            // 🎯 Daha güzel header
             receipt.AppendLine("================================");
-            receipt.AppendLine($"**{header}**");
+            receipt.AppendLine($"        {header}");
             receipt.AppendLine("================================");
+            receipt.AppendLine("");
             receipt.AppendLine($"Masa: {order.TableName}");
             receipt.AppendLine($"Garson: {order.WaiterName}");
             receipt.AppendLine($"Tarih: {order.OrderTime:dd.MM.yyyy HH:mm}");
             receipt.AppendLine("--------------------------------");
+            receipt.AppendLine("");
 
-            // Ürünler
+            // 🍽️ Ürünler (daha okunaklı)
             foreach (var item in items)
             {
                 receipt.AppendLine($"{item.Quantity}x {item.ProductName}");
+
                 if (!string.IsNullOrEmpty(item.CategoryName))
                 {
-                    receipt.AppendLine($"   ({item.CategoryName})");
+                    receipt.AppendLine($"   [{item.CategoryName}]");
                 }
+
                 receipt.AppendLine($"   {item.Price:C2} x {item.Quantity} = {item.TotalPrice:C2}");
-                receipt.AppendLine("");
+                receipt.AppendLine(""); // Boş satır
             }
 
             receipt.AppendLine("--------------------------------");
-            receipt.AppendLine($"**Toplam: {items.Sum(i => i.TotalPrice):C2}**");
+            receipt.AppendLine($"TOPLAM: {items.Sum(i => i.TotalPrice):C2}");
             receipt.AppendLine("================================");
+            receipt.AppendLine("");
             receipt.AppendLine($"Yazdırma: {DateTime.Now:HH:mm:ss}");
             receipt.AppendLine("");
-            receipt.AppendLine("");
+            receipt.AppendLine("*** MUTFAK/BAR KOPYASI ***");
             receipt.AppendLine("");
 
             return receipt.ToString();
