@@ -18,9 +18,12 @@ namespace KufeArt.PrinterManager.Services
         public SignalRClientService()
         {
             // Development vs Production URL
-            _hubUrl = IsLocalDevelopment()
-                ? "https://localhost:7164/orderHub"
-                : "https://adisyon.kufeart.com/orderHub";
+            //_hubUrl = IsLocalDevelopment()
+            //    ? "https://localhost:7164/orderHub"
+            //    : "https://adisyon.kufeart.com/orderHub";
+
+            // Development vs Production URL
+            _hubUrl = "https://adisyon.kufeart.com/orderHub";
         }
 
         public async Task ConnectAsync()

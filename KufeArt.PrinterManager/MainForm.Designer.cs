@@ -45,7 +45,6 @@ namespace KufeArt.PrinterManager
             toolStripTextBox1 = new ToolStripTextBox();
             toolStripSeparator1 = new ToolStripSeparator();
             toolStripTextBox2 = new ToolStripTextBox();
-            checkBox1 = new CheckBox();
             grpSettings.SuspendLayout();
             grpAssignedPrinters.SuspendLayout();
             statusStrip.SuspendLayout();
@@ -349,23 +348,11 @@ namespace KufeArt.PrinterManager
             toolStripTextBox2.Text = "Çıkış";
             toolStripTextBox2.Click += toolStripTextBox2_Click;
             // 
-            // checkBox1
-            // 
-            checkBox1.AutoSize = true;
-            checkBox1.Location = new Point(608, 292);
-            checkBox1.Name = "checkBox1";
-            checkBox1.Size = new Size(110, 19);
-            checkBox1.TabIndex = 9;
-            checkBox1.Text = "Otomatik Başlat";
-            checkBox1.UseVisualStyleBackColor = true;
-            checkBox1.CheckedChanged += checkBox1_CheckedChanged;
-            // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(788, 450);
-            Controls.Add(checkBox1);
             Controls.Add(lblTitle);
             Controls.Add(lblPrinters);
             Controls.Add(listBoxPrinters);
@@ -419,6 +406,5 @@ namespace KufeArt.PrinterManager
         private ToolStripTextBox toolStripTextBox1;
         private ToolStripSeparator toolStripSeparator1;
         private ToolStripTextBox toolStripTextBox2;
-        private CheckBox checkBox1;
     }
 }

@@ -39,85 +39,9 @@ public partial class MainForm : Form
         this.FormClosing += MainForm_FormClosing;
         this.Resize += MainForm_Resize;
 
-
-        if (!IsAutoStartEnabled())
-        {
-            var result = MessageBox.Show(
-                "KufeArt Yazýcý Yöneticisi'ni Windows ile birlikte baþlatmak ister misiniz?",
-                "Otomatik Baþlatma",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question);
-
-            if (result == DialogResult.Yes)
-            {
-                EnableAutoStart();
-            }
-        }
     }
 
-    private bool IsAutoStartEnabled()
-    {
-        try
-        {
-            RegistryKey rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", false);
 
-            if (rk != null)
-            {
-                object value = rk.GetValue("KufeArtPrinterManager");
-                rk.Close();
-                return value != null;
-            }
-        }
-        catch
-        {
-            // Hata durumunda false döndür
-        }
-
-        return false;
-    }
-    private void DisableAutoStart()
-    {
-        try
-        {
-            RegistryKey rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-
-            if (rk != null)
-            {
-                rk.DeleteValue("KufeArtPrinterManager", false);
-                rk.Close();
-
-                MessageBox.Show("Otomatik baþlatma devre dýþý býrakýldý!", "Baþarýlý",
-                              MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Otomatik baþlatma kaldýrýlamadý: {ex.Message}", "Hata",
-                          MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-    }
-    private void EnableAutoStart()
-    {
-        try
-        {
-            RegistryKey rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-
-            if (rk != null)
-            {
-                string appPath = Application.ExecutablePath + " --minimized";
-                rk.SetValue("KufeArtPrinterManager", appPath);
-                rk.Close();
-
-                MessageBox.Show("Otomatik baþlatma etkinleþtirildi!", "Baþarýlý",
-                              MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Otomatik baþlatma ayarlanamadý: {ex.Message}", "Hata",
-                          MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-    }
     private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
     {
         // Eðer gerçekten kapatýlmak isteniyorsa
@@ -173,6 +97,7 @@ public partial class MainForm : Form
 
     private async void MainForm_Load(object sender, EventArgs e)
     {
+        this.WindowState = FormWindowState.Minimized;
         // Mevcut iþlevsellik (Korundu)
         LoadSystemPrinters();
         LoadSavedSettings();
@@ -663,11 +588,6 @@ public partial class MainForm : Form
 
     private void checkBox1_CheckedChanged(object sender, EventArgs e)
     {
-        if (checkBox1.Checked)
-            EnableAutoStart();
-        
-        else
-            DisableAutoStart();
-        
+
     }
 }
