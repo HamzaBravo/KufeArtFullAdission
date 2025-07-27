@@ -13,7 +13,7 @@ builder.Services.AddHostedService<InactiveTableMonitorService>();
 
 // 🎯 DATABASE
 builder.Services.AddDbContext<DBContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("LiveServer")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("HamzaLocal")));
 
 // 🔐 AUTHENTICATION
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

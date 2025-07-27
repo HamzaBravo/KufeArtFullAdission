@@ -89,6 +89,8 @@ class TabletSignalR {
     }
 
     handleNewOrder(orderData) {
+        console.log('🔔 Yeni sipariş geldi:', orderData);
+
         // Sadece kendi departmanımızla ilgili siparişleri dinle
         const orderItems = orderData.Items || [];
         const relevantItems = orderItems.filter(item => {
@@ -101,18 +103,88 @@ class TabletSignalR {
         });
 
         if (relevantItems.length > 0) {
-            // Ses çal ve bildirim göster
-            TabletUtils.playNotificationSound();
-            TabletUtils.vibrate();
+            console.log('🔔 Bu departmana ait sipariş var, bildirim gösteriliyor...');
 
-            // Toast bildirim
-            const message = `${orderData.TableName} - ${relevantItems.length} ürün`;
+            // ✅ 1. SES ÇAL (En önemli!)
+            this.playNotificationSound();
+
+            // ✅ 2. VİBRASYON
+            TabletUtils.vibrate([300, 100, 300, 100, 300]);
+
+            // ✅ 3. TOAST BİLDİRİM
+            const message = `🔔 YENİ SİPARİŞ: ${orderData.TableName} - ${relevantItems.length} ürün`;
             TabletUtils.showToast(message, 'info', 8000);
 
-            // Dashboard'ı güncelle
+            // ✅ 4. DASHBOARD'I YENİLE
             if (window.TabletDashboard) {
-                window.TabletDashboard.refreshOrders();
+                console.log('🔄 Dashboard yenileniyor...');
+                window.TabletDashboard.loadOrders();
             }
+        }
+    }
+
+
+    // ✅ YENİ: Ses çalma method'u ekle
+    playNotificationSound() {
+        try {
+            console.log('🔊 Bildirim sesi çalınıyor...');
+
+            // Tablet için daha güçlü ses sistemi
+            const audio = new Audio('/sounds/notification.mp3');
+            audio.volume = 0.8; // Yüksek ses
+            audio.preload = 'auto';
+
+            // Multiple ses çal (tablet'te daha etkili)
+            const playPromise = audio.play();
+
+            if (playPromise !== undefined) {
+                playPromise
+                    .then(() => {
+                        console.log('✅ Ses başarıyla çalındı');
+
+                        // 2 saniye sonra tekrar çal (urgent için)
+                        setTimeout(() => {
+                            const audio2 = new Audio('/sounds/notification.mp3');
+                            audio2.volume = 0.7;
+                            audio2.play().catch(e => console.log('İkinci ses çalınamadı:', e));
+                        }, 1500);
+                    })
+                    .catch(error => {
+                        console.error('❌ Ses çalınamadı:', error);
+                        // Fallback: System beep
+                        this.fallbackBeep();
+                    });
+            }
+
+            // TabletUtils ses sistemi de çalıştır
+            TabletUtils.playNotificationSound();
+
+        } catch (error) {
+            console.error('❌ Ses sistemi hatası:', error);
+            this.fallbackBeep();
+        }
+    }
+
+    // ✅ Fallback beep sistemi
+    fallbackBeep() {
+        try {
+            // Web Audio API ile beep
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.value = 800; // Yüksek frekans
+            gainNode.gain.value = 0.3;
+
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 0.3);
+
+            console.log('🔔 Fallback beep çalındı');
+        } catch (error) {
+            console.log('Fallback beep de çalınamadı:', error);
         }
     }
 

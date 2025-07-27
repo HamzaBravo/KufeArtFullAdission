@@ -176,6 +176,7 @@ public class OrderController : Controller
     }
 
     // 🔍 SİPARİŞ DETAYI
+
     [HttpGet("api/orders/{orderBatchId}")]
     public async Task<IActionResult> GetOrderDetail(string orderBatchId)
     {
@@ -220,7 +221,7 @@ public class OrderController : Controller
                 tableName = firstItem.TableName,
                 waiterName = firstItem.PersonFullName,
                 orderTime = firstItem.CreatedAt,
-                status = GetOrderStatus(firstItem.CreatedAt),
+                status = GetSimpleStatus(false, firstItem.CreatedAt), // Geçici olarak false
                 note = firstItem.ShorLabel,
                 totalAmount = orderItems.Sum(x => x.ProductPrice * x.ProductQuantity),
                 items = orderItems.Select(x => new

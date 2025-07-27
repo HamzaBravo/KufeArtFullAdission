@@ -119,32 +119,23 @@
 
 @section Scripts {
     <script>
-        // Global değişkenler
         window.tabletSession = {
             department: '@Model.Session.Department',
             tabletName: '@Model.Session.TabletName',
-            loginTime: '@Model.Session.LoginTime.ToString("yyyy-MM-dd HH:mm:ss")'
+            loginTime: '@Model.Session.LoginTime.ToString("yyyy-MM-ddTHH:mm:ss")'
         };
 
-        // Sayfa yüklendiğinde başlat
-        $(document).ready(function() {
-            try {
-                // Dashboard'ı başlat
-                if (typeof TabletDashboard !== 'undefined') {
-                    TabletDashboard.init();
-                } else {
-                    console.error('TabletDashboard tanımlı değil');
-                }
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                console.log('🔍 Manuel başlatma başlıyor...');
 
-                // SignalR'ı başlat (opsiyonel)
-                if (typeof TabletSignalR !== 'undefined') {
-                    TabletSignalR.init();
-                } else {
-                    console.warn('TabletSignalR henüz hazır değil - normal');
-                }
-            } catch (error) {
-                console.error('Dashboard initialization error:', error);
-            }
+                // Direkt yeni instance oluştur
+                console.log('🔍 Yeni TabletDashboard instance oluşturuluyor...');
+                window.TabletDashboard = new TabletDashboard();
+
+                console.log('🔍 initialize() çağrılıyor...');
+                window.TabletDashboard.initialize();
+            }, 1000);
         });
     </script>
 }

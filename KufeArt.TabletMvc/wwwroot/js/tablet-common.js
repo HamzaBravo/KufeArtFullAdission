@@ -118,12 +118,13 @@ class TabletUtils {
     // 🔊 SES ÇALMA
     static playNotificationSound() {
         try {
+            console.log('🔊 TabletUtils ses çalıyor...');
+
             const audio = document.getElementById('notificationSound');
             if (audio) {
-                // Volume ayarla (0.0 - 1.0)
-                audio.volume = 0.5;
+                audio.volume = 0.9; // Maksimum ses
+                audio.currentTime = 0; // Baştan başlat
 
-                // Ses çal
                 const playPromise = audio.play();
 
                 if (playPromise !== undefined) {
@@ -131,6 +132,8 @@ class TabletUtils {
                         console.log('Ses çalınamadı (kullanıcı etkileşimi gerekli):', error);
                     });
                 }
+            } else {
+                console.log('❌ Audio element bulunamadı');
             }
         } catch (error) {
             console.log('Bildirim sesi çalınamadı:', error);

@@ -2,6 +2,7 @@
 using AppDbContext;
 using KufeArtFullAdission.Enums;
 using KufeArtFullAdission.Mvc.Hubs;
+using KufeArtFullAdission.Mvc.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -134,6 +135,44 @@ public class NotificationController(IHubContext<OrderHub> _hubContext,DBContext 
             }
 
             return BadRequest(new { success = false, message = "Garson bildirimi başarısız" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
+
+
+
+    // KufeArtFullAdission.Mvc/Controllers/NotificationController.cs'ye şu şekilde ekle:
+
+    [HttpPost("notify-kitchen")]
+    [AllowAnonymous]
+    public async Task<IActionResult> NotifyKitchen([FromBody] KitchenBarNotificationDto request)
+    {
+        try
+        {
+            // Dynamic yerine object kullan
+            object orderData = request.OrderData;
+            await _hubContext.Clients.Group("Kitchen").SendAsync("NewOrderReceived", orderData);
+            return Ok(new { success = true, message = "Kitchen'a bildirim gönderildi" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
+
+    [HttpPost("notify-bar")]
+    [AllowAnonymous]
+    public async Task<IActionResult> NotifyBar([FromBody] KitchenBarNotificationDto request)
+    {
+        try
+        {
+            // Dynamic yerine object kullan
+            object orderData = request.OrderData;
+            await _hubContext.Clients.Group("Bar").SendAsync("NewOrderReceived", orderData);
+            return Ok(new { success = true, message = "Bar'a bildirim gönderildi" });
         }
         catch (Exception ex)
         {

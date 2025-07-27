@@ -4,6 +4,12 @@ using System.Collections.Generic;
 
 namespace KufeArtFullAdission.Mvc.Models
 {
+
+    public class KitchenBarNotificationDto
+    {
+        public object OrderData { get; set; } = new();
+        public string Department { get; set; } = "";
+    }
     public class ChangePasswordRequest
     {
         public string CurrentPassword { get; set; }

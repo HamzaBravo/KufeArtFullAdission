@@ -17,8 +17,9 @@
     <link rel="stylesheet" href="~/css/tablet-login.css" asp-append-version="true" />
 
     <!-- 🎵 Ses dosyası için -->
-    <audio id="notificationSound" preload="auto">
+    <audio id="notificationSound" preload="auto" style="display: none;">
         <source src="~/sounds/notification.mp3" type="audio/mpeg">
+        <source src="~/sounds/notification.wav" type="audio/wav">
     </audio>
 </head>
 <body>
@@ -63,11 +64,8 @@
 
 <script src="~/js/tablet-common.js" asp-append-version="true"></script>
 
-@if (User.Identity?.IsAuthenticated == true)
-{
-    <script src="~/js/tablet-signalr.js" asp-append-version="true"></script>
+  <script src="~/js/tablet-signalr.js" asp-append-version="true"></script>
     <script src="~/js/tablet-dashboard.js" asp-append-version="true"></script>
-}
 
 
     @await RenderSectionAsync("Scripts", required: false)

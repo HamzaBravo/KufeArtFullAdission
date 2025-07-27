@@ -1,5 +1,5 @@
 ﻿// KufeArt.TabletMvc/wwwroot/js/tablet-dashboard.js (API bağlantılı versiyon)
-
+console.log('🔍 tablet-dashboard.js yüklendi');
 class TabletDashboard {
     constructor() {
         this.orders = [];
@@ -13,11 +13,20 @@ class TabletDashboard {
         };
     }
 
+
     static init() {
-        if (!window.TabletDashboard) {
-            window.TabletDashboard = new TabletDashboard();
-            window.TabletDashboard.initialize();
-        }
+        console.log('🔍 TabletDashboard.init() BAŞLADI');
+
+        // Her zaman yeni instance oluştur ve initialize et
+        console.log('🔍 Yeni TabletDashboard instance oluşturuluyor...');
+        window.TabletDashboard = new TabletDashboard();
+        console.log('🔍 TabletDashboard instance oluşturuldu');
+
+        console.log('🔍 initialize() çağrılıyor...');
+        window.TabletDashboard.initialize();
+        console.log('🔍 initialize() çağrıldı');
+
+        console.log('🔍 TabletDashboard.init() BİTTİ');
         return window.TabletDashboard;
     }
 
@@ -57,6 +66,76 @@ class TabletDashboard {
             });
         }
     }
+
+
+    // KufeArt.TabletMvc/wwwroot/js/tablet-dashboard.js class içine ekle:
+
+    async showOrderDetailsModal(orderId) {
+        console.log('🔍 Modal açılıyor:', orderId);
+
+        try {
+            // Modal'ı aç
+            const modal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
+            modal.show();
+
+            // Loading göster
+            const modalContent = document.getElementById('orderDetailContent');
+            modalContent.innerHTML = `
+            <div class="text-center p-4">
+                <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                <p>Sipariş detayı yükleniyor...</p>
+            </div>
+        `;
+
+            // API'den detay yükle
+            await this.loadOrderDetails(orderId);
+
+            // Mark as ready button'a orderId ekle
+            const markReadyBtn = document.getElementById('markAsReadyBtn');
+            if (markReadyBtn) {
+                markReadyBtn.dataset.orderId = orderId;
+            }
+
+        } catch (error) {
+            console.error('Modal açma hatası:', error);
+            TabletUtils.showToast('Modal açılamadı', 'error');
+        }
+    }
+
+    async markOrderAsReadyDirect(orderId) {
+        console.log('🔍 Direkt hazır işaretleme:', orderId);
+
+        if (confirm('Bu siparişi hazır olarak işaretlemek istediğinizden emin misiniz?')) {
+            try {
+                const response = await fetch(`${this.apiEndpoints.markAsReady}/${orderId}/ready`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({})
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    TabletUtils.showToast('Sipariş hazır olarak işaretlendi!', 'success');
+                    await this.loadOrders(); // Listeyi yenile
+                } else {
+                    throw new Error(result.message || 'Sipariş güncellenemedi');
+                }
+
+            } catch (error) {
+                console.error('Hazır işaretleme hatası:', error);
+                TabletUtils.showToast('Sipariş güncellenemedi: ' + error.message, 'error');
+            }
+        }
+    }
+
 
     // 🔄 GERÇEK API BAĞLANTISI
     async loadOrders() {
@@ -259,67 +338,69 @@ class TabletDashboard {
         this.bindOrderEvents();
     }
 
+    // KufeArt.TabletMvc/wwwroot/js/tablet-dashboard.js'de renderOrderCard method'unu bul ve değiştir:
+
     renderOrderCard(order) {
         const statusClass = order.status.toLowerCase();
         const timeElapsed = this.getTimeElapsed(new Date(order.orderTime));
 
         return `
-            <div class="order-card status-${statusClass} ${order.isNew ? 'new-order' : ''}" 
-                 data-order-id="${order.orderBatchId}">
-                
-                <div class="order-header">
-                    <div class="order-meta">
-                        <div class="table-info">
-                            <h4><i class="fas fa-utensils"></i> ${order.tableName}</h4>
-                            <small><i class="fas fa-user"></i> ${order.waiterName}</small>
-                        </div>
-                        <div class="order-time">
-                            <div class="time-badge">${TabletUtils.formatTime(new Date(order.orderTime))}</div>
-                            <small class="elapsed-time">${timeElapsed}</small>
-                        </div>
+        <div class="order-card status-${statusClass} ${order.isNew ? 'new-order' : ''}" 
+             data-order-id="${order.orderBatchId}">
+            
+            <div class="order-header">
+                <div class="order-meta">
+                    <div class="table-info">
+                        <h4><i class="fas fa-utensils"></i> ${order.tableName}</h4>
+                        <small><i class="fas fa-user"></i> ${order.waiterName}</small>
                     </div>
-                    
-                    <div class="order-status">
-                        <span class="status-badge ${statusClass}">
-                            ${this.getStatusIcon(order.status)} ${this.getStatusText(order.status)}
-                        </span>
-                        <div class="order-total">${TabletUtils.formatCurrency(order.totalAmount)}</div>
+                    <div class="order-time">
+                        <div class="time-badge">${TabletUtils.formatTime(new Date(order.orderTime))}</div>
+                        <small class="elapsed-time">${timeElapsed}</small>
                     </div>
                 </div>
                 
-                <div class="order-items">
-                    <ul class="item-list">
-                        ${order.items.map(item => `
-                            <li class="order-item">
-                                <div class="item-info">
-                                    <div class="item-name">${item.productName}</div>
-                                    <div class="item-category">${item.categoryName}</div>
-                                </div>
-                                <div class="item-quantity">${item.quantity}</div>
-                            </li>
-                        `).join('')}
-                    </ul>
-                </div>
-                
-                <div class="order-actions">
-                    <button class="btn-action btn-details" onclick="TabletDashboard.showOrderDetails('${order.orderBatchId}')">
-                        <i class="fas fa-eye"></i>
-                        Detay
-                    </button>
-                    ${order.status !== 'Ready' ? `
-                        <button class="btn-action btn-ready" onclick="TabletDashboard.markAsReady('${order.orderBatchId}')">
-                            <i class="fas fa-check"></i>
-                            Hazır
-                        </button>
-                    ` : `
-                        <span class="btn-action btn-completed">
-                            <i class="fas fa-check-circle"></i>
-                            Hazır
-                        </span>
-                    `}
+                <div class="order-status">
+                    <span class="status-badge ${statusClass}">
+                        ${this.getStatusIcon(order.status)} ${this.getStatusText(order.status)}
+                    </span>
+                    <div class="order-total">${TabletUtils.formatCurrency(order.totalAmount)}</div>
                 </div>
             </div>
-        `;
+            
+            <div class="order-items">
+                <ul class="item-list">
+                    ${order.items.map(item => `
+                        <li class="order-item">
+                            <div class="item-info">
+                                <div class="item-name">${item.productName}</div>
+                                <div class="item-category">${item.categoryName}</div>
+                            </div>
+                            <div class="item-quantity">${item.quantity}</div>
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>
+            
+            <div class="order-actions">
+                <button class="btn-action btn-details" onclick="TabletDashboard.showOrderDetails('${order.orderBatchId}')">
+                    <i class="fas fa-eye"></i>
+                    Detay
+                </button>
+                ${order.status !== 'Ready' ? `
+                    <button class="btn-action btn-ready" onclick="TabletDashboard.markAsReady('${order.orderBatchId}')">
+                        <i class="fas fa-check"></i>
+                        Hazır
+                    </button>
+                ` : `
+                    <span class="btn-action btn-completed">
+                        <i class="fas fa-check-circle"></i>
+                        Hazır
+                    </span>
+                `}
+            </div>
+        </div>
+    `;
     }
 
     // Helper Methods
@@ -351,11 +432,14 @@ class TabletDashboard {
     }
 
     bindOrderEvents() {
+        // Order card click events
         document.querySelectorAll('.order-card').forEach(card => {
             card.addEventListener('click', (e) => {
-                if (e.target.closest('.btn-action')) return;
+                if (e.target.closest('.btn-action')) return; // Button clicks ignore
+
                 const orderId = card.dataset.orderId;
-                this.showOrderDetails(orderId);
+                // ✅ Doğru method ismi: showOrderDetailsModal
+                this.showOrderDetailsModal(orderId);
             });
         });
     }
@@ -464,3 +548,17 @@ class TabletDashboard {
 
 // Global access
 window.TabletDashboard = TabletDashboard;
+
+TabletDashboard.showOrderDetails = function (orderId) {
+    console.log('🔍 showOrderDetails çağrıldı:', orderId);
+    if (window.TabletDashboard) {
+        window.TabletDashboard.showOrderDetailsModal(orderId);
+    }
+};
+
+TabletDashboard.markAsReady = function (orderId) {
+    console.log('🔍 markAsReady çağrıldı:', orderId);
+    if (window.TabletDashboard) {
+        window.TabletDashboard.markOrderAsReadyDirect(orderId);
+    }
+};
