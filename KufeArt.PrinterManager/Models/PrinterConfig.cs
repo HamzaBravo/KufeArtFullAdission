@@ -30,6 +30,9 @@ namespace KufeArt.PrinterManager.Models
         public string Message { get; set; } = "";
         public string Icon { get; set; } = "";
         public string Color { get; set; } = "";
+
+        // ✅ YENİ: Ürün detayları
+        public List<OrderItemModel>? Items { get; set; } = new();
     }
 
     // Yazdırma için detaylı sipariş modeli

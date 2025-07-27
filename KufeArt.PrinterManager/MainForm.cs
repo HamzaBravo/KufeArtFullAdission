@@ -1,3 +1,4 @@
+using Microsoft.Win32;
 using KufeArt.PrinterManager.Models;
 using KufeArt.PrinterManager.Services;
 using Newtonsoft.Json;
@@ -16,6 +17,10 @@ public partial class MainForm : Form
     private SignalRClientService? _signalRService;
     private PrintingService? _printingService;
     private bool _backgroundServicesStarted = false;
+
+    private bool _isReallyClosing = false;
+    private bool _hasShownTrayNotification = false;
+
     #endregion
 
     public MainForm()
@@ -27,6 +32,143 @@ public partial class MainForm : Form
         var configDir = Path.Combine(appDataPath, "KufeArt", "PrinterManager");
         Directory.CreateDirectory(configDir);
         _configFilePath = Path.Combine(configDir, "printer-settings.json");
+
+        SetupTrayIcon();
+
+        // Event'leri baðla
+        this.FormClosing += MainForm_FormClosing;
+        this.Resize += MainForm_Resize;
+
+
+        if (!IsAutoStartEnabled())
+        {
+            var result = MessageBox.Show(
+                "KufeArt Yazýcý Yöneticisi'ni Windows ile birlikte baþlatmak ister misiniz?",
+                "Otomatik Baþlatma",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
+            if (result == DialogResult.Yes)
+            {
+                EnableAutoStart();
+            }
+        }
+    }
+
+    private bool IsAutoStartEnabled()
+    {
+        try
+        {
+            RegistryKey rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", false);
+
+            if (rk != null)
+            {
+                object value = rk.GetValue("KufeArtPrinterManager");
+                rk.Close();
+                return value != null;
+            }
+        }
+        catch
+        {
+            // Hata durumunda false döndür
+        }
+
+        return false;
+    }
+    private void DisableAutoStart()
+    {
+        try
+        {
+            RegistryKey rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+
+            if (rk != null)
+            {
+                rk.DeleteValue("KufeArtPrinterManager", false);
+                rk.Close();
+
+                MessageBox.Show("Otomatik baþlatma devre dýþý býrakýldý!", "Baþarýlý",
+                              MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Otomatik baþlatma kaldýrýlamadý: {ex.Message}", "Hata",
+                          MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+    private void EnableAutoStart()
+    {
+        try
+        {
+            RegistryKey rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+
+            if (rk != null)
+            {
+                string appPath = Application.ExecutablePath + " --minimized";
+                rk.SetValue("KufeArtPrinterManager", appPath);
+                rk.Close();
+
+                MessageBox.Show("Otomatik baþlatma etkinleþtirildi!", "Baþarýlý",
+                              MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Otomatik baþlatma ayarlanamadý: {ex.Message}", "Hata",
+                          MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+    private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+    {
+        // Eðer gerçekten kapatýlmak isteniyorsa
+        if (_isReallyClosing)
+        {
+            notifyIcon1.Visible = false;
+            notifyIcon1.Dispose();
+            return;
+        }
+
+        // X butonuna basýldýðýnda arka plana gönder
+        e.Cancel = true;
+        this.Hide();
+        this.ShowInTaskbar = false;
+        notifyIcon1.Visible = true;
+
+        // Kullanýcýya bilgi ver (sadece ilk kez)
+        if (!_hasShownTrayNotification)
+        {
+            notifyIcon1.ShowBalloonTip(3000,
+                "KufeArt Yazýcý Yöneticisi",
+                "Uygulama arka planda çalýþmaya devam ediyor. Açmak için tray ikonuna çift týklayýn.",
+                ToolTipIcon.Info);
+            _hasShownTrayNotification = true;
+        }
+    }
+
+    private void MainForm_Resize(object sender, EventArgs e)
+    {
+        if (this.WindowState == FormWindowState.Minimized)
+        {
+            this.Hide();
+            this.ShowInTaskbar = false;
+            notifyIcon1.Visible = true;
+        }
+    }
+
+    private void SetupTrayIcon()
+    {
+        try
+        {
+            // Icon ayarla (varsayýlan sistem ikonu)
+            notifyIcon1.Icon = SystemIcons.Application;
+        }
+        catch
+        {
+            notifyIcon1.Icon = SystemIcons.Information;
+        }
+
+        notifyIcon1.Text = "KufeArt Yazýcý Yöneticisi - Arka Planda Çalýþýyor";
+        notifyIcon1.Visible = false; // Baþlangýçta gizli
     }
 
     private async void MainForm_Load(object sender, EventArgs e)
@@ -44,21 +186,6 @@ public partial class MainForm : Form
         }
     }
 
-    private async void MainForm_FormClosing(object sender, FormClosingEventArgs e)
-    {
-        // Background services'i temizle
-        try
-        {
-            if (_signalRService != null)
-            {
-                await _signalRService.DisconnectAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Form kapatma hatasý: {ex.Message}");
-        }
-    }
 
     #region Mevcut Ýþlevsellik (Deðiþmeden korundu)
     private void LoadSystemPrinters()
@@ -506,5 +633,41 @@ public partial class MainForm : Form
     private void UpdateStatus(string message)
     {
         lblStatus.Text = $"{DateTime.Now:HH:mm:ss} - {message}";
+    }
+
+    private void ShowForm()
+    {
+        this.Show();
+        this.WindowState = FormWindowState.Normal;
+        this.ShowInTaskbar = true;
+        this.BringToFront();
+        this.Activate();
+        notifyIcon1.Visible = false;
+    }
+
+    private void notifyIcon1_DoubleClick(object sender, EventArgs e)
+    {
+        ShowForm();
+    }
+
+    private void contextMenuStrip1_Click(object sender, EventArgs e)
+    {
+        ShowForm();
+    }
+
+    private void toolStripTextBox2_Click(object sender, EventArgs e)
+    {
+        _isReallyClosing = true;
+        Application.Exit();
+    }
+
+    private void checkBox1_CheckedChanged(object sender, EventArgs e)
+    {
+        if (checkBox1.Checked)
+            EnableAutoStart();
+        
+        else
+            DisableAutoStart();
+        
     }
 }

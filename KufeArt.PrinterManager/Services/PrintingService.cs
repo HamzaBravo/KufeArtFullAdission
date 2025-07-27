@@ -30,8 +30,8 @@ namespace KufeArt.PrinterManager.Services
             {
                 LogMessage($"🔍 Sipariş işleniyor: {orderNotification.TableName}");
 
-                // Detaylı sipariş bilgilerini al (API'den)
-                var detailedOrder = await GetOrderDetailsAsync(orderNotification);
+                // Detaylı sipariş bilgilerini al
+                var detailedOrder = GetOrderDetailsAsync(orderNotification); // ✅ await ekledik
                 if (detailedOrder == null)
                 {
                     LogMessage("❌ Sipariş detayları alınamadı");
@@ -49,6 +49,8 @@ namespace KufeArt.PrinterManager.Services
                 // Mutfak ve Bar ürünlerini ayır
                 var kitchenItems = detailedOrder.Items.Where(i => i.ProductType == "Kitchen").ToList();
                 var barItems = detailedOrder.Items.Where(i => i.ProductType == "Bar").ToList();
+
+                LogMessage($"📦 Mutfak ürünleri: {kitchenItems.Count}, Bar ürünleri: {barItems.Count}");
 
                 // Mutfak yazıcılarına yazdır
                 if (kitchenItems.Any())
@@ -85,7 +87,7 @@ namespace KufeArt.PrinterManager.Services
 
             foreach (var printer in kitchenPrinters)
             {
-                await PrintReceiptAsync(printer, order, items, "🍽️ MUTFAK SİPARİŞİ");
+                await PrintReceiptAsync(printer, order, items, "MUTFAK SİPARİŞİ");
             }
         }
 
@@ -103,7 +105,7 @@ namespace KufeArt.PrinterManager.Services
 
             foreach (var printer in barPrinters)
             {
-                await PrintReceiptAsync(printer, order, items, "🍹 BAR SİPARİŞİ");
+                await PrintReceiptAsync(printer, order, items, "BAR SİPARİŞİ");
             }
         }
 
@@ -197,7 +199,7 @@ namespace KufeArt.PrinterManager.Services
                         currentFont = titleFont;
                         lineHeight = 18;
                     }
-                    else if (text.StartsWith("Masa:") || text.StartsWith("Garson:") || text.StartsWith("Tarih:") || text.Contains("Toplam:"))
+                    else if (text.StartsWith("Masa:") || text.StartsWith("Garson:") || text.StartsWith("Tarih:"))
                     {
                         currentFont = headerFont;
                         lineHeight = 16;
@@ -263,12 +265,11 @@ namespace KufeArt.PrinterManager.Services
                     receipt.AppendLine($"   [{item.CategoryName}]");
                 }
 
-                receipt.AppendLine($"   {item.Price:C2} x {item.Quantity} = {item.TotalPrice:C2}");
+                receipt.AppendLine($"   Adet : {item.Quantity}");
                 receipt.AppendLine(""); // Boş satır
             }
 
             receipt.AppendLine("--------------------------------");
-            receipt.AppendLine($"TOPLAM: {items.Sum(i => i.TotalPrice):C2}");
             receipt.AppendLine("================================");
             receipt.AppendLine("");
             receipt.AppendLine($"Yazdırma: {DateTime.Now:HH:mm:ss}");
@@ -281,43 +282,33 @@ namespace KufeArt.PrinterManager.Services
         #endregion
 
         #region API Integration (Geçici - Mockup)
-        private async Task<DetailedOrderModel?> GetOrderDetailsAsync(OrderNotificationModel notification)
+        private DetailedOrderModel GetOrderDetailsAsync(OrderNotificationModel notification)
         {
-            // TODO: Burası Admin Panel API'sinden gerçek veriyi çekecek
-            // Şimdilik mock data dönelim
+            LogMessage($"🔍 Sipariş detayları işleniyor: {notification.TableName}");
 
-            await Task.Delay(100); // Simüle network delay
-
-            // Mock sipariş detayları
-            return new DetailedOrderModel
+            // SignalR'dan gelen veriyi kullan
+            var detailedOrder = new DetailedOrderModel
             {
                 TableId = notification.TableId,
                 TableName = notification.TableName,
                 WaiterName = notification.WaiterName,
                 OrderTime = notification.Timestamp,
                 TotalAmount = notification.TotalAmount,
-                Items = new List<OrderItemModel>
-                {
-                    new OrderItemModel
-                    {
-                        ProductName = "Türk Kahvesi",
-                        Quantity = 2,
-                        Price = 15.00,
-                        TotalPrice = 30.00,
-                        ProductType = "Bar", // ProductOrderType.Bar
-                        CategoryName = "Sıcak İçecekler"
-                    },
-                    new OrderItemModel
-                    {
-                        ProductName = "Karışık Tost",
-                        Quantity = 1,
-                        Price = 25.00,
-                        TotalPrice = 25.00,
-                        ProductType = "Kitchen", // ProductOrderType.Kitchen
-                        CategoryName = "Tostlar"
-                    }
-                }
+                Items = notification.Items ?? new List<OrderItemModel>()
             };
+
+            LogMessage($"✅ {detailedOrder.Items.Count} ürün detayı hazırlandı");
+
+            if (detailedOrder.Items.Any())
+            {
+                LogMessage($"📋 Ürünler: {string.Join(", ", detailedOrder.Items.Select(i => $"{i.Quantity}x {i.ProductName}"))}");
+            }
+            else
+            {
+                LogMessage("⚠️ Ürün detayı bulunamadı");
+            }
+
+            return detailedOrder;
         }
         #endregion
 

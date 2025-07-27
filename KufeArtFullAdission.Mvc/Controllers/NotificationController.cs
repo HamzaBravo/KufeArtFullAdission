@@ -1,10 +1,15 @@
 ﻿// KufeArtFullAdission.Mvc/Controllers/NotificationController.cs
+using AppDbContext;
+using KufeArtFullAdission.Enums;
 using KufeArtFullAdission.Mvc.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
@@ -13,7 +18,7 @@ namespace KufeArtFullAdission.Mvc.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class NotificationController(IHubContext<OrderHub> _hubContext) : ControllerBase
+public class NotificationController(IHubContext<OrderHub> _hubContext,DBContext _dBContext) : ControllerBase
 {
     [HttpPost("new-order")]
     [AllowAnonymous] // Garson panelinden gelecek
@@ -21,6 +26,9 @@ public class NotificationController(IHubContext<OrderHub> _hubContext) : Control
     {
         try
         {
+            // ✅ Sipariş detaylarını veritabanından çek
+            var orderItems = await GetOrderItemsAsync(notification.TableId);
+
             var orderData = new
             {
                 Type = "NewOrder",
@@ -31,8 +39,11 @@ public class NotificationController(IHubContext<OrderHub> _hubContext) : Control
                 Timestamp = notification.Timestamp,
                 Message = $"{notification.WaiterName} - {notification.TableName} için yeni sipariş: {notification.TotalAmount:C2}",
                 Icon = "fas fa-shopping-cart",
-                Color = "success"
+                Color = "success",
+                // ✅ YENİ: Ürün detayları eklendi
+                Items = orderItems
             };
+
 
             // 🎯 YENİ: PrinterManager'a da gönder
             await _hubContext.Clients.Group("PrinterManagers").SendAsync("NewOrderReceived", orderData);
@@ -130,6 +141,49 @@ public class NotificationController(IHubContext<OrderHub> _hubContext) : Control
         }
     }
 
+
+    // ✅ YENİ: Sipariş detaylarını çekme metodu
+    private async Task<List<object>> GetOrderItemsAsync(Guid tableId)
+    {
+        try
+        {
+            var table = await _dBContext.Tables.FindAsync(tableId);
+            if (table?.AddionStatus == null)
+                return new List<object>();
+
+            // En son batch'i al (son sipariş)
+            var latestBatch = await _dBContext.AddtionHistories
+                .Where(h => h.AddionStatusId == table.AddionStatus)
+                .OrderByDescending(h => h.CreatedAt)
+                .Select(h => h.OrderBatchId)
+                .FirstOrDefaultAsync();
+
+            if (latestBatch == Guid.Empty)
+                return new List<object>();
+
+            // Batch'e ait ürünleri al ve ProductDbEntity ile join et
+            var orderItems = await (from history in _dBContext.AddtionHistories
+                                    join product in _dBContext.Products on history.ProductName equals product.Name
+                                    where history.OrderBatchId == latestBatch
+                                    select new
+                                    {
+                                        ProductName = history.ProductName,
+                                        Quantity = history.ProductQuantity,
+                                        Price = history.ProductPrice,
+                                        TotalPrice = history.TotalPrice,
+                                        CategoryName = product.CategoryName,
+                                        ProductType = product.Type == ProductOrderType.Kitchen ? "Kitchen" : "Bar"
+                                    }).ToListAsync();
+
+            return orderItems.Cast<object>().ToList();
+        }
+        catch (Exception ex)
+        {
+            // Hata durumunda boş liste döndür
+            System.Diagnostics.Debug.WriteLine($"❌ Sipariş detayları alınamadı: {ex.Message}");
+            return new List<object>();
+        }
+    }
 }
 
 

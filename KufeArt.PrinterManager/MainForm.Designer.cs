@@ -1,4 +1,6 @@
-﻿namespace KufeArt.PrinterManager
+﻿using System.Windows.Forms;
+
+namespace KufeArt.PrinterManager
 {
     partial class MainForm
     {
@@ -15,6 +17,7 @@
 
         private void InitializeComponent()
         {
+            components = new System.ComponentModel.Container();
             lblTitle = new Label();
             lblPrinters = new Label();
             listBoxPrinters = new ListBox();
@@ -37,9 +40,16 @@
             btnLoadSettings = new Button();
             statusStrip = new StatusStrip();
             lblStatus = new ToolStripStatusLabel();
+            notifyIcon1 = new NotifyIcon(components);
+            contextMenuStrip1 = new ContextMenuStrip(components);
+            toolStripTextBox1 = new ToolStripTextBox();
+            toolStripSeparator1 = new ToolStripSeparator();
+            toolStripTextBox2 = new ToolStripTextBox();
+            checkBox1 = new CheckBox();
             grpSettings.SuspendLayout();
             grpAssignedPrinters.SuspendLayout();
             statusStrip.SuspendLayout();
+            contextMenuStrip1.SuspendLayout();
             SuspendLayout();
             // 
             // lblTitle
@@ -308,11 +318,54 @@
             lblStatus.Size = new Size(302, 17);
             lblStatus.Text = "Hazır - Yazıcıları yüklemek için 'Yenile' butonuna tıklayın";
             // 
+            // notifyIcon1
+            // 
+            notifyIcon1.ContextMenuStrip = contextMenuStrip1;
+            notifyIcon1.Text = "KufeArt Yazıcı Yöneticisi";
+            notifyIcon1.DoubleClick += notifyIcon1_DoubleClick;
+            // 
+            // contextMenuStrip1
+            // 
+            contextMenuStrip1.Items.AddRange(new ToolStripItem[] { toolStripTextBox1, toolStripSeparator1, toolStripTextBox2 });
+            contextMenuStrip1.Name = "contextMenuStrip1";
+            contextMenuStrip1.Size = new Size(161, 60);
+            contextMenuStrip1.Click += contextMenuStrip1_Click;
+            // 
+            // toolStripTextBox1
+            // 
+            toolStripTextBox1.Name = "toolStripTextBox1";
+            toolStripTextBox1.Size = new Size(100, 23);
+            toolStripTextBox1.Text = "Yazıcı Yönetici Aç";
+            // 
+            // toolStripSeparator1
+            // 
+            toolStripSeparator1.Name = "toolStripSeparator1";
+            toolStripSeparator1.Size = new Size(157, 6);
+            // 
+            // toolStripTextBox2
+            // 
+            toolStripTextBox2.Name = "toolStripTextBox2";
+            toolStripTextBox2.Size = new Size(100, 23);
+            toolStripTextBox2.Text = "Çıkış";
+            toolStripTextBox2.Click += toolStripTextBox2_Click;
+            // 
+            // checkBox1
+            // 
+            checkBox1.AutoSize = true;
+            checkBox1.Location = new Point(608, 292);
+            checkBox1.Name = "checkBox1";
+            checkBox1.Size = new Size(110, 19);
+            checkBox1.TabIndex = 9;
+            checkBox1.Text = "Otomatik Başlat";
+            checkBox1.UseVisualStyleBackColor = true;
+            checkBox1.CheckedChanged += checkBox1_CheckedChanged;
+            // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(788, 450);
+            Controls.Add(checkBox1);
             Controls.Add(lblTitle);
             Controls.Add(lblPrinters);
             Controls.Add(listBoxPrinters);
@@ -333,6 +386,8 @@
             grpAssignedPrinters.PerformLayout();
             statusStrip.ResumeLayout(false);
             statusStrip.PerformLayout();
+            contextMenuStrip1.ResumeLayout(false);
+            contextMenuStrip1.PerformLayout();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -359,5 +414,11 @@
         private Button btnLoadSettings;
         private StatusStrip statusStrip;
         private ToolStripStatusLabel lblStatus;
+        private NotifyIcon notifyIcon1;
+        private ContextMenuStrip contextMenuStrip1;
+        private ToolStripTextBox toolStripTextBox1;
+        private ToolStripSeparator toolStripSeparator1;
+        private ToolStripTextBox toolStripTextBox2;
+        private CheckBox checkBox1;
     }
 }
