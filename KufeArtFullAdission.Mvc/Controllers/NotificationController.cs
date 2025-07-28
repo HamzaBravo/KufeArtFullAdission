@@ -22,36 +22,6 @@ namespace KufeArtFullAdission.Mvc.Controllers;
 public class NotificationController(IHubContext<OrderHub> _hubContext,DBContext _dBContext) : ControllerBase
 {
 
-    [HttpPost("notify-kitchen")]
-    [AllowAnonymous]
-    public async Task<IActionResult> NotifyKitchen([FromBody] KitchenBarNotificationDto request)
-    {
-        try
-        {
-            await _hubContext.Clients.Group("Kitchen").SendAsync("NewOrderReceived", request.OrderData);
-            return Ok(new { success = true, message = "Kitchen'a bildirim gönderildi" });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { success = false, message = ex.Message });
-        }
-    }
-
-    [HttpPost("notify-bar")]
-    [AllowAnonymous]
-    public async Task<IActionResult> NotifyBar([FromBody] KitchenBarNotificationDto request)
-    {
-        try
-        {
-            await _hubContext.Clients.Group("Bar").SendAsync("NewOrderReceived", request.OrderData);
-            return Ok(new { success = true, message = "Bar'a bildirim gönderildi" });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { success = false, message = ex.Message });
-        }
-    }
-
     [HttpPost("new-order")]
     [AllowAnonymous] // Garson panelinden gelecek
     public async Task<IActionResult> NewOrder([FromBody] NewOrderNotificationDto notification)
@@ -75,11 +45,6 @@ public class NotificationController(IHubContext<OrderHub> _hubContext,DBContext 
                 // ✅ YENİ: Ürün detayları eklendi
                 Items = orderItems
             };
-
-
-            // 🎯 YENİ: PrinterManager'a da gönder
-            await _hubContext.Clients.Group("PrinterManagers").SendAsync("NewOrderReceived", orderData);
-
 
             // Admin paneline bildirim gönder
             await _hubContext.Clients.Group("AdminPanel").SendAsync("NewOrderReceived", orderData);

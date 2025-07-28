@@ -383,7 +383,9 @@ public class OrderController(DBContext _dbContext) : Controller
 
             // ✅ 2. YENİ: Tablet projesine de bildirim gönder
             var tabletClient = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient("TabletPanel");
+
             await tabletClient.PostAsJsonAsync("/api/notification/tablet-kitchen", new { OrderData = notificationData });
+
             await tabletClient.PostAsJsonAsync("/api/notification/tablet-bar", new { OrderData = notificationData });
 
         }
@@ -393,103 +395,6 @@ public class OrderController(DBContext _dbContext) : Controller
         }
     }
 
-
-    // ✅ YENİ METHOD: Kitchen/Bar'a direkt bildirim
-    private async Task NotifyKitchenAndBar(Guid tableId, string tableName, double totalAmount)
-    {
-        try
-        {
-            var orderItems = await GetOrderItemsForNotification(tableId);
-            if (!orderItems.Any()) return;
-
-            var kitchenItems = orderItems.Where(x => x.ProductType == "Kitchen").ToList();
-            var barItems = orderItems.Where(x => x.ProductType == "Bar").ToList();
-
-            var orderData = new
-            {
-                Type = "NewOrder",
-                TableId = tableId,
-                TableName = tableName,
-                TotalAmount = totalAmount,
-                WaiterName = User.GetFullName(),
-                Timestamp = DateTime.Now,
-                Items = orderItems.Select(x => new
-                {
-                    ProductName = x.ProductName,
-                    Quantity = x.Quantity,
-                    Price = x.Price,
-                    ProductType = x.ProductType,
-                    CategoryName = x.CategoryName
-                }).ToList()
-            };
-
-
-            // 🚀 YENİ: TabletMvc'ye DOĞRUDAN gönder (daha hızlı)
-            var tabletClient = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient("TabletPanel");
-
-            // Kitchen'a bildirim (PARALEL)
-            if (kitchenItems.Any())
-            {
-                var kitchenRequest = new { OrderData = orderData, Department = "Kitchen" };
-
-
-                // TabletMvc'ye DOĞRUDAN gönder (HIZLI)
-                _ = tabletClient.PostAsJsonAsync("/api/notification/tablet-kitchen", kitchenRequest);
-            }
-
-            // Bar'a bildirim (PARALEL)
-            if (barItems.Any())
-            {
-                var barRequest = new { OrderData = orderData, Department = "Bar" };
-
-                // TabletMvc'ye DOĞRUDAN gönder (HIZLI)
-                _ = tabletClient.PostAsJsonAsync("/api/notification/tablet-bar", barRequest);
-            }
-
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"❌ Kitchen/Bar bildirim hatası: {ex.Message}");
-        }
-    }
-
-    // ✅ HELPER METHOD: Sipariş detaylarını al
-    private async Task<List<dynamic>> GetOrderItemsForNotification(Guid tableId)
-    {
-        try
-        {
-            var table = await _dbContext.Tables.FindAsync(tableId);
-            if (table?.AddionStatus == null) return new List<dynamic>();
-
-            // En son batch'i al
-            var latestBatch = await _dbContext.AddtionHistories
-                .Where(h => h.AddionStatusId == table.AddionStatus)
-                .OrderByDescending(h => h.CreatedAt)
-                .Select(h => h.OrderBatchId)
-                .FirstOrDefaultAsync();
-
-            if (latestBatch == Guid.Empty) return new List<dynamic>();
-
-            // Ürün detaylarını al
-            var items = await (from history in _dbContext.AddtionHistories
-                               join product in _dbContext.Products on history.ProductName equals product.Name
-                               where history.OrderBatchId == latestBatch
-                               select new
-                               {
-                                   ProductName = history.ProductName,
-                                   Quantity = history.ProductQuantity,
-                                   Price = history.ProductPrice,
-                                   ProductType = product.Type == ProductOrderType.Kitchen ? "Kitchen" : "Bar",
-                                   CategoryName = product.CategoryName
-                               }).ToListAsync();
-
-            return items.Cast<dynamic>().ToList();
-        }
-        catch
-        {
-            return new List<dynamic>();
-        }
-    }
 }
 
 // DTO Classes
