@@ -511,13 +511,52 @@ document.addEventListener('DOMContentLoaded', function () {
     // Tablet utils'i başlat
     TabletUtils.initializeTablet();
 
-    // SignalR'ı MUTLAKA başlat
+    // ✅ SES İZNİ İSTE (PC için gerekli)
+    requestAudioPermission();
+
+    // SignalR'ı başlat
     console.log('🔍 SignalR başlatılıyor...');
-    TabletSignalR.init();  // Static method kullanın
+    TabletSignalR.init();
     console.log('✅ TabletSignalR başlatıldı');
 
-    // Dashboard'ı başlat (dashboard sayfasındaysa)
+    // Dashboard'ı başlat
     if (document.getElementById('ordersContainer')) {
         TabletDashboard.init();
     }
 });
+
+// ✅ SES İZNİ İSTEME FONKSİYONU
+function requestAudioPermission() {
+    // Sayfa yüklendiğinde kullanıcıdan tıklama iste
+    const audioPermissionDiv = document.createElement('div');
+    audioPermissionDiv.innerHTML = `
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                    background: rgba(0,0,0,0.8); z-index: 9999; display: flex; 
+                    align-items: center; justify-content: center;">
+            <div style="background: white; padding: 30px; border-radius: 10px; text-align: center;">
+                <h3>🔊 Ses Bildirimleri</h3>
+                <p>Yeni sipariş bildirimlerini duyabilmek için tıklayın</p>
+                <button id="enableAudioBtn" style="padding: 15px 30px; font-size: 16px; 
+                                                  background: #2c5530; color: white; border: none; 
+                                                  border-radius: 5px; cursor: pointer;">
+                    Ses Bildirimlerini Etkinleştir
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(audioPermissionDiv);
+
+    document.getElementById('enableAudioBtn').addEventListener('click', () => {
+        // Ses test et
+        const testAudio = new Audio('/sounds/notification.mp3');
+        testAudio.volume = 0.3;
+        testAudio.play().then(() => {
+            console.log('✅ Ses izni verildi');
+            audioPermissionDiv.remove();
+        }).catch(e => {
+            console.log('❌ Ses izni verilemedi:', e);
+            audioPermissionDiv.remove();
+        });
+    });
+}

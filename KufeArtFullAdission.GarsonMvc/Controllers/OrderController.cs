@@ -1,5 +1,6 @@
 ﻿// KufeArtFullAdission.GarsonMvc/Controllers/OrderController.cs
 using AppDbContext;
+using Azure;
 using KufeArtFullAdission.Entity;
 using KufeArtFullAdission.Enums;
 using KufeArtFullAdission.GarsonMvc.Extensions;
@@ -369,25 +370,37 @@ public class OrderController(DBContext _dbContext) : Controller
     {
         try
         {
-            var httpClient = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient("AdminPanel");
+            // Sipariş detaylarını çek
+            var orderItems = await GetOrderItemsForNotification(tableId);
+
             var notificationData = new
             {
                 TableId = tableId,
                 TableName = tableName,
                 TotalAmount = totalAmount,
                 WaiterName = User.GetFullName(),
-                Timestamp = DateTime.Now
+                Timestamp = DateTime.Now,
+                Items = orderItems // Sipariş detayları eklendi
             };
+
+            // 1. Admin paneline bildirim
+            var httpClient = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient("AdminPanel");
             await httpClient.PostAsJsonAsync("/api/notification/new-order", notificationData);
 
-            // 2. YENİ: Tablet projesine DOĞRUDAN bildirim
+            // 2. Tablet projesine DOĞRUDAN bildirim (detaylı veri ile)
             var tabletClient = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient("TabletPanel");
 
-            // Kitchen ve Bar için ayrı endpoint'lere gönder
-            var res1 = await tabletClient.PostAsJsonAsync("/api/notification/tablet-kitchen", new { OrderData = notificationData });
-            var res2 = await tabletClient.PostAsJsonAsync("/api/notification/tablet-bar", new { OrderData = notificationData });
+            var res1 = await tabletClient.PostAsJsonAsync("/api/notification/tablet-kitchen", new
+            {
+                OrderData = notificationData,
+                Department = "Kitchen"  // ✅ Department ekle
+            });
 
-            Console.WriteLine("✅ Hem admin hem tablet bildirildi");
+            var res2 = await tabletClient.PostAsJsonAsync("/api/notification/tablet-bar", new
+            {
+                OrderData = notificationData,
+                Department = "Bar"      // ✅ Department ekle
+            });
 
         }
         catch (Exception ex)
@@ -396,6 +409,49 @@ public class OrderController(DBContext _dbContext) : Controller
         }
     }
 
+
+    // ✅ YENİ: Sipariş detaylarını çekme metodu
+    private async Task<List<object>> GetOrderItemsForNotification(Guid tableId)
+    {
+        try
+        {
+            var table = await _dbContext.Tables.FindAsync(tableId);
+            if (table?.AddionStatus == null)
+                return new List<object>();
+
+            // En son batch'i al (son sipariş)
+            var latestBatch = await _dbContext.AddtionHistories
+                .Where(h => h.AddionStatusId == table.AddionStatus)
+                .OrderByDescending(h => h.CreatedAt)
+                .Select(h => h.OrderBatchId)
+                .FirstOrDefaultAsync();
+
+            if (latestBatch == Guid.Empty)
+                return new List<object>();
+
+            // Batch'e ait ürünleri al ve ProductDbEntity ile join et
+            var orderItems = await (from history in _dbContext.AddtionHistories
+                                    join product in _dbContext.Products on history.ProductName equals product.Name
+                                    where history.OrderBatchId == latestBatch
+                                    select new
+                                    {
+                                        ProductName = history.ProductName,
+                                        Quantity = history.ProductQuantity,
+                                        Price = history.ProductPrice,
+                                        TotalPrice = history.TotalPrice,
+                                        CategoryName = product.CategoryName,
+                                        ProductType = product.Type == ProductOrderType.Kitchen ? "Kitchen" : "Bar"
+                                    }).ToListAsync();
+
+            return orderItems.Cast<object>().ToList();
+        }
+        catch (Exception ex)
+        {
+            // Hata durumunda boş liste döndür
+            System.Diagnostics.Debug.WriteLine($"❌ Sipariş detayları alınamadı: {ex.Message}");
+            return new List<object>();
+        }
+    }
 }
 
 // DTO Classes

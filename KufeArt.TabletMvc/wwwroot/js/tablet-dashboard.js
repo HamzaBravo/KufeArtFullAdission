@@ -71,35 +71,157 @@ class TabletDashboard {
     // KufeArt.TabletMvc/wwwroot/js/tablet-dashboard.js class içine ekle:
 
     async showOrderDetailsModal(orderId) {
-        console.log('🔍 Modal açılıyor:', orderId);
-
         try {
+            console.log('🔍 Modal açılıyor:', orderId);
+
+            // Sipariş verilerini bul
+            const order = this.orders.find(o => o.orderBatchId === orderId);
+            if (!order) {
+                TabletUtils.showToast('Sipariş bulunamadı!', 'error');
+                return;
+            }
+
+            // Modal HTML'ini oluştur
+            const modalHTML = this.createOrderDetailModal(order);
+
+            // Mevcut modalı kaldır ve yenisini ekle
+            const existingModal = document.getElementById('orderDetailModal');
+            if (existingModal) existingModal.remove();
+
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+
             // Modal'ı aç
             const modal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
             modal.show();
 
-            // Loading göster
-            const modalContent = document.getElementById('orderDetailContent');
-            modalContent.innerHTML = `
-            <div class="text-center p-4">
-                <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
-                <p>Sipariş detayı yükleniyor...</p>
-            </div>
-        `;
-
-            // API'den detay yükle
-            await this.loadOrderDetails(orderId);
-
-            // Mark as ready button'a orderId ekle
-            const markReadyBtn = document.getElementById('markAsReadyBtn');
-            if (markReadyBtn) {
-                markReadyBtn.dataset.orderId = orderId;
-            }
+            // Modal kapanma eventi
+            document.getElementById('orderDetailModal').addEventListener('hidden.bs.modal', () => {
+                document.getElementById('orderDetailModal').remove();
+            });
 
         } catch (error) {
-            console.error('Modal açma hatası:', error);
-            TabletUtils.showToast('Modal açılamadı', 'error');
+            console.error('Modal açılamadı:', error);
+            TabletUtils.showToast('Detay yüklenemedi!', 'error');
         }
+    }
+
+    createOrderDetailModal(order) {
+        const statusClass = order.status.toLowerCase();
+        const timeElapsed = this.getTimeElapsed(new Date(order.orderTime));
+
+        return `
+        <div class="modal fade" id="orderDetailModal" tabindex="-1" data-bs-backdrop="static">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content order-detail-modal">
+                    
+                    <!-- 🎯 MODAL HEADER -->
+                    <div class="modal-header order-detail-header">
+                        <div class="header-content">
+                            <div class="table-info-large">
+                                <h2 class="table-title">
+                                    <i class="fas fa-utensils"></i> ${order.tableName}
+                                </h2>
+                                <div class="order-meta-large">
+                                    <span class="waiter-badge">
+                                        <i class="fas fa-user"></i> ${order.waiterName}
+                                    </span>
+                                    <span class="time-badge">
+                                        <i class="fas fa-clock"></i> ${TabletUtils.formatTime(new Date(order.orderTime))}
+                                    </span>
+                                    <span class="elapsed-badge">
+                                        <i class="fas fa-hourglass-half"></i> ${timeElapsed}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="status-info-large">
+                                <div class="status-badge-large status-${statusClass}">
+                                    ${this.getStatusIcon(order.status)} ${this.getStatusText(order.status)}
+                                </div>
+                                <div class="total-amount-large">
+                                    ${TabletUtils.formatCurrency(order.totalAmount)}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="button" class="btn-close-custom" data-bs-dismiss="modal">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <!-- 📋 MODAL BODY -->
+                    <div class="modal-body order-detail-body">
+                        
+                        <!-- Sipariş Notu -->
+                        ${order.note ? `
+                            <div class="order-note-section">
+                                <h5><i class="fas fa-sticky-note"></i> Sipariş Notu</h5>
+                                <div class="note-content">${order.note}</div>
+                            </div>
+                        ` : ''}
+                        
+                        <!-- Ürün Listesi -->
+                        <div class="products-section">
+                            <h5><i class="fas fa-list"></i> Sipariş Detayları (${order.items.length} ürün)</h5>
+                            <div class="products-grid">
+                                ${order.items.map((item, index) => `
+                                    <div class="product-card-detail" style="animation-delay: ${index * 0.1}s">
+                                        <div class="product-icon">
+                                            <i class="fas fa-utensils"></i>
+                                        </div>
+                                        <div class="product-info-detail">
+                                            <h6 class="product-name-detail">${item.productName}</h6>
+                                            <span class="product-category-detail">${item.categoryName || 'Genel'}</span>
+                                        </div>
+                                        <div class="product-pricing">
+                                            <div class="product-quantity-large">x${item.quantity}</div>
+                                            <div class="product-price-detail">${TabletUtils.formatCurrency(item.price * item.quantity)}</div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        
+                        <!-- Özet Bilgiler -->
+                        <div class="summary-section">
+                            <div class="summary-row">
+                                <span>Toplam Ürün:</span>
+                                <strong>${order.items.reduce((sum, item) => sum + item.quantity, 0)} adet</strong>
+                            </div>
+                            <div class="summary-row">
+                                <span>Ürün Çeşidi:</span>
+                                <strong>${order.items.length} çeşit</strong>
+                            </div>
+                            <div class="summary-row total-row">
+                                <span>Toplam Tutar:</span>
+                                <strong class="total-price">${TabletUtils.formatCurrency(order.totalAmount)}</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 🚀 MODAL FOOTER -->
+                    <div class="modal-footer order-detail-footer">
+                        <button type="button" class="btn-secondary-large" data-bs-dismiss="modal">
+                            <i class="fas fa-arrow-left"></i> Kapat
+                        </button>
+                        
+                        ${order.status !== 'Ready' ? `
+                            <button type="button" class="btn-primary-large" 
+                                    onclick="TabletDashboard.markAsReady('${order.orderBatchId}'); 
+                                             bootstrap.Modal.getInstance(document.getElementById('orderDetailModal')).hide();">
+                                <i class="fas fa-check-circle"></i> Siparişi Hazır Olarak İşaretle
+                            </button>
+                        ` : `
+                            <div class="completed-badge-large">
+                                <i class="fas fa-check-circle"></i> Sipariş Hazırlandı
+                            </div>
+                        `}
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    `;
     }
 
     async markOrderAsReadyDirect(orderId) {
@@ -323,6 +445,74 @@ class TabletDashboard {
         }
     }
 
+    renderOrderCard(order) {
+        const statusClass = order.status.toLowerCase();
+        const timeElapsed = this.getTimeElapsed(new Date(order.orderTime));
+        const isNewOrder = order.isNew || false;
+
+        return `
+        <div class="order-row status-${statusClass} ${isNewOrder ? 'new-order-effect' : ''}" 
+             data-order-id="${order.orderBatchId}">
+            
+            <!-- Sol: Masa & Garson Bilgisi -->
+            <div class="order-info">
+                <div class="table-section">
+                    <h4 class="table-name">
+                        <i class="fas fa-utensils"></i> ${order.tableName}
+                    </h4>
+                    <span class="waiter-name">
+                        <i class="fas fa-user"></i> ${order.waiterName}
+                    </span>
+                </div>
+                
+                <div class="order-summary">
+                    <span class="item-count">${order.items.length} ürün</span>
+                    <span class="order-note">${order.note || ''}</span>
+                </div>
+            </div>
+
+            <!-- Orta: Ürün Listesi -->
+            <div class="order-products">
+                ${order.items.slice(0, 3).map(item => `
+                    <div class="product-item">
+                        <span class="product-name">${item.productName}</span>
+                        <span class="product-quantity">x${item.quantity}</span>
+                    </div>
+                `).join('')}
+                ${order.items.length > 3 ? `<div class="more-items">+${order.items.length - 3} ürün daha</div>` : ''}
+            </div>
+
+            <!-- Sağ: Durum & Zaman -->
+            <div class="order-status-section">
+                <div class="status-badge status-${statusClass}">
+                    ${this.getStatusIcon(order.status)} ${this.getStatusText(order.status)}
+                </div>
+                <div class="time-info">
+                    <div class="order-time">${TabletUtils.formatTime(new Date(order.orderTime))}</div>
+                    <div class="elapsed-time">${timeElapsed}</div>
+                </div>
+                <div class="order-total">${TabletUtils.formatCurrency(order.totalAmount)}</div>
+            </div>
+
+            <!-- Aksiyonlar -->
+            <div class="order-actions">
+                <button class="btn-detail" onclick="TabletDashboard.showOrderDetails('${order.orderBatchId}')">
+                    <i class="fas fa-eye"></i> Detay
+                </button>
+                ${order.status !== 'Ready' ? `
+                    <button class="btn-ready" onclick="TabletDashboard.markAsReady('${order.orderBatchId}')">
+                        <i class="fas fa-check"></i> Hazır
+                    </button>
+                ` : `
+                    <span class="btn-completed">
+                        <i class="fas fa-check-circle"></i> Tamamlandı
+                    </span>
+                `}
+            </div>
+        </div>
+    `;
+    }
+
     renderOrders() {
         const container = document.getElementById('ordersContainer');
         const filteredOrders = this.getFilteredOrders();
@@ -332,76 +522,27 @@ class TabletDashboard {
             return;
         }
 
-        const ordersHTML = filteredOrders.map(order => this.renderOrderCard(order)).join('');
+        // ✅ YENİ SİPARİŞLER ÜSTTE: Sıralama değiştir
+        const sortedOrders = filteredOrders.sort((a, b) => {
+            // İlk önce yeni siparişler
+            if (a.isNew && !b.isNew) return -1;
+            if (!a.isNew && b.isNew) return 1;
+
+            // Sonra duruma göre: New -> Preparing -> Ready
+            const statusOrder = { 'New': 1, 'Preparing': 2, 'Ready': 3 };
+            const statusDiff = statusOrder[a.status] - statusOrder[b.status];
+            if (statusDiff !== 0) return statusDiff;
+
+            // Son olarak zamana göre (yeni olanlar üstte)
+            return new Date(b.orderTime) - new Date(a.orderTime);
+        });
+
+        const ordersHTML = sortedOrders.map(order => this.renderOrderCard(order)).join('');
         container.innerHTML = ordersHTML;
 
         this.bindOrderEvents();
     }
 
-    // KufeArt.TabletMvc/wwwroot/js/tablet-dashboard.js'de renderOrderCard method'unu bul ve değiştir:
-
-    renderOrderCard(order) {
-        const statusClass = order.status.toLowerCase();
-        const timeElapsed = this.getTimeElapsed(new Date(order.orderTime));
-
-        return `
-        <div class="order-card status-${statusClass} ${order.isNew ? 'new-order' : ''}" 
-             data-order-id="${order.orderBatchId}">
-            
-            <div class="order-header">
-                <div class="order-meta">
-                    <div class="table-info">
-                        <h4><i class="fas fa-utensils"></i> ${order.tableName}</h4>
-                        <small><i class="fas fa-user"></i> ${order.waiterName}</small>
-                    </div>
-                    <div class="order-time">
-                        <div class="time-badge">${TabletUtils.formatTime(new Date(order.orderTime))}</div>
-                        <small class="elapsed-time">${timeElapsed}</small>
-                    </div>
-                </div>
-                
-                <div class="order-status">
-                    <span class="status-badge ${statusClass}">
-                        ${this.getStatusIcon(order.status)} ${this.getStatusText(order.status)}
-                    </span>
-                    <div class="order-total">${TabletUtils.formatCurrency(order.totalAmount)}</div>
-                </div>
-            </div>
-            
-            <div class="order-items">
-                <ul class="item-list">
-                    ${order.items.map(item => `
-                        <li class="order-item">
-                            <div class="item-info">
-                                <div class="item-name">${item.productName}</div>
-                                <div class="item-category">${item.categoryName}</div>
-                            </div>
-                            <div class="item-quantity">${item.quantity}</div>
-                        </li>
-                    `).join('')}
-                </ul>
-            </div>
-            
-            <div class="order-actions">
-                <button class="btn-action btn-details" onclick="TabletDashboard.showOrderDetails('${order.orderBatchId}')">
-                    <i class="fas fa-eye"></i>
-                    Detay
-                </button>
-                ${order.status !== 'Ready' ? `
-                    <button class="btn-action btn-ready" onclick="TabletDashboard.markAsReady('${order.orderBatchId}')">
-                        <i class="fas fa-check"></i>
-                        Hazır
-                    </button>
-                ` : `
-                    <span class="btn-action btn-completed">
-                        <i class="fas fa-check-circle"></i>
-                        Hazır
-                    </span>
-                `}
-            </div>
-        </div>
-    `;
-    }
 
     // Helper Methods
     getTimeElapsed(orderTime) {

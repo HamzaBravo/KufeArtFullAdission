@@ -100,37 +100,18 @@ class TabletSignalR {
     }
 
     handleNewOrder(orderData) {
-        console.log('🔔 Yeni sipariş geldi:', orderData);
+        console.log('🔔 Yeni sipariş bildirimi:', orderData);
 
-        // Sadece kendi departmanımızla ilgili siparişleri dinle
-        const orderItems = orderData.Items || [];
-        const relevantItems = orderItems.filter(item => {
-            if (this.department === 'Kitchen') {
-                return item.ProductType === 'Kitchen' || item.ProductType === 'Mutfak';
-            } else if (this.department === 'Bar') {
-                return item.ProductType === 'Bar';
-            }
-            return false;
-        });
+        // Bildirim geldiğinde API'den yeni siparişleri çek
+        if (window.TabletDashboard) {
+            window.TabletDashboard.loadOrders().then(() => {
+                // API'den veriler geldi, ses çal
+                this.playNotificationSound();
+                TabletUtils.vibrate([300, 100, 300, 100, 300]);
 
-        if (relevantItems.length > 0) {
-            console.log('🔔 Bu departmana ait sipariş var, bildirim gösteriliyor...');
-
-            // ✅ 1. SES ÇAL (En önemli!)
-            this.playNotificationSound();
-
-            // ✅ 2. VİBRASYON
-            TabletUtils.vibrate([300, 100, 300, 100, 300]);
-
-            // ✅ 3. TOAST BİLDİRİM
-            const message = `🔔 YENİ SİPARİŞ: ${orderData.TableName} - ${relevantItems.length} ürün`;
-            TabletUtils.showToast(message, 'info', 8000);
-
-            // ✅ 4. DASHBOARD'I YENİLE
-            if (window.TabletDashboard) {
-                console.log('🔄 Dashboard yenileniyor...');
-                window.TabletDashboard.loadOrders();
-            }
+                const message = `🔔 YENİ SİPARİŞ: ${orderData.tableName || orderData.TableName}`;
+                TabletUtils.showToast(message, 'info', 8000);
+            });
         }
     }
 
