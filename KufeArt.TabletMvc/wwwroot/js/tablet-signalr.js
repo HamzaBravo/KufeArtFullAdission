@@ -34,7 +34,7 @@ class TabletSignalR {
 
             // ✅ Kendi TabletHub'ını kullan
             this.connection = new signalR.HubConnectionBuilder()
-                .withUrl("/tabletHub") // Kendi hub'ı
+                .withUrl("/tabletHub") // /orderHub değil /tabletHub
                 .withAutomaticReconnect([0, 2000, 10000, 30000])
                 .build();
 

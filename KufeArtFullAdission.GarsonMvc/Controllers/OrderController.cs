@@ -369,7 +369,6 @@ public class OrderController(DBContext _dbContext) : Controller
     {
         try
         {
-            // 1. Admin paneline bildirim
             var httpClient = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient("AdminPanel");
             var notificationData = new
             {
@@ -381,12 +380,14 @@ public class OrderController(DBContext _dbContext) : Controller
             };
             await httpClient.PostAsJsonAsync("/api/notification/new-order", notificationData);
 
-            // ✅ 2. YENİ: Tablet projesine de bildirim gönder
+            // 2. YENİ: Tablet projesine DOĞRUDAN bildirim
             var tabletClient = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient("TabletPanel");
 
+            // Kitchen ve Bar için ayrı endpoint'lere gönder
             await tabletClient.PostAsJsonAsync("/api/notification/tablet-kitchen", new { OrderData = notificationData });
-
             await tabletClient.PostAsJsonAsync("/api/notification/tablet-bar", new { OrderData = notificationData });
+
+            Console.WriteLine("✅ Hem admin hem tablet bildirildi");
 
         }
         catch (Exception ex)

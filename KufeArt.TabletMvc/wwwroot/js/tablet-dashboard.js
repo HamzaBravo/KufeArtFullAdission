@@ -499,9 +499,7 @@ class TabletDashboard {
     }
 
     startAutoRefresh() {
-        this.refreshInterval = setInterval(() => {
-            this.refreshOrders();
-        }, 30000); // 30 saniye
+        this.loadOrders();
     }
 
     async refreshOrders() {

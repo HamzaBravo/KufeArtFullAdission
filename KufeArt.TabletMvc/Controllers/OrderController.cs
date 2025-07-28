@@ -21,13 +21,14 @@ public class OrderController : Controller
         _httpClientFactory = httpClientFactory;
     }
 
-    // 📋 TABLET SİPARİŞ LİSTESİ
-    // KufeArt.TabletMvc/Controllers/OrderController.cs (GetOrders method)
     [HttpGet("api/orders")]
     public async Task<IActionResult> GetOrders(string? status = null)
     {
         try
         {
+            // Sadece ilk yükleme için - polling için değil
+            Console.WriteLine("📋 İlk sipariş yüklemesi");
+
             var department = User.FindFirst("Department")?.Value;
             if (string.IsNullOrEmpty(department))
             {
@@ -38,7 +39,7 @@ public class OrderController : Controller
             var today = DateTime.Today;
             var tomorrow = today.AddDays(1);
 
-            // Siparişleri ve durumlarını join et
+            // Siparişleri getir (tek seferlik)
             var query = from history in _context.AddtionHistories
                         join product in _context.Products on history.ProductName equals product.Name
                         join table in _context.Tables on history.TableId equals table.Id
@@ -63,46 +64,41 @@ public class OrderController : Controller
                             CompletedAt = batchStatus != null ? batchStatus.CompletedAt : null
                         };
 
-            var orderData = await query.ToListAsync();
+            var orders = await query.ToListAsync();
 
-            var groupedOrders = orderData
-                .GroupBy(x => x.OrderBatchId)
-                .Select(batch => new TabletOrderModel
+            var groupedOrders = orders
+                .GroupBy(o => o.OrderBatchId)
+                .Select(g => new
                 {
-                    OrderBatchId = batch.Key.ToString(),
-                    TableId = batch.First().TableId.ToString(),
-                    TableName = batch.First().TableName,
-                    WaiterName = batch.First().PersonFullName,
-                    OrderTime = batch.First().CreatedAt,
-                    Status = GetSimpleStatus(batch.First().IsReady, batch.First().CreatedAt),
-                    TotalAmount = batch.Sum(x => x.ProductPrice * x.ProductQuantity),
-                    Items = batch.Select(x => new TabletOrderItemModel
+                    orderBatchId = g.Key,
+                    tableId = g.First().TableId,
+                    tableName = g.First().TableName,
+                    waiterName = g.First().PersonFullName,
+                    orderTime = g.Min(o => o.CreatedAt),
+                    status = g.First().IsReady ? "Ready" : "New",
+                    totalAmount = g.Sum(o => o.ProductPrice * o.ProductQuantity),
+                    items = g.Select(o => new
                     {
-                        ProductName = x.ProductName,
-                        Quantity = x.ProductQuantity,
-                        Price = x.ProductPrice,
-                        ProductType = x.ProductType,
-                        CategoryName = department == "Kitchen" ? "Mutfak" : "Bar"
+                        productName = o.ProductName,
+                        quantity = o.ProductQuantity,
+                        price = o.ProductPrice,
+                        categoryName = o.ProductType
                     }).ToList(),
-                    IsNew = IsNewOrder(batch.First().CreatedAt)
+                    note = g.First().ShorLabel,
+                    isNew = false // İlk yükleme için yeni değil
                 })
-                .OrderByDescending(x => x.OrderTime)
+                .OrderBy(o => o.orderTime)
                 .ToList();
 
-            // Status filtresi
-            if (!string.IsNullOrEmpty(status) && status != "all")
+            return Json(new
             {
-                groupedOrders = groupedOrders.Where(x =>
-                    (status == "ready" && x.Status == "Ready") ||
-                    (status == "preparing" && x.Status != "Ready")
-                ).ToList();
-            }
-
-            return Json(new { success = true, data = new { orders = groupedOrders } });
+                success = true,
+                data = new { orders = groupedOrders }
+            });
         }
         catch (Exception ex)
         {
-            return Json(new { success = false, message = $"Siparişler yüklenemedi: {ex.Message}" });
+            return Json(new { success = false, message = ex.Message });
         }
     }
 
@@ -175,7 +171,6 @@ public class OrderController : Controller
         return (DateTime.Now - orderTime).TotalMinutes < 3;
     }
 
-    // 🔍 SİPARİŞ DETAYI
 
     [HttpGet("api/orders/{orderBatchId}")]
     public async Task<IActionResult> GetOrderDetail(string orderBatchId)
@@ -242,7 +237,6 @@ public class OrderController : Controller
         }
     }
 
-    // ✅ SİPARİŞ DURUMU GÜNCELLE
     [HttpPost("api/orders/{orderBatchId}/status")]
     public async Task<IActionResult> UpdateOrderStatus(string orderBatchId, [FromBody] UpdateOrderStatusModel model)
     {
@@ -286,7 +280,6 @@ public class OrderController : Controller
         }
     }
 
-    // 📊 HELPER METHODS
     private string GetOrderStatus(DateTime orderTime)
     {
         var elapsed = DateTime.Now - orderTime;
