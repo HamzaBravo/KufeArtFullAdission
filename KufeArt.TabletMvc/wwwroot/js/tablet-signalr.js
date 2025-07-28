@@ -109,12 +109,93 @@ class TabletSignalR {
                 this.playNotificationSound();
                 TabletUtils.vibrate([300, 100, 300, 100, 300]);
 
-                const message = `🔔 YENİ SİPARİŞ: ${orderData.tableName || orderData.TableName}`;
-                TabletUtils.showToast(message, 'info', 8000);
+                // ✅ 1. GÖRSEL EFEKTLERİ BAŞLAT
+                this.triggerVisualEffects(orderData);
+
+                //const message = `🔔 YENİ SİPARİŞ: ${orderData.tableName || orderData.TableName}`;
+                //TabletUtils.showToast(message, 'info', 8000);
+
+                // ✅ 5. DASHBOARD'I YENİLE
+                if (window.TabletDashboard) {
+                    console.log('🔄 Dashboard yenileniyor...');
+                    window.TabletDashboard.loadOrders();
+                }
             });
         }
     }
+    // ✅ YENİ: Görsel efektleri tetikleme
+    triggerVisualEffects(orderData) {
+        // 1. Ekran titreşimi
+        document.body.classList.add('shake-screen');
+        setTimeout(() => document.body.classList.remove('shake-screen'), 600);
 
+        // 2. Konfeti efekti
+        this.createConfetti();
+
+        // 3. Sağdan gelen uyarı çubuğu
+        this.showNewOrderAlert(orderData);
+
+        // 4. Stat kartlarını highlight et
+        this.highlightStats();
+    }
+
+    createConfetti() {
+        const container = document.createElement('div');
+        container.className = 'confetti-container';
+        document.body.appendChild(container);
+
+        const colors = ['red', 'yellow', 'green', 'blue', 'purple'];
+
+        for (let i = 0; i < 30; i++) {
+            setTimeout(() => {
+                const confetti = document.createElement('div');
+                confetti.className = `confetti confetti-${colors[Math.floor(Math.random() * colors.length)]} confetti-fall`;
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.animationDelay = Math.random() * 0.3 + 's';
+                confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                container.appendChild(confetti);
+
+                // Konfeti parçacığını 3 saniye sonra kaldır
+                setTimeout(() => confetti.remove(), 3000);
+            }, i * 50);
+        }
+
+        // Container'ı 5 saniye sonra kaldır
+        setTimeout(() => container.remove(), 5000);
+    }
+
+    showNewOrderAlert(orderData) {
+        const alert = document.createElement('div');
+        alert.className = 'new-order-alert';
+        alert.innerHTML = `
+        <div class="alert-content">
+            <div class="alert-icon">
+                <i class="fas fa-bell"></i>
+            </div>
+            <div class="alert-text">
+                <h4>YENİ SİPARİŞ!</h4>
+                <p>${orderData.tableName || orderData.TableName} - ${orderData.totalAmount || orderData.TotalAmount}₺</p>
+            </div>
+        </div>
+    `;
+
+        document.body.appendChild(alert);
+
+        // 4 saniye sonra kaybol
+        setTimeout(() => {
+            alert.classList.add('slide-out');
+            setTimeout(() => alert.remove(), 500);
+        }, 4000);
+    }
+
+    highlightStats() {
+        document.querySelectorAll('.stat-card').forEach((card, index) => {
+            setTimeout(() => {
+                card.classList.add('highlight');
+                setTimeout(() => card.classList.remove('highlight'), 2000);
+            }, index * 200);
+        });
+    }
 
     // ✅ YENİ: Ses çalma method'u ekle
     playNotificationSound() {

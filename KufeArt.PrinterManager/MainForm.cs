@@ -35,7 +35,6 @@ public partial class MainForm : Form
 
         SetupTrayIcon();
 
-        // Event'leri baðla
         this.FormClosing += MainForm_FormClosing;
         this.Resize += MainForm_Resize;
 
@@ -44,7 +43,7 @@ public partial class MainForm : Form
 
     private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
     {
-        // Eðer gerçekten kapatýlmak isteniyorsa
+     
         if (_isReallyClosing)
         {
             notifyIcon1.Visible = false;
@@ -52,13 +51,11 @@ public partial class MainForm : Form
             return;
         }
 
-        // X butonuna basýldýðýnda arka plana gönder
         e.Cancel = true;
         this.Hide();
         this.ShowInTaskbar = false;
         notifyIcon1.Visible = true;
 
-        // Kullanýcýya bilgi ver (sadece ilk kez)
         if (!_hasShownTrayNotification)
         {
             notifyIcon1.ShowBalloonTip(3000,
@@ -83,7 +80,6 @@ public partial class MainForm : Form
     {
         try
         {
-            // Icon ayarla (varsayýlan sistem ikonu)
             notifyIcon1.Icon = SystemIcons.Application;
         }
         catch
@@ -92,19 +88,17 @@ public partial class MainForm : Form
         }
 
         notifyIcon1.Text = "KufeArt Yazýcý Yöneticisi - Arka Planda Çalýþýyor";
-        notifyIcon1.Visible = false; // Baþlangýçta gizli
+        notifyIcon1.Visible = false; 
     }
 
     private async void MainForm_Load(object sender, EventArgs e)
     {
         this.WindowState = FormWindowState.Minimized;
-        // Mevcut iþlevsellik (Korundu)
         LoadSystemPrinters();
         LoadSavedSettings();
         UpdateAssignedPrintersView();
         UpdateStatus("Form yüklendi - Yazýcýlar listelendi");
 
-        // ?? YENÝ: Background services baþlat (yazýcý ayarlarý varsa)
         if (HasConfiguredPrinters())
         {
             await InitializeBackgroundServicesAsync();
@@ -119,7 +113,6 @@ public partial class MainForm : Form
         {
             listBoxPrinters.Items.Clear();
 
-            // System.Drawing.Printing.PrinterSettings kullanýmý
             foreach (string printerName in PrinterSettings.InstalledPrinters)
             {
                 listBoxPrinters.Items.Add(printerName);
@@ -168,8 +161,7 @@ public partial class MainForm : Form
     {
         if (listBoxPrinters.SelectedItem == null)
         {
-            MessageBox.Show("Lütfen bir yazýcý seçin!", "Uyarý",
-                          MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show("Lütfen bir yazýcý seçin!", "Uyarý",MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
 
@@ -201,19 +193,16 @@ public partial class MainForm : Form
             UpdateAssignedPrintersView();
             UpdateStatus($"{printerName} yazýcýsý {printerType} olarak kaydedildi");
 
-            // ?? YENÝ: Background services'i baþlat/güncelle
             if (HasConfiguredPrinters() && !_backgroundServicesStarted)
             {
                 await InitializeBackgroundServicesAsync();
             }
 
-            MessageBox.Show($"? {printerName} yazýcýsý baþarýyla kaydedildi!\n\nTür: {printerType}\nDurum: {(isEnabled ? "Aktif" : "Pasif")}",
-                          "Baþarýlý", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show($"? {printerName} yazýcýsý baþarýyla kaydedildi!\n\nTür: {printerType}\nDurum: {(isEnabled ? "Aktif" : "Pasif")}", "Baþarýlý", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Yazýcý kaydedilirken hata oluþtu:\n{ex.Message}",
-                          "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show($"Yazýcý kaydedilirken hata oluþtu:\n{ex.Message}","Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
@@ -294,7 +283,6 @@ public partial class MainForm : Form
         {
             SaveSettingsToFile();
 
-            // ?? YENÝ: Background services'i yeniden baþlat
             if (HasConfiguredPrinters())
             {
                 await RestartBackgroundServicesAsync();
@@ -432,25 +420,21 @@ public partial class MainForm : Form
 
             UpdateStatus("?? Background servisler baþlatýlýyor...");
 
-            // PrintingService'i baþlat
             _printingService = new PrintingService();
             _printingService.LogMessageReceived += OnServiceLogMessage;
             _printingService.PrintCompleted += OnPrintCompleted;
-            _printingService.LoadPrinterConfig(); // Mevcut config'i yükle
+            _printingService.LoadPrinterConfig(); 
 
-            // SignalR Service'i baþlat
             _signalRService = new SignalRClientService();
             _signalRService.LogMessageReceived += OnServiceLogMessage;
             _signalRService.ConnectionStatusChanged += OnConnectionStatusChanged;
-            _signalRService.OrderReceived += OnOrderReceived; // ?? Ana event
+            _signalRService.OrderReceived += OnOrderReceived; 
 
-            // SignalR'ý baðla
             await _signalRService.ConnectAsync();
 
             _backgroundServicesStarted = true;
             UpdateStatus("? Background servisler aktif - Sipariþler bekleniyor");
 
-            // Title'ý güncelle
             this.Text = "??? KufeArt Yazýcý Yöneticisi - ?? Aktif";
         }
         catch (Exception ex)
@@ -478,7 +462,6 @@ public partial class MainForm : Form
         }
     }
 
-    // ?? EN ÖNEMLÝ METHOD - Sipariþ geldiðinde otomatik yazdýr
     private async void OnOrderReceived(OrderNotificationModel order)
     {
         try
@@ -490,15 +473,13 @@ public partial class MainForm : Form
             }
 
             UpdateStatus($"?? Sipariþ alýndý: {order.TableName} - {order.WaiterName}");
-            lblTitle.ForeColor = Color.Orange; // Görsel feedback
+            lblTitle.ForeColor = Color.Orange; 
 
-            // ??? Otomatik yazdýr
             await _printingService!.ProcessOrderAsync(order);
 
             UpdateStatus($"? Yazdýrma tamamlandý: {order.TableName}");
             lblTitle.ForeColor = Color.Green;
 
-            // 2 saniye sonra normal renge dön
             await Task.Delay(2000);
             lblTitle.ForeColor = Color.DarkBlue;
         }
@@ -544,13 +525,11 @@ public partial class MainForm : Form
             return;
         }
 
-        // Console'a log yaz (debug için)
         Console.WriteLine(message);
 
-        // Status'a önemli mesajlarý göster
         if (message.Contains("Sipariþ") || message.Contains("Baðlantý") || message.Contains("Yazdýr"))
         {
-            UpdateStatus(message.Replace("[", "").Replace("]", "").Substring(9)); // Timestamp'i temizle
+            UpdateStatus(message.Replace("[", "").Replace("]", "").Substring(9)); 
         }
     }
     #endregion
@@ -584,10 +563,5 @@ public partial class MainForm : Form
     {
         _isReallyClosing = true;
         Application.Exit();
-    }
-
-    private void checkBox1_CheckedChanged(object sender, EventArgs e)
-    {
-
     }
 }

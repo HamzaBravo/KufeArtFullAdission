@@ -227,38 +227,180 @@ class TabletDashboard {
     async markOrderAsReadyDirect(orderId) {
         console.log('🔍 Direkt hazır işaretleme:', orderId);
 
-        if (confirm('Bu siparişi hazır olarak işaretlemek istediğinizden emin misiniz?')) {
-            try {
-                const response = await fetch(`${this.apiEndpoints.markAsReady}/${orderId}/ready`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    credentials: 'same-origin',
-                    body: JSON.stringify({})
-                });
+        // Sipariş bilgisini bul
+        const order = this.orders.find(o => o.orderBatchId === orderId);
+        if (!order) {
+            TabletUtils.showToast('Sipariş bulunamadı!', 'error');
+            return;
+        }
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+        // ✅ Şık onay modalı oluştur
+        this.showReadyConfirmModal(order);
+    }
 
-                const result = await response.json();
+    showReadyConfirmModal(order) {
+        const modalHTML = `
+        <div class="modal fade" id="readyConfirmModal" tabindex="-1" data-bs-backdrop="static">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content ready-confirm-modal">
+                    
+                    <!-- Header -->
+                    <div class="modal-header ready-confirm-header">
+                        <div class="confirm-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="confirm-text">
+                            <h4>Siparişi Hazır İşaretle</h4>
+                            <p>Bu işlem geri alınamaz</p>
+                        </div>
+                    </div>
 
-                if (result.success) {
-                    TabletUtils.showToast('Sipariş hazır olarak işaretlendi!', 'success');
-                    await this.loadOrders(); // Listeyi yenile
-                } else {
-                    throw new Error(result.message || 'Sipariş güncellenemedi');
-                }
+                    <!-- Body -->
+                    <div class="modal-body ready-confirm-body">
+                        <div class="order-summary-confirm">
+                            <div class="table-info-confirm">
+                                <h5><i class="fas fa-utensils"></i> ${order.tableName}</h5>
+                                <span><i class="fas fa-user"></i> ${order.waiterName}</span>
+                            </div>
+                            
+                            <div class="items-summary">
+                                <div class="summary-item">
+                                    <span>Ürün Sayısı:</span>
+                                    <strong>${order.items.reduce((sum, item) => sum + item.quantity, 0)} adet</strong>
+                                </div>
+                                <div class="summary-item">
+                                    <span>Toplam Tutar:</span>
+                                    <strong class="amount">${TabletUtils.formatCurrency(order.totalAmount)}</strong>
+                                </div>
+                            </div>
+                            
+                            <div class="products-preview">
+                                ${order.items.slice(0, 3).map(item => `
+                                    <div class="preview-item">
+                                        <span>${item.productName}</span>
+                                        <span class="qty">x${item.quantity}</span>
+                                    </div>
+                                `).join('')}
+                                ${order.items.length > 3 ? `
+                                    <div class="more-products">+${order.items.length - 3} ürün daha</div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
 
-            } catch (error) {
-                console.error('Hazır işaretleme hatası:', error);
-                TabletUtils.showToast('Sipariş güncellenemedi: ' + error.message, 'error');
+                    <!-- Footer -->
+                    <div class="modal-footer ready-confirm-footer">
+                        <button type="button" class="btn-cancel" data-bs-dismiss="modal">
+                            <i class="fas fa-times"></i> İptal
+                        </button>
+                        <button type="button" class="btn-confirm" id="confirmReadyBtn" data-order-id="${order.orderBatchId}">
+                            <i class="fas fa-check-circle"></i> Evet, Hazır İşaretle
+                        </button>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    `;
+
+        // Mevcut modalı kaldır ve yenisini ekle
+        const existingModal = document.getElementById('readyConfirmModal');
+        if (existingModal) existingModal.remove();
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+        // ✅ Event listener ile çöz
+        document.getElementById('confirmReadyBtn').addEventListener('click', () => {
+            const orderId = document.getElementById('confirmReadyBtn').dataset.orderId;
+            this.confirmReadyOrder(orderId);
+        });
+
+        // Modal'ı aç
+        const modal = new bootstrap.Modal(document.getElementById('readyConfirmModal'));
+        modal.show();
+
+        // Modal kapanma eventi
+        document.getElementById('readyConfirmModal').addEventListener('hidden.bs.modal', () => {
+            document.getElementById('readyConfirmModal').remove();
+        });
+    }
+
+    // ✅ YENİ: Onay sonrası işlem
+    async confirmReadyOrder(orderId) {
+        try {
+            // Modal'ı kapat
+            const modal = bootstrap.Modal.getInstance(document.getElementById('readyConfirmModal'));
+            if (modal) modal.hide();
+
+            // Loading toast göster
+            TabletUtils.showToast('Sipariş hazır olarak işaretleniyor...', 'info', 2000);
+
+            const response = await fetch(`${this.apiEndpoints.markAsReady}/${orderId}/ready`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({})
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Success animasyonu
+                this.showSuccessEffect();
+
+                TabletUtils.showToast('✅ Sipariş hazır olarak işaretlendi!', 'success');
+                await this.loadOrders(); // Listeyi yenile
+            } else {
+                throw new Error(result.message || 'Sipariş güncellenemedi');
+            }
+
+        } catch (error) {
+            console.error('Hazır işaretleme hatası:', error);
+            TabletUtils.showToast('❌ Sipariş güncellenemedi: ' + error.message, 'error');
         }
     }
 
+    // ✅ YENİ: Success efekti
+    showSuccessEffect() {
+        // Yeşil konfeti efekti
+        this.createSuccessConfetti();
 
+        // Stats kartlarını yeşil highlight et
+        document.querySelectorAll('.stat-card.completed').forEach(card => {
+            card.classList.add('success-ripple');
+            setTimeout(() => card.classList.remove('success-ripple'), 1500);
+        });
+    }
+
+    createSuccessConfetti() {
+        const container = document.createElement('div');
+        container.className = 'confetti-container';
+        document.body.appendChild(container);
+
+        // Sadece yeşil renkler
+        const colors = ['green', 'green', 'green'];
+
+        for (let i = 0; i < 20; i++) {
+            setTimeout(() => {
+                const confetti = document.createElement('div');
+                confetti.className = `confetti confetti-${colors[Math.floor(Math.random() * colors.length)]} confetti-fall`;
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.animationDelay = Math.random() * 0.3 + 's';
+                confetti.style.animationDuration = (Math.random() * 1 + 1.5) + 's';
+                container.appendChild(confetti);
+
+                setTimeout(() => confetti.remove(), 2000);
+            }, i * 30);
+        }
+
+        setTimeout(() => container.remove(), 3000);
+    }
     // 🔄 GERÇEK API BAĞLANTISI
     async loadOrders() {
         try {
@@ -467,7 +609,7 @@ class TabletDashboard {
                 
                 <div class="order-summary">
                     <span class="item-count">${order.items.length} ürün</span>
-                    <span class="order-note">${order.note || ''}</span>
+                    ${order.note ? `<span class="order-note">${order.note}</span>` : ''}
                 </div>
             </div>
 
@@ -511,6 +653,20 @@ class TabletDashboard {
             </div>
         </div>
     `;
+    }
+
+    // ✅ bindOrderEvents method'unu da güncelleyin:
+    bindOrderEvents() {
+        // Order row click events (sadece detay için)
+        document.querySelectorAll('.order-row').forEach(row => {
+            row.addEventListener('click', (e) => {
+                // Eğer button'a tıklanmışsa ignore et
+                if (e.target.closest('.btn-detail') || e.target.closest('.btn-ready')) return;
+
+                const orderId = row.dataset.orderId;
+                this.showOrderDetailsModal(orderId);
+            });
+        });
     }
 
     renderOrders() {
@@ -572,18 +728,7 @@ class TabletDashboard {
         return texts[status] || status;
     }
 
-    bindOrderEvents() {
-        // Order card click events
-        document.querySelectorAll('.order-card').forEach(card => {
-            card.addEventListener('click', (e) => {
-                if (e.target.closest('.btn-action')) return; // Button clicks ignore
 
-                const orderId = card.dataset.orderId;
-                // ✅ Doğru method ismi: showOrderDetailsModal
-                this.showOrderDetailsModal(orderId);
-            });
-        });
-    }
 
     getFilteredOrders() {
         if (this.currentFilter === 'all') {

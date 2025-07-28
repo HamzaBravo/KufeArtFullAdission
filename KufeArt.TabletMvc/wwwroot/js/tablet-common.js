@@ -511,9 +511,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // Tablet utils'i başlat
     TabletUtils.initializeTablet();
 
-    // ✅ SES İZNİ İSTE (PC için gerekli)
-    requestAudioPermission();
-
     // SignalR'ı başlat
     console.log('🔍 SignalR başlatılıyor...');
     TabletSignalR.init();
@@ -522,6 +519,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // Dashboard'ı başlat
     if (document.getElementById('ordersContainer')) {
         TabletDashboard.init();
+
+        // ✅ SES İZNİ - Sadece dashboard sayfasında iste
+        requestAudioPermission();
     }
 });
 
