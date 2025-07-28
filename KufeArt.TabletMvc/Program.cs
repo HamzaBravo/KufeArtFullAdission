@@ -21,15 +21,6 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 // 🌐 SIGNALR
 builder.Services.AddSignalR();
 
-// 📞 HTTP CLIENT (Tablet paneli ile iletişim)
-builder.Services.AddHttpClient("TabletPanel", client =>
-{
-    var tabletUrl = builder.Environment.IsDevelopment()
-        ? "https://localhost:7051"  // TabletMvc port'u
-        : "https://tablet.kufeart.com";  // Production tablet URL'i
-    client.BaseAddress = new Uri(tabletUrl);
-});
-
 // MVC Services
 builder.Services.AddControllersWithViews();
 
@@ -53,7 +44,6 @@ app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Login}/{id?}");
-
 
 app.MapHub<TabletHub>("/tabletHub");
 

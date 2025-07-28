@@ -36,12 +36,12 @@ builder.Services.AddHttpClient("AdminPanel", client =>
 });
 
 
-// 📞 HTTP CLIENT (Tablet paneli ile iletişim)
+// KufeArtFullAdission.GarsonMvc/Program.cs
 builder.Services.AddHttpClient("TabletPanel", client =>
 {
     var tabletUrl = builder.Environment.IsDevelopment()
-        ? "https://localhost:7051"  // TabletMvc port'u
-        : "https://tablet.kufeart.com";  // Production tablet URL'i
+        ? "https://localhost:7051"  // TabletMvc portu
+        : "https://tablet.kufeart.com";
     client.BaseAddress = new Uri(tabletUrl);
 });
 

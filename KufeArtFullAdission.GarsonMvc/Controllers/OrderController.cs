@@ -363,12 +363,14 @@ public class OrderController(DBContext _dbContext) : Controller
             return Json(new { success = false, message = ex.Message });
         }
     }
+    // KufeArtFullAdission.GarsonMvc/Controllers/OrderController.cs - NotifyAdminPanel metodunu güncelle
+
     private async Task NotifyAdminPanel(Guid tableId, string tableName, double totalAmount)
     {
         try
         {
+            // 1. Admin paneline bildirim
             var httpClient = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient("AdminPanel");
-
             var notificationData = new
             {
                 TableId = tableId,
@@ -377,16 +379,13 @@ public class OrderController(DBContext _dbContext) : Controller
                 WaiterName = User.GetFullName(),
                 Timestamp = DateTime.Now
             };
+            await httpClient.PostAsJsonAsync("/api/notification/new-order", notificationData);
 
-            var response = await httpClient.PostAsJsonAsync("/api/notification/new-order", notificationData);
+            // ✅ 2. YENİ: Tablet projesine de bildirim gönder
+            var tabletClient = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient("TabletPanel");
+            await tabletClient.PostAsJsonAsync("/api/notification/tablet-kitchen", new { OrderData = notificationData });
+            await tabletClient.PostAsJsonAsync("/api/notification/tablet-bar", new { OrderData = notificationData });
 
-            if (response.IsSuccessStatusCode)
-            {
-                System.Diagnostics.Debug.WriteLine($"✅ Admin paneline bildirim gönderildi: {tableName}");
-            }
-
-            // ✅ 2. YENİ: Kitchen/Bar gruplarına direkt SignalR bildirimi gönder
-            await NotifyKitchenAndBar(tableId, tableName, totalAmount);
         }
         catch (Exception ex)
         {

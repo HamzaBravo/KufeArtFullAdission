@@ -26,13 +26,15 @@ class TabletSignalR {
         return window.tabletSignalR;
     }
 
+    // KufeArt.TabletMvc/wwwroot/js/tablet-signalr.js
+    // KufeArt.TabletMvc/wwwroot/js/tablet-signalr.js
     async connect() {
         try {
             console.log('🔄 SignalR bağlantısı kuruluyor...');
 
-            // SignalR connection oluştur
+            // ✅ Kendi TabletHub'ını kullan
             this.connection = new signalR.HubConnectionBuilder()
-                .withUrl("/tabletHub") // Ana projenizdeki OrderHub
+                .withUrl("/tabletHub") // Kendi hub'ı
                 .withAutomaticReconnect([0, 2000, 10000, 30000])
                 .build();
 
