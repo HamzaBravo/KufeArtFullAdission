@@ -21,6 +21,20 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 // 🌐 SIGNALR
 builder.Services.AddSignalR();
 
+
+
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins("https://localhost:7051", "https://tablet.kufeart.com")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
+
 // MVC Services
 builder.Services.AddControllersWithViews();
 
@@ -41,6 +55,8 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseCors();
 
 app.UseAuthentication();
 app.UseAuthorization();

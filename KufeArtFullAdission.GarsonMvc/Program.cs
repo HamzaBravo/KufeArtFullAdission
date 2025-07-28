@@ -27,20 +27,10 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 // 🌐 SIGNALR CLIENT
 builder.Services.AddSignalR();
 
-// 📞 HTTP CLIENT (Admin paneli ile iletişim)
-builder.Services.AddHttpClient("AdminPanel", client =>
-{
-    //client.BaseAddress = new Uri("https://localhost:7164/"); // Admin panel URL
-
-    client.BaseAddress = new Uri("https://adsiyon.kufeart.com/");
-});
-
-
-// KufeArtFullAdission.GarsonMvc/Program.cs
 builder.Services.AddHttpClient("TabletPanel", client =>
 {
     var tabletUrl = builder.Environment.IsDevelopment()
-        ? "https://localhost:7051"  // TabletMvc portu
+        ? "https://localhost:7051/"  // TabletMvc'nin çalıştığı port
         : "https://tablet.kufeart.com";
     client.BaseAddress = new Uri(tabletUrl);
 });
@@ -48,8 +38,6 @@ builder.Services.AddHttpClient("TabletPanel", client =>
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-
-
 
 builder.Services.AddHttpClient("AdminPanel", client =>
 {

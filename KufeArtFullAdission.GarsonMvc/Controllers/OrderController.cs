@@ -384,8 +384,8 @@ public class OrderController(DBContext _dbContext) : Controller
             var tabletClient = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient("TabletPanel");
 
             // Kitchen ve Bar için ayrı endpoint'lere gönder
-            await tabletClient.PostAsJsonAsync("/api/notification/tablet-kitchen", new { OrderData = notificationData });
-            await tabletClient.PostAsJsonAsync("/api/notification/tablet-bar", new { OrderData = notificationData });
+            var res1 = await tabletClient.PostAsJsonAsync("/api/notification/tablet-kitchen", new { OrderData = notificationData });
+            var res2 = await tabletClient.PostAsJsonAsync("/api/notification/tablet-bar", new { OrderData = notificationData });
 
             Console.WriteLine("✅ Hem admin hem tablet bildirildi");
 
