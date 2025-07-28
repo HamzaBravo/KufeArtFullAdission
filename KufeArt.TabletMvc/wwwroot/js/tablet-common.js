@@ -503,16 +503,18 @@ window.logout = function () {
 
 // DOM hazır olduğunda başlat
 document.addEventListener('DOMContentLoaded', function () {
+    console.log('🔍 DOM hazır, tablet-common.js çalışıyor...');
+
     // Toast CSS'ini ekle
     document.head.insertAdjacentHTML('beforeend', toastStyles);
 
     // Tablet utils'i başlat
     TabletUtils.initializeTablet();
 
-    // SignalR'ı başlat (authenticated ise)
-    if (document.body.classList.contains('authenticated')) {
-        TabletSignalR.init();
-    }
+    // SignalR'ı MUTLAKA başlat
+    console.log('🔍 SignalR başlatılıyor...');
+    TabletSignalR.init();  // Static method kullanın
+    console.log('✅ TabletSignalR başlatıldı');
 
     // Dashboard'ı başlat (dashboard sayfasındaysa)
     if (document.getElementById('ordersContainer')) {

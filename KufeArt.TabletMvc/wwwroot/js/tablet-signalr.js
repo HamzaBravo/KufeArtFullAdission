@@ -6,7 +6,16 @@ class TabletSignalR {
         this.isConnected = false;
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 5;
-        this.department = window.tabletSession?.department || '';
+        this.department = this.getDepartmentFromUser();
+    }
+
+    getDepartmentFromUser() {
+        // HTML'den department bilgisini çek
+        const departmentElement = document.querySelector('.tablet-details h3');
+        if (departmentElement) {
+            return departmentElement.textContent.trim();
+        }
+        return '';
     }
 
     static init() {
@@ -23,7 +32,7 @@ class TabletSignalR {
 
             // SignalR connection oluştur
             this.connection = new signalR.HubConnectionBuilder()
-                .withUrl("/orderHub") // Ana projenizdeki OrderHub
+                .withUrl("/tabletHub") // Ana projenizdeki OrderHub
                 .withAutomaticReconnect([0, 2000, 10000, 30000])
                 .build();
 

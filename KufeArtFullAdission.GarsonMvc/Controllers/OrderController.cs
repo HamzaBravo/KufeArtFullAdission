@@ -406,7 +406,6 @@ public class OrderController(DBContext _dbContext) : Controller
             var kitchenItems = orderItems.Where(x => x.ProductType == "Kitchen").ToList();
             var barItems = orderItems.Where(x => x.ProductType == "Bar").ToList();
 
-            // ✅ Object olarak oluştur (dynamic değil)
             var orderData = new
             {
                 Type = "NewOrder",
@@ -425,22 +424,27 @@ public class OrderController(DBContext _dbContext) : Controller
                 }).ToList()
             };
 
-            var httpClient = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient("AdminPanel");
 
-            // Kitchen'a bildirim
+            // 🚀 YENİ: TabletMvc'ye DOĞRUDAN gönder (daha hızlı)
+            var tabletClient = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient("TabletPanel");
+
+            // Kitchen'a bildirim (PARALEL)
             if (kitchenItems.Any())
             {
                 var kitchenRequest = new { OrderData = orderData, Department = "Kitchen" };
-                await httpClient.PostAsJsonAsync("/api/notification/notify-kitchen", kitchenRequest);
-                System.Diagnostics.Debug.WriteLine($"🍳 Kitchen'a bildirim gönderildi: {kitchenItems.Count} ürün");
+
+
+                // TabletMvc'ye DOĞRUDAN gönder (HIZLI)
+                _ = tabletClient.PostAsJsonAsync("/api/notification/tablet-kitchen", kitchenRequest);
             }
 
-            // Bar'a bildirim
+            // Bar'a bildirim (PARALEL)
             if (barItems.Any())
             {
                 var barRequest = new { OrderData = orderData, Department = "Bar" };
-                await httpClient.PostAsJsonAsync("/api/notification/notify-bar", barRequest);
-                System.Diagnostics.Debug.WriteLine($"🍹 Bar'a bildirim gönderildi: {barItems.Count} ürün");
+
+                // TabletMvc'ye DOĞRUDAN gönder (HIZLI)
+                _ = tabletClient.PostAsJsonAsync("/api/notification/tablet-bar", barRequest);
             }
 
         }

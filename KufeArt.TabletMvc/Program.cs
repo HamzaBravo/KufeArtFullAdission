@@ -1,5 +1,5 @@
 ﻿using AppDbContext;
-using KufeArtFullAdission.Mvc.Hubs;
+using KufeArt.TabletMvc.Hubs;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,13 +21,13 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 // 🌐 SIGNALR
 builder.Services.AddSignalR();
 
-// 📞 HTTP CLIENT (Admin paneli ile iletişim)
-builder.Services.AddHttpClient("AdminPanel", client =>
+// 📞 HTTP CLIENT (Tablet paneli ile iletişim)
+builder.Services.AddHttpClient("TabletPanel", client =>
 {
-    var adminUrl = builder.Environment.IsDevelopment()
-        ? "https://localhost:7164"
-        : "https://adisyon.kufeart.com";
-    client.BaseAddress = new Uri(adminUrl);
+    var tabletUrl = builder.Environment.IsDevelopment()
+        ? "https://localhost:7051"  // TabletMvc port'u
+        : "https://tablet.kufeart.com";  // Production tablet URL'i
+    client.BaseAddress = new Uri(tabletUrl);
 });
 
 // MVC Services
@@ -55,6 +55,6 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Login}/{id?}");
 
 
-app.MapHub<OrderHub>("/orderHub");
+app.MapHub<TabletHub>("/tabletHub");
 
 app.Run();

@@ -36,6 +36,16 @@ builder.Services.AddHttpClient("AdminPanel", client =>
 });
 
 
+// 📞 HTTP CLIENT (Tablet paneli ile iletişim)
+builder.Services.AddHttpClient("TabletPanel", client =>
+{
+    var tabletUrl = builder.Environment.IsDevelopment()
+        ? "https://localhost:7051"  // TabletMvc port'u
+        : "https://tablet.kufeart.com";  // Production tablet URL'i
+    client.BaseAddress = new Uri(tabletUrl);
+});
+
+
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
