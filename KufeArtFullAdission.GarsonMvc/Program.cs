@@ -5,17 +5,14 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 builder.Services.AddSignalR();
-
-
 builder.Services.AddHostedService<InactiveTableMonitorService>();
 
-// 🎯 DATABASE
+// Database
 builder.Services.AddDbContext<DBContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("HamzaLocal")));
 
-// 🔐 AUTHENTICATION
+// Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -24,20 +21,29 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.ExpireTimeSpan = TimeSpan.FromDays(7);
     });
 
-// 🌐 SIGNALR CLIENT
-builder.Services.AddSignalR();
+// ✅ YENİ: CORS ekleme (TabletMvc'den gelen istekler için)
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins("https://localhost:7051", "https://tablet.kufeart.com")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
 
+builder.Services.AddSignalR();
+builder.Services.AddControllersWithViews();
+
+// HTTP Clients
 builder.Services.AddHttpClient("TabletPanel", client =>
 {
     var tabletUrl = builder.Environment.IsDevelopment()
-        ? "https://localhost:7051/"  // TabletMvc'nin çalıştığı port
+        ? "https://localhost:7051/"
         : "https://tablet.kufeart.com";
     client.BaseAddress = new Uri(tabletUrl);
 });
-
-
-// Add services to the container.
-builder.Services.AddControllersWithViews();
 
 builder.Services.AddHttpClient("AdminPanel", client =>
 {
@@ -47,31 +53,27 @@ builder.Services.AddHttpClient("AdminPanel", client =>
     client.BaseAddress = new Uri(adminUrl);
 });
 
-
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
+
+// ✅ YENİ: CORS middleware
+app.UseCors();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseCors();
-
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
-
 
 app.MapHub<WaiterHub>("/waiterHub");
 

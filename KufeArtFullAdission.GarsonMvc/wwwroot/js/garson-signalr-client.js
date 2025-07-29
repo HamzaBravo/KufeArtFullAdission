@@ -60,6 +60,12 @@ class WaiterSignalRClient {
             this.showToast(data.Message, 'info');
         });
 
+        // ✅ YENİ: Tablet'den sipariş tamamlama bildirimi
+        this.connection.on("OrderCompletedFromTablet", (orderData) => {
+            console.log("🍽️ Tablet'den sipariş hazır bildirimi:", orderData);
+            this.handleOrderCompletedFromTablet(orderData);
+        });
+
         // Sipariş tamamlandı bildirimi
         this.connection.on("OrderCompleted", (orderData) => {
             console.log("🔔 Sipariş hazır bildirimi:", orderData);
@@ -103,6 +109,36 @@ class WaiterSignalRClient {
             console.log("🔄 SignalR yeniden bağlanıyor:", error);
             this.updateConnectionStatus(false);
         });
+    }
+
+    // ✅ YENİ: Tablet'den gelen sipariş tamamlama bildirimini işle
+    handleOrderCompletedFromTablet(orderData) {
+        const notification = {
+            id: Date.now(),
+            type: 'OrderCompletedFromTablet',
+            title: '🍽️ Sipariş Hazır!',
+            message: orderData.Message,
+            icon: orderData.Icon,
+            color: orderData.Color,
+            timestamp: new Date(orderData.Timestamp),
+            data: orderData,
+            isRead: false,
+            priority: 'high'
+        };
+
+        this.addNotification(notification);
+        this.showMobileNotification(notification);
+        this.playNotificationSound();
+        this.showToast(notification.message, 'success');
+
+        // Vibration for mobile
+        if ('vibrate' in navigator) {
+            navigator.vibrate([200, 100, 200, 100, 200]);
+        }
+
+        this.updateNotificationBadge();
+
+        console.log("✅ Tablet bildirimi işlendi:", notification);
     }
 
     handleInactiveTableAlert(alertData) {

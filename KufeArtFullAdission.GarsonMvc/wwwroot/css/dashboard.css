@@ -498,3 +498,205 @@ body {
     color: #64748b;
     font-size: 0.8rem;
 }
+/* 🎯 TABLE ACTION BUTTONS - Masa İşlem Butonları */
+.table-actions {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    flex-direction: column; /* ✅ Dikey dizim */
+    gap: 3px;
+    opacity: 0.9; /* ✅ Her zaman görünür */
+    transition: all 0.3s ease;
+    z-index: 20; /* ✅ Yüksek z-index */
+}
+
+.table-card:hover .table-actions {
+    opacity: 1;
+}
+
+/* Mobile için her zaman görünür yap */
+@media (max-width: 768px) {
+    .table-actions {
+        opacity: 1;
+        flex-direction: row; /* Mobile'da yatay */
+    }
+}
+
+.action-btn {
+    width: 24px; /* ✅ Biraz küçülttük */
+    height: 24px;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem; /* ✅ Font boyutu küçültüldü */
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+    .action-btn:hover {
+        transform: scale(1.1);
+    }
+
+.move-btn {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+}
+
+    .move-btn:hover {
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    }
+
+.merge-btn {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+    .merge-btn:hover {
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    }
+
+.cancel-btn {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+}
+
+    .cancel-btn:hover {
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    }
+
+/* Modal action buttons için stil */
+.table-selection-modal {
+    border: none;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+
+.table-selection-header {
+    background: linear-gradient(135deg, #2c5530, #34d399);
+    color: white;
+    padding: 24px;
+    border-radius: 20px 20px 0 0;
+    border: none;
+}
+
+.table-selection-body {
+    padding: 24px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.target-table-card {
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+    .target-table-card:hover {
+        border-color: #3b82f6;
+        background: #f8fafc;
+        transform: translateX(4px);
+    }
+
+    .target-table-card.selected {
+        border-color: #10b981;
+        background: linear-gradient(135deg, #ecfccb, #f0f9ff);
+    }
+
+.target-table-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.target-table-card.empty .target-table-icon {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    color: #065f46;
+}
+
+.target-table-card.occupied .target-table-icon {
+    background: linear-gradient(135deg, #fef3c7, #fed7aa);
+    color: #92400e;
+}
+
+.target-table-info {
+    flex: 1;
+}
+
+.target-table-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 4px;
+}
+
+.target-table-status {
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.modal-footer-actions {
+    background: #f8fafc;
+    padding: 20px 24px;
+    border: none;
+    display: flex;
+    gap: 12px;
+}
+
+.btn-cancel-action,
+.btn-confirm-action {
+    flex: 1;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-cancel-action {
+    background: #f1f5f9;
+    color: #64748b;
+    border: 2px solid #e2e8f0;
+}
+
+    .btn-cancel-action:hover {
+        background: #e2e8f0;
+        transform: translateY(-1px);
+    }
+
+.btn-confirm-action {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+}
+
+    .btn-confirm-action:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-confirm-action:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }

@@ -10,6 +10,7 @@ namespace KufeArt.TabletMvc.Controllers;
 
 public class HomeController (DBContext _dbContex) : Controller
 {
+    private const string TABLET_PASSWORD = "küfeart2025";
     // 🔐 LOGIN SAYFASI
     [HttpGet]
     public IActionResult Login()
@@ -31,7 +32,14 @@ public class HomeController (DBContext _dbContex) : Controller
             return View(model);
         }
 
-        // Geçerli departman kontrolü
+        // ✅ 1. ŞİFRE KONTROLÜ
+        if (model.Password != TABLET_PASSWORD)
+        {
+            ModelState.AddModelError("Password", "Geçersiz şifre!");
+            return View(model);
+        }
+
+        // 2. Geçerli departman kontrolü
         if (model.Department != "Kitchen" && model.Department != "Bar")
         {
             ModelState.AddModelError("Department", "Geçersiz departman seçimi");

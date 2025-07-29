@@ -68,6 +68,17 @@
                 <span asp-validation-for="TabletName" class="text-danger"></span>
             </div>
 
+            <!-- ✅ YENİ: ŞİFRE ALANI -->
+            <div class="form-group">
+                <label asp-for="Password" class="form-label">
+                    <i class="fas fa-lock"></i>
+                    Tablet Şifresi
+                </label>
+                <input asp-for="Password" type="password" class="form-control"
+                       placeholder="Tablet şifresini giriniz" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+
             <!-- 📝 Not (Opsiyonel) -->
             <div class="form-group">
                 <label asp-for="Note" class="form-label">

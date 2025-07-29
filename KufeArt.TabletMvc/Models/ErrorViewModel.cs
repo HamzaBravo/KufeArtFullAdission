@@ -1,4 +1,4 @@
-using KufeArtFullAdission.Enums;
+ï»¿using KufeArtFullAdission.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace KufeArt.TabletMvc.Models
@@ -12,14 +12,18 @@ namespace KufeArt.TabletMvc.Models
 
     public class TabletLoginModel
     {
-        [Required(ErrorMessage = "Lütfen bir bölüm seçin")]
+        [Required(ErrorMessage = "LÃ¼tfen bir bÃ¶lÃ¼m seÃ§in")]
         public string Department { get; set; } = ""; // "Kitchen" veya "Bar"
 
-        [Required(ErrorMessage = "Tablet adý gerekli")]
-        [StringLength(50, ErrorMessage = "Tablet adý en fazla 50 karakter olmalý")]
+        [Required(ErrorMessage = "Tablet adÄ± gerekli")]
+        [StringLength(50, ErrorMessage = "Tablet adÄ± en fazla 50 karakter olmalÄ±")]
         public string TabletName { get; set; } = "";
 
         public string? Note { get; set; } // Opsiyonel not
+
+        // âœ… YENÄ°: Åžifre alanÄ± eklendi
+        [Required(ErrorMessage = "Åžifre zorunludur")]
+        public string Password { get; set; } = string.Empty;
     }
 
     public class TabletSessionModel

@@ -26,9 +26,6 @@ public class OrderController : Controller
     {
         try
         {
-            // Sadece ilk yükleme için - polling için değil
-            Console.WriteLine("📋 İlk sipariş yüklemesi");
-
             var department = User.FindFirst("Department")?.Value;
             if (string.IsNullOrEmpty(department))
             {
@@ -39,7 +36,10 @@ public class OrderController : Controller
             var today = DateTime.Today;
             var tomorrow = today.AddDays(1);
 
-            // Siparişleri getir (tek seferlik)
+            // ✅ 5 dakika önce zamanını hesapla
+            var fiveMinutesAgo = DateTime.Now.AddMinutes(-5);
+
+            // Siparişleri getir
             var query = from history in _context.AddtionHistories
                         join product in _context.Products on history.ProductName equals product.Name
                         join table in _context.Tables on history.TableId equals table.Id
@@ -85,8 +85,15 @@ public class OrderController : Controller
                         categoryName = o.ProductType
                     }).ToList(),
                     note = g.First().ShorLabel,
-                    isNew = false // İlk yükleme için yeni değil
+                    isNew = false,
+                    isReady = g.First().IsReady,
+                    completedAt = g.First().CompletedAt
                 })
+                // ✅ FİLTRE: 5 dakikadan sonraki tamamlanan siparişleri çıkar
+                .Where(o =>
+                    !o.isReady || // Hazır olmayan siparişleri göster
+                    (o.isReady && o.completedAt.HasValue && o.completedAt.Value >= fiveMinutesAgo) // Hazır olan ama 5 dakikadan yeni olan siparişleri göster
+                )
                 .OrderBy(o => o.orderTime)
                 .ToList();
 
@@ -102,19 +109,47 @@ public class OrderController : Controller
         }
     }
 
-    // Status Update Method
     [HttpPost("api/orders/{orderBatchId}/ready")]
     public async Task<IActionResult> MarkAsReady(string orderBatchId)
     {
         try
         {
+            Console.WriteLine($"🔍 Sipariş hazır işaretleniyor: {orderBatchId}");
+
             if (!Guid.TryParse(orderBatchId, out var batchId))
             {
-                return Json(new { success = false, message = "Geçersiz sipariş ID" });
+                Console.WriteLine($"❌ Geçersiz GUID: {orderBatchId}");
+                return Json(new { success = false, message = "Geçersiz sipariş ID formatı" });
             }
 
             var department = User.FindFirst("Department")?.Value;
             var tabletName = User.Identity?.Name;
+
+            Console.WriteLine($"🔍 Department: {department}, Tablet: {tabletName}");
+
+            // ✅ Sipariş var mı kontrol et
+            var orderExists = await _context.AddtionHistories
+                .AnyAsync(h => h.OrderBatchId == batchId);
+
+            if (!orderExists)
+            {
+                Console.WriteLine($"❌ Sipariş bulunamadı: {batchId}");
+                return Json(new { success = false, message = "Sipariş bulunamadı" });
+            }
+
+            // Sipariş bilgilerini al (masa bilgisi için)
+            var orderInfo = await _context.AddtionHistories
+                .Where(h => h.OrderBatchId == batchId)
+                .Join(_context.Tables, h => h.TableId, t => t.Id, (h, t) => new { h.TableId, t.Name })
+                .FirstOrDefaultAsync();
+
+            if (orderInfo == null)
+            {
+                Console.WriteLine($"❌ Sipariş bilgisi bulunamadı: {batchId}");
+                return Json(new { success = false, message = "Sipariş bilgisi bulunamadı" });
+            }
+
+            Console.WriteLine($"✅ Sipariş bulundu: {orderInfo.Name}");
 
             // Mevcut status var mı kontrol et
             var existingStatus = await _context.OrderBatchStatuses
@@ -132,6 +167,7 @@ public class OrderController : Controller
                     CompletedAt = DateTime.Now
                 };
                 _context.OrderBatchStatuses.Add(newStatus);
+                Console.WriteLine("✅ Yeni status oluşturuldu");
             }
             else
             {
@@ -140,24 +176,71 @@ public class OrderController : Controller
                 existingStatus.CompletedBy = tabletName;
                 existingStatus.Department = department;
                 existingStatus.CompletedAt = DateTime.Now;
+                Console.WriteLine("✅ Mevcut status güncellendi");
             }
 
             await _context.SaveChangesAsync();
+            Console.WriteLine("✅ Veritabanı kaydedildi");
+
+            // GarsonMvc'ye bildirim gönder
+            await SendOrderCompletedNotificationToWaiters(batchId.ToString(), orderInfo.TableId, orderInfo.Name, department, tabletName);
 
             return Json(new
             {
                 success = true,
-                message = "Sipariş hazır olarak işaretlendi",
+                message = "Sipariş hazır olarak işaretlendi ve garsonlara bildirildi",
                 data = new { orderBatchId, status = "Ready" }
             });
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"❌ MarkAsReady hatası: {ex.Message}");
+            Console.WriteLine($"❌ Stack trace: {ex.StackTrace}");
             return Json(new { success = false, message = $"Durum güncellenemedi: {ex.Message}" });
         }
     }
 
     // Helper Methods
+
+    // ✅ YENİ: GarsonMvc'ye bildirim gönderme metodu
+    private async Task SendOrderCompletedNotificationToWaiters(string orderBatchId, Guid tableId, string tableName, string department, string completedBy)
+    {
+        try
+        {
+            using var httpClient = _httpClientFactory.CreateClient();
+
+            // GarsonMvc'nin URL'ini belirle
+            var garsonUrl = HttpContext.Request.Host.Host == "localhost"
+                ? "https://localhost:7115" // GarsonMvc'nin local portu
+                : "https://garson.kufeart.com"; // Production URL
+
+            var notificationData = new
+            {
+                OrderBatchId = orderBatchId,
+                TableId = tableId,
+                TableName = tableName,
+                Department = department,
+                CompletedBy = completedBy
+            };
+
+            var response = await httpClient.PostAsJsonAsync($"{garsonUrl}/api/WaiterNotification/order-completed", notificationData);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"✅ Garson bildirimi gönderildi: {tableName} - {department}");
+            }
+            else
+            {
+                Console.WriteLine($"❌ Garson bildirimi hatası: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Garson bildirimi gönderme hatası: {ex.Message}");
+            // Hata olsa bile sipariş tamamlama işlemi devam etsin
+        }
+    }
+
     private string GetSimpleStatus(bool isReady, DateTime orderTime)
     {
         if (isReady) return "Ready";

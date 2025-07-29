@@ -142,18 +142,35 @@ class GarsonDashboard {
         const amount = table.isOccupied ? this.formatCurrency(table.remainingAmount) : 'Boş Masa';
 
         return `
-            <div class="table-card ${status}" 
-                 data-table-id="${table.id}" 
-                 data-table-name="${table.name}"
-                 data-is-occupied="${table.isOccupied}">
-                <div class="table-icon">
-                    <i class="${statusIcon}"></i>
+        <div class="table-card ${status}" 
+             data-table-id="${table.id}" 
+             data-table-name="${table.name}"
+             data-is-occupied="${table.isOccupied}">
+            
+            ${table.isOccupied ? `
+                <!-- ✅ SADECE 2 İKON: Taşıma ve Birleştirme -->
+                <div class="table-actions">
+                    <button class="action-btn move-btn" 
+                            onclick="event.stopPropagation(); TableActions.showMoveModal('${table.id}', '${table.name}')"
+                            title="Masa Taşı">
+                        <i class="fas fa-arrows-alt"></i>
+                    </button>
+                    <button class="action-btn merge-btn" 
+                            onclick="event.stopPropagation(); TableActions.showMergeModal('${table.id}', '${table.name}')"
+                            title="Masa Birleştir">
+                        <i class="fas fa-link"></i>
+                    </button>
                 </div>
-                <div class="table-name">${table.name}</div>
-                <div class="table-amount">${amount}</div>
-                ${duration ? `<div class="table-duration">${duration}</div>` : ''}
+            ` : ''}
+            
+            <div class="table-icon">
+                <i class="${statusIcon}"></i>
             </div>
-        `;
+            <div class="table-name">${table.name}</div>
+            <div class="table-amount">${amount}</div>
+            ${duration ? `<div class="table-duration">${duration}</div>` : ''}
+        </div>
+    `;
     }
 
     bindTableEvents() {
