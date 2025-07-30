@@ -42,6 +42,60 @@ public class OrderController(DBContext _dbContext) : Controller
         }
     }
 
+
+    // ✅ YENİ: Tekil sipariş item iptal etme
+    [HttpPost]
+    public async Task<IActionResult> CancelOrderItem([FromBody] CancelOrderItemRequest request)
+    {
+        try
+        {
+            Console.WriteLine($"❌ Sipariş item iptal başlatılıyor: {request.OrderItemId}");
+
+            // Sipariş item'ı bul
+            var orderItem = await _dbContext.AddtionHistories
+                .FirstOrDefaultAsync(h => h.Id == request.OrderItemId);
+
+            if (orderItem == null)
+            {
+                return Json(new { success = false, message = "Sipariş bulunamadı!" });
+            }
+
+            // Sipariş item'ı sil
+            _dbContext.AddtionHistories.Remove(orderItem);
+            await _dbContext.SaveChangesAsync();
+
+            Console.WriteLine($"✅ Sipariş item iptal tamamlandı: {orderItem.ProductName}");
+
+            // Masa hala sipariş var mı kontrol et
+            var tableHasOrders = await _dbContext.AddtionHistories
+                .AnyAsync(h => h.TableId == orderItem.TableId);
+
+            if (!tableHasOrders)
+            {
+                // Masa tamamen boşaldı, masa durumunu güncelle
+                var table = await _dbContext.Tables.FindAsync(orderItem.TableId);
+                if (table != null)
+                {
+                    table.AddionStatus = null;
+                    await _dbContext.SaveChangesAsync();
+                    Console.WriteLine($"✅ Masa boşaltıldı: {table.Name}");
+                }
+            }
+
+            return Json(new
+            {
+                success = true,
+                message = $"{orderItem.ProductName} siparişi iptal edildi!",
+                tableIsEmpty = !tableHasOrders
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Sipariş item iptal hatası: {ex.Message}");
+            return Json(new { success = false, message = "Sipariş iptal işlemi başarısız!" });
+        }
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetTableDetails(Guid tableId)
     {
@@ -452,6 +506,11 @@ public class OrderController(DBContext _dbContext) : Controller
             return new List<object>();
         }
     }
+}
+
+public class CancelOrderItemRequest
+{
+    public Guid OrderItemId { get; set; }
 }
 
 // DTO Classes

@@ -5,6 +5,7 @@ using KufeArtFullAdission.GarsonMvc.Extensions;
 using KufeArtFullAdission.GarsonMvc.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace KufeArtFullAdission.GarsonMvc.Controllers;
@@ -290,7 +291,6 @@ public class HomeController(DBContext _dbContext) : Controller
     {
         try
         {
-
             string message = action switch
             {
                 "move" => $"{sourceTable.Name} masası {targetTable?.Name} masasına taşındı",
@@ -311,9 +311,36 @@ public class HomeController(DBContext _dbContext) : Controller
                 Timestamp = DateTime.Now
             };
 
-            var httpClient = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient("AdminPanel");
-            await httpClient.PostAsJsonAsync("/api/notification/new-order", notification);
-            Console.WriteLine($"✅ Admin panele masa işlemi bildirimi gönderildi: {message}");
+            // ✅ 1. HTTP ile admin panele bildirim gönder
+            try
+            {
+                var httpClient = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient("AdminPanel");
+                await httpClient.PostAsJsonAsync("/api/notification/table-operation", notification);
+                Console.WriteLine($"✅ HTTP ile admin panele masa işlemi bildirimi gönderildi: {message}");
+            }
+            catch (Exception httpEx)
+            {
+                Console.WriteLine($"⚠️ HTTP bildirim hatası: {httpEx.Message}");
+            }
+
+            // ✅ 2. SignalR ile Garson paneline geri bildirim
+            try
+            {
+                var hubContext = HttpContext.RequestServices.GetRequiredService<IHubContext<WaiterHub>>();
+                await hubContext.Clients.All.SendAsync("TableOperationCompleted", new
+                {
+                    Action = action,
+                    SourceTableName = sourceTable.Name,
+                    TargetTableName = targetTable?.Name,
+                    Message = message,
+                    Success = true
+                });
+                Console.WriteLine($"✅ SignalR ile garson paneline masa işlemi bildirimi gönderildi");
+            }
+            catch (Exception signalREx)
+            {
+                Console.WriteLine($"⚠️ SignalR bildirim hatası: {signalREx.Message}");
+            }
         }
         catch (Exception ex)
         {

@@ -60,6 +60,11 @@ class WaiterSignalRClient {
             this.showToast(data.Message, 'info');
         });
 
+        this.connection.on("TableOperationCompleted", (data) => {
+            console.log("✅ Masa işlemi tamamlandı:", data);
+            this.handleTableOperationCompleted(data);
+        });
+
         // ✅ YENİ: Tablet'den sipariş tamamlama bildirimi
         this.connection.on("OrderCompletedFromTablet", (orderData) => {
             console.log("🍽️ Tablet'den sipariş hazır bildirimi:", orderData);
@@ -109,6 +114,28 @@ class WaiterSignalRClient {
             console.log("🔄 SignalR yeniden bağlanıyor:", error);
             this.updateConnectionStatus(false);
         });
+    }
+
+    handleTableOperationCompleted(data) {
+        // Toast göster
+        this.showToast(data.Message, 'success');
+
+        // Sayfa verilerini yenile
+        this.refreshPageData();
+
+        // Notification ekle
+        const notification = {
+            id: Date.now(),
+            type: 'TableOperation',
+            title: '✅ İşlem Tamamlandı',
+            message: data.Message,
+            timestamp: new Date(),
+            isRead: false
+        };
+
+        this.notifications.unshift(notification);
+        this.updateNotificationBadge();
+        this.saveNotificationsToStorage();
     }
 
     // ✅ YENİ: Tablet'den gelen sipariş tamamlama bildirimini işle
@@ -261,7 +288,15 @@ class WaiterSignalRClient {
     }
 
     refreshPageData() {
-        if (window.location.pathname === '/' && window.GarsonDashboard) {
+        console.log("🔄 Sayfa verileri yenileniyor...");
+
+        // Dashboard varsa yenile
+        if (window.GarsonDashboard) {
+            window.GarsonDashboard.refreshDashboard();
+        }
+
+        // Tablo varsa yenile
+        if (window.location.pathname.includes('/Order/Index')) {
             setTimeout(() => {
                 window.location.reload();
             }, 1000);
