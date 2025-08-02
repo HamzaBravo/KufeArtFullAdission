@@ -964,3 +964,37 @@
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         border-color: #007bff;
     }
+/* ✅ YENİ: Sipariş durumu stilleri */
+.order-cancelled {
+    background-color: #fff5f5;
+    border-left: 4px solid #dc3545;
+}
+
+.order-paid {
+    background-color: #f0f9ff;
+    border-left: 4px solid #28a745;
+}
+
+.order-pending {
+    background-color: #fffbf0;
+    border-left: 4px solid #ffc107;
+}
+
+.order-cancelled .product-name {
+    text-decoration: line-through;
+    color: #6c757d;
+}
+
+.order-status {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+/* Adisyon tarafı için stiller */
+.table-danger {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+}
+
+.table-success {
+    background-color: rgba(40, 167, 69, 0.1) !important;
+}

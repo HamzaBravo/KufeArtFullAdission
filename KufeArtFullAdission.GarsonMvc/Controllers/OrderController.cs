@@ -63,57 +63,44 @@ public class OrderController(DBContext _dbContext) : Controller
 
             Console.WriteLine($"✅ Sipariş bulundu: {orderItem.ProductName}");
 
-
+            // ✅ YENİ: Silmek yerine iptal olarak işaretle
             orderItem.IsCancelled = true;
             orderItem.CancelReason = request.CancelReason ?? "Garson tarafından iptal edildi";
             orderItem.CancelledAt = DateTime.Now;
             orderItem.CancelledBy = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
             orderItem.CancelledByName = User.GetFullName();
 
+            // ❌ ESKİ KOD - Bu satırı KALDIRELIM:
+            // _dbContext.AddtionHistories.Remove(orderItem);
+
+            await _dbContext.SaveChangesAsync();
+
             var table = await _dbContext.Tables.FindAsync(orderItem.TableId);
             var waiterName = User.GetFullName();
             var productName = orderItem.ProductName;
             var tableName = table?.Name ?? "Bilinmeyen Masa";
 
-            // Sipariş item'ı sil
-            _dbContext.AddtionHistories.Remove(orderItem);
-            await _dbContext.SaveChangesAsync();
-
-            Console.WriteLine($"✅ Sipariş DB'den silindi: {productName}");
-
-            // Masa hala sipariş var mı kontrol et
-            var tableHasOrders = await _dbContext.AddtionHistories
-                .AnyAsync(h => h.TableId == orderItem.TableId);
-
-            if (!tableHasOrders && table != null)
-            {
-                table.AddionStatus = null;
-                await _dbContext.SaveChangesAsync();
-                Console.WriteLine($"✅ Masa boşaltıldı: {table.Name}");
-            }
-
-            // ✅ YENİ: Real-time bildirim gönder
-            Console.WriteLine($"📨 Admin panele bildirim gönderiliyor...");
+            // Bildirim gönder
             await SendOrderCancelNotification(tableName, productName, waiterName);
 
-            var successResponse = new
+            Console.WriteLine($"✅ Sipariş iptal edildi: {productName}");
+
+            return Json(new
             {
                 success = true,
                 message = $"{productName} siparişi iptal edildi!",
-                tableIsEmpty = !tableHasOrders
-            };
-
-            Console.WriteLine($"✅ Başarılı response gönderiliyor");
-            return Json(successResponse);
+                cancelledItem = new
+                {
+                    id = orderItem.Id,
+                    productName = productName,
+                    isCancelled = true
+                }
+            });
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Sipariş item iptal hatası: {ex.Message}");
-            return Json(new
-            {
-                success = false,
-                message = "Sipariş iptal işlemi başarısız: " + ex.Message
-            });
+            Console.WriteLine($"💥 İptal hatası: {ex.Message}");
+            return Json(new { success = false, message = "Hata: " + ex.Message });
         }
     }
 
@@ -133,7 +120,7 @@ public class OrderController(DBContext _dbContext) : Controller
 
             if (isOccupied)
             {
-                // Mevcut siparişleri getir
+                // ✅ YENİ: TÜM siparişleri getir (iptal edilenler dahil)
                 var orderHistory = await _dbContext.AddtionHistories
                     .Where(h => h.AddionStatusId == table.AddionStatus)
                     .OrderBy(h => h.CreatedAt)
@@ -145,12 +132,16 @@ public class OrderController(DBContext _dbContext) : Controller
                         h.TotalPrice,
                         h.ShorLabel,
                         h.CreatedAt,
-                        h.PersonFullName
+                        h.PersonFullName,
+                        h.IsCancelled    // ✅ YENİ ALAN
                     })
                     .ToListAsync();
 
                 orders = orderHistory.Cast<object>().ToList();
-                totalAmount = orderHistory.Sum(o => o.TotalPrice);
+
+                // ✅ YENİ: Sadece iptal edilmeyenlerin toplamını hesapla
+                totalAmount = orderHistory.Where(o => !o.IsCancelled).Sum(o => o.TotalPrice);
+
                 openedAt = orderHistory.FirstOrDefault()?.CreatedAt;
             }
 
@@ -163,7 +154,7 @@ public class OrderController(DBContext _dbContext) : Controller
                     tableName = table.Name,
                     category = table.Category,
                     isOccupied = isOccupied,
-                    totalAmount = totalAmount,
+                    totalAmount = totalAmount,  // ✅ Artık sadece iptal edilmeyenler
                     openedAt = openedAt?.ToString("yyyy-MM-ddTHH:mm:ss"),
                     orders = orders
                 }
@@ -310,10 +301,22 @@ public class OrderController(DBContext _dbContext) : Controller
     {
         try
         {
-            var table = await _dbContext.Tables.FindAsync(tableId);
-            if (table == null || !table.AddionStatus.HasValue)
-                return Json(new { success = true, data = new List<object>() });
+            Console.WriteLine($"📋 GetOrderHistory çağrıldı - TableId: {tableId}");
 
+            var table = await _dbContext.Tables.FindAsync(tableId);
+            if (table == null)
+            {
+                Console.WriteLine("❌ Masa bulunamadı");
+                return Json(new { success = false, message = "Masa bulunamadı!" });
+            }
+
+            if (!table.AddionStatus.HasValue)
+            {
+                Console.WriteLine("ℹ️ Masa boş - Sipariş geçmişi yok");
+                return Json(new { success = true, data = new List<object>() });
+            }
+
+            // ✅ YENİ ALANLAR DAHİL EDİLDİ
             var orders = await _dbContext.AddtionHistories
                 .Where(h => h.AddionStatusId == table.AddionStatus)
                 .OrderByDescending(h => h.CreatedAt)
@@ -327,14 +330,24 @@ public class OrderController(DBContext _dbContext) : Controller
                     h.ShorLabel,
                     h.PersonFullName,
                     h.CreatedAt,
-                    FormattedTime = h.CreatedAt.ToString("HH:mm")
+                    FormattedTime = h.CreatedAt.ToString("HH:mm"),
+
+                    // ✅ YENİ: İptal ve ödeme durumları
+                    IsCancelled = h.IsCancelled,
+                    CancelReason = h.CancelReason,
+                    CancelledAt = h.CancelledAt,
+                    CancelledByName = h.CancelledByName,
+                    IsPaid = h.IsPaid,
+                    PaidAt = h.PaidAt
                 })
                 .ToListAsync();
 
+            Console.WriteLine($"✅ {orders.Count} sipariş getirildi");
             return Json(new { success = true, data = orders });
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"💥 GetOrderHistory hatası: {ex.Message}");
             return Json(new { success = false, message = "Sipariş geçmişi yüklenemedi: " + ex.Message });
         }
     }
@@ -571,7 +584,7 @@ public class OrderController(DBContext _dbContext) : Controller
 public class CancelOrderItemRequest
 {
     public Guid OrderItemId { get; set; }
-    public string? CancelReason { get; set; }
+    public string CancelReason { get; set; }
 }
 
 // DTO Classes

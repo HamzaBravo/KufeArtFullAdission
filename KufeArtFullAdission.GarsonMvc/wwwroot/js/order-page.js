@@ -560,16 +560,17 @@ class OrderPage {
 
         if (orders.length === 0) {
             content.innerHTML = `
-                <div class="no-history">
-                    <i class="fas fa-history fa-3x"></i>
-                    <p>Henüz sipariş geçmişi yok</p>
-                </div>
-            `;
+            <div class="no-history">
+                <i class="fas fa-history fa-3x"></i>
+                <p>Henüz sipariş geçmişi yok</p>
+            </div>
+        `;
             return;
         }
 
         let html = '<div class="history-items">';
         orders.forEach(order => {
+            // ✅ YENİ: Durum belirleme
             let statusClass = '';
             let statusIcon = '';
             let statusText = '';
@@ -577,7 +578,7 @@ class OrderPage {
             if (order.isCancelled) {
                 statusClass = 'order-cancelled';
                 statusIcon = 'fas fa-times-circle text-danger';
-                statusText = `İptal edildi (${order.cancelledByName})`;
+                statusText = `İptal edildi (${order.cancelledByName || 'Bilinmiyor'})`;
             } else if (order.isPaid) {
                 statusClass = 'order-paid';
                 statusIcon = 'fas fa-check-circle text-success';
@@ -595,23 +596,33 @@ class OrderPage {
                         <i class="${statusIcon}"></i> ${statusText}
                     </span>
                     <span class="order-time">${order.formattedTime}</span>
+                    
+                    <!-- ✅ Sadece bekleyen siparişlerde iptal butonu göster -->
+                    ${!order.isCancelled && !order.isPaid ? `
+                        <button class="btn-cancel-order" 
+                                data-order-id="${order.id}" 
+                                data-product-name="${order.productName}"
+                                onclick="window.orderPageInstance.cancelOrderItem('${order.id}', '${order.productName}')">
+                            <i class="fas fa-times"></i> İptal Et
+                        </button>
+                    ` : ''}
                 </div>
                 <div class="history-details">
                     <div class="product-name ${order.isCancelled ? 'text-decoration-line-through' : ''}">
                         ${order.productName}
                     </div>
                     <div class="order-info">
-                        ${order.productQuantity} x ₺${order.productPrice} = 
+                        ${order.productQuantity} x ${this.formatCurrency(order.productPrice)} = 
                         <strong class="${order.isCancelled ? 'text-muted' : ''}">
-                            ₺${order.totalPrice}
+                            ${this.formatCurrency(order.totalPrice)}
                         </strong>
                     </div>
+                    ${order.shorLabel ? `<small class="order-note">${order.shorLabel}</small>` : ''}
                 </div>
             </div>
         `;
         });
         html += '</div>';
-        return html;
 
         content.innerHTML = html;
     }

@@ -1,5 +1,4 @@
-﻿// wwwroot/js/table-management.js
-window.TableManager = {
+﻿window.TableManager = {
 
     loadTables: function (silent = false) {
         $.ajax({
@@ -364,13 +363,45 @@ window.TableManager = {
             `;
 
             batchOrders.forEach(order => {
+                // ✅ YENİ: Durum belirleme
+                let statusClass = '';
+                let statusIcon = '';
+                let statusText = '';
+                let rowClass = '';
+                let priceClass = '';
+
+                if (order.isCancelled) {
+                    statusClass = 'badge bg-danger';
+                    statusIcon = 'fas fa-times-circle';
+                    statusText = 'İptal';
+                    rowClass = 'table-danger';
+                    priceClass = 'text-decoration-line-through text-muted';
+                } else if (order.isPaid) {
+                    statusClass = 'badge bg-success';
+                    statusIcon = 'fas fa-check-circle';
+                    statusText = 'Ödendi';
+                    rowClass = 'table-success';
+                    priceClass = '';
+                } else {
+                    statusClass = 'badge bg-warning';
+                    statusIcon = 'fas fa-clock';
+                    statusText = 'Bekliyor';
+                    rowClass = '';
+                    priceClass = '';
+                }
+
                 html += `
-                    <tr>
-                        <td>${order.productName}</td>
-                        <td class="text-center"><span class="badge bg-primary">${order.productQuantity}</span></td>
-                        <td class="text-end">₺${order.productPrice.toFixed(2)}</td>
-                        <td class="text-end fw-bold">₺${order.totalPrice.toFixed(2)}</td>
-                    </tr>
+        <tr class="${rowClass}">
+            <td>
+                <span class="${order.isCancelled ? 'text-decoration-line-through text-muted' : ''}">${order.productName}</span>
+                <br><small class="${statusClass}">
+                    <i class="${statusIcon}"></i> ${statusText}
+                </small>
+            </td>
+            <td class="text-center"><span class="badge bg-primary">${order.productQuantity}</span></td>
+            <td class="text-end ${priceClass}">₺${order.productPrice.toFixed(2)}</td>
+            <td class="text-end fw-bold ${priceClass}">₺${order.totalPrice.toFixed(2)}</td>
+        </tr>
                 `;
             });
 

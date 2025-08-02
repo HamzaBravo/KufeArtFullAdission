@@ -47,7 +47,7 @@ public class HomeController(DBContext _dbContext) : Controller
                     .ToListAsync();
 
                 var hasOrders = orders.Any();
-                var totalOrderAmount = orders.Sum(o => o.TotalPrice);
+                var totalOrderAmount = orders.Where(o => !o.IsCancelled).Sum(o => o.TotalPrice);
 
                 // Ödeme kontrolü
                 var totalPaidAmount = 0.0;

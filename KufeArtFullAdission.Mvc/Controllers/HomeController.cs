@@ -58,7 +58,7 @@ public class HomeController(DBContext _dbContext) : Controller
             {
                 // Bu masa için siparişler var mı kontrol et
                 var orders = await _dbContext.AddtionHistories
-                    .Where(h => h.AddionStatusId == table.AddionStatus)
+                    .Where(h => h.AddionStatusId == table.AddionStatus && !h.IsCancelled)
                     .OrderBy(h => h.CreatedAt)
                     .ToListAsync();
 
@@ -180,9 +180,9 @@ public class HomeController(DBContext _dbContext) : Controller
                 .ToListAsync();
 
             // Hesaplamalar
-            var totalOrderAmount = orders.Sum(o => o.TotalPrice);
+            var totalOrderAmount = orders.Where(o => !o.IsCancelled).Sum(o => o.TotalPrice);
             var totalPaidAmount = payments.Sum(p => p.amount);
-            var remainingAmount = Math.Max(0, totalOrderAmount - totalPaidAmount); // ✅ Negatif değer engelle
+            var remainingAmount = Math.Max(0, totalOrderAmount - totalPaidAmount);
 
 
             var result = new
@@ -796,8 +796,8 @@ public class HomeController(DBContext _dbContext) : Controller
     private async Task<double> GetDailySales(DateTime date)
     {
         return await _dbContext.AddtionHistories
-            .Where(x => x.CreatedAt.Date == date)
-            .SumAsync(x => x.TotalPrice);
+          .Where(x => x.CreatedAt.Date == date && !x.IsCancelled)
+          .SumAsync(x => x.TotalPrice);
     }
 
     private async Task<int> GetQrViewCount(DateTime date)
@@ -845,7 +845,7 @@ public class HomeController(DBContext _dbContext) : Controller
             {
                 // Siparişleri AddionStatus ile getir
                 var orders = await _dbContext.AddtionHistories
-                    .Where(h => h.AddionStatusId == table.AddionStatus) // ← DOĞRU SORGU
+                    .Where(h => h.AddionStatusId == table.AddionStatus && !h.IsCancelled) // ← DOĞRU SORGU
                     .Select(h => new { h.TotalPrice, h.CreatedAt })
                     .ToListAsync();
 
