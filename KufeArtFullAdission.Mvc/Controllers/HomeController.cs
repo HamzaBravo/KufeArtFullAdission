@@ -149,6 +149,7 @@ public class HomeController(DBContext _dbContext) : Controller
                 .OrderBy(h => h.CreatedAt)
                 .Select(h => new
                 {
+                    h.Id,
                     h.ProductName,
                     h.ProductQuantity,
                     h.ProductPrice,

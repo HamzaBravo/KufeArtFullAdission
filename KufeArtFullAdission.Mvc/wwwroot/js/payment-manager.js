@@ -122,34 +122,44 @@ window.PaymentManager = {
     populateOrderItems: function () {
         let html = '';
 
-        App.currentTableOrders.forEach((order, index) => {
+        // ✅ YENİ: Sadece ödenmemiş ve iptal edilmemiş ürünleri filtrele
+        const availableOrders = App.currentTableOrders.filter(order =>
+            !order.isCancelled && !order.isPaid
+        );
+
+        if (availableOrders.length === 0) {
+            html = '<div class="text-muted text-center py-3">Ödenecek ürün kalmadı</div>';
+            $('#orderItemsList').html(html);
+            return;
+        }
+
+        availableOrders.forEach((order, index) => {
             html += `
-                <div class="form-check mb-2">
-                    <input class="form-check-input order-item-checkbox" type="checkbox" 
-                           value="${order.totalPrice}" data-order-index="${index}" 
-                           id="order_${index}">
-                    <label class="form-check-label w-100" for="order_${index}">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <strong>${order.productName}</strong>
-                                <small class="text-muted d-block">
-                                    ${order.productQuantity} adet × ₺${order.productPrice.toFixed(2)}
-                                    ${order.shorLabel ? ` • ${order.shorLabel}` : ''}
-                                </small>
-                            </div>
-                            <div class="fw-bold text-success">₺${order.totalPrice.toFixed(2)}</div>
+            <div class="form-check mb-2">
+                <input class="form-check-input order-item-checkbox" type="checkbox" 
+                       value="${order.totalPrice}" data-order-index="${index}" 
+                       data-order-id="${order.id}"
+                       id="order_${index}">
+                <label class="form-check-label w-100" for="order_${index}">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>${order.productName}</strong>
+                            <small class="text-muted d-block">
+                                ${order.productQuantity} adet × ₺${order.productPrice.toFixed(2)}
+                                ${order.shorLabel ? `<br><em>Not: ${order.shorLabel}</em>` : ''}
+                            </small>
                         </div>
-                    </label>
-                </div>
-            `;
+                        <div class="text-end">
+                            <strong class="text-success">₺${order.totalPrice.toFixed(2)}</strong>
+                        </div>
+                    </div>
+                </label>
+            </div>
+        `;
         });
 
         $('#orderItemsList').html(html);
-
-        // Checkbox event'lerini temizle ve yeniden ekle
-        $('.order-item-checkbox').off('change.orderSelection');
-        $('.order-item-checkbox').on('change.orderSelection', PaymentManager.updateSelectedItemsTotal);
-    },
+    }
 
     populateLabels: function () {
         const labels = [...new Set(App.currentTableOrders.filter(o => o.shorLabel).map(o => o.shorLabel))];
