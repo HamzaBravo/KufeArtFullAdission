@@ -829,6 +829,54 @@ public class HomeController(DBContext _dbContext) : Controller
         }
     }
 
+    [HttpPost]
+    public async Task<IActionResult> UpdateOrderQuantity([FromBody] UpdateOrderQuantityRequest request)
+    {
+        try
+        {
+            var orderItem = await _dbContext.AddtionHistories.FindAsync(request.OrderItemId);
+
+            if (orderItem == null)
+                return Json(new { success = false, message = "Sipariş kalemi bulunamadı!" });
+
+            if (orderItem.IsCancelled)
+                return Json(new { success = false, message = "İptal edilmiş ürün güncellenemez!" });
+
+            if (orderItem.IsPaid)
+                return Json(new { success = false, message = "Ödenmiş ürün güncellenemez!" });
+
+            if (request.NewQuantity <= 0)
+            {
+                // Ürünü tamamen kaldır
+                orderItem.IsCancelled = true;
+                orderItem.CancelReason = "Miktar güncelleme sırasında kaldırıldı";
+                orderItem.CancelledAt = DateTime.Now;
+                orderItem.CancelledByName = User.GetFullName();
+            }
+            else
+            {
+                // Miktarı güncelle
+                var oldQuantity = orderItem.ProductQuantity;
+                orderItem.ProductQuantity = request.NewQuantity;
+                orderItem.TotalPrice = orderItem.ProductPrice * request.NewQuantity;
+
+                Console.WriteLine($"📊 Miktar güncellendi: {orderItem.ProductName} - {oldQuantity} → {request.NewQuantity}");
+            }
+
+            await _dbContext.SaveChangesAsync();
+
+            return Json(new
+            {
+                success = true,
+                message = request.NewQuantity <= 0 ? "Ürün kaldırıldı!" : "Miktar güncellendi!"
+            });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = "Hata: " + ex.Message });
+        }
+    }
+
     private async Task<double> GetDailySales(DateTime date)
     {
         return await _dbContext.AddtionHistories
@@ -941,4 +989,10 @@ public class HomeController(DBContext _dbContext) : Controller
     {
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
+}
+
+public class UpdateOrderQuantityRequest
+{
+    public Guid OrderItemId { get; set; }
+    public int NewQuantity { get; set; }
 }

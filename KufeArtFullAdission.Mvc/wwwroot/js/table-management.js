@@ -192,6 +192,21 @@
                 $('#pointAmountSection').toggle(this.checked);
             });
         });
+
+        // ✅ YENİ: Modal kapanma event'i ekle
+        $('#tableModal').on('hidden.bs.modal', function () {
+            // Backdrop'u manuel olarak kaldır
+            $('.modal-backdrop').remove();
+            $('body').removeClass('modal-open');
+            $('body').css('padding-right', '');
+
+            // Modal data'larını temizle
+            $(this).removeData('bs.modal');
+            $(this).removeData('current-table-id');
+            $(this).removeData('table-id');
+
+            console.log('✅ Modal tamamen temizlendi');
+        });
     },
 
     loadTableDetails: function (tableId) {
@@ -334,7 +349,24 @@
                             <i class="${statusIcon}"></i> ${statusText}
                         </small>
                     </td>
-                    <td class="text-center"><span class="badge bg-primary">${order.productQuantity}</span></td>
+                <td class="text-center">
+                    ${!order.isCancelled && !order.isPaid ? `
+                        <div class="quantity-controls">
+                            <button class="btn btn-sm btn-outline-secondary" 
+                                    onclick="TableManager.updateOrderQuantity('${order.id}', ${order.productQuantity - 1})"
+                                    ${order.productQuantity <= 1 ? 'disabled' : ''}>
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <span class="mx-2 fw-bold">${order.productQuantity}</span>
+                            <button class="btn btn-sm btn-outline-secondary" 
+                                    onclick="TableManager.updateOrderQuantity('${order.id}', ${order.productQuantity + 1})">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    ` : `
+                        <span class="badge bg-primary">${order.productQuantity}</span>
+                    `}
+                </td>
                     <td class="text-end ${priceClass}">₺${order.productPrice.toFixed(2)}</td>
                     <td class="text-end fw-bold ${priceClass}">₺${order.totalPrice.toFixed(2)}</td>
                 </tr>
@@ -477,6 +509,57 @@
                 if (timeDisplay.length > 0) {
                     timeDisplay.text(Utils.getTimeAgo(openedAt));
                 }
+            }
+        });
+    },
+
+    updateOrderQuantity: function (orderItemId, newQuantity) {
+        if (newQuantity <= 0) {
+            if (!confirm('Bu ürünü tamamen kaldırmak istediğinizden emin misiniz?')) {
+                return;
+            }
+        }
+
+        LoaderHelper.show('Miktar güncelleniyor...');
+
+        $.ajax({
+            url: '/Home/UpdateOrderQuantity',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                orderItemId: orderItemId,
+                newQuantity: newQuantity
+            }),
+            success: function (response) {
+                LoaderHelper.hide();
+
+                if (response.success) {
+                    ToastHelper.success('Miktar güncellendi!');
+
+                    // Masa detaylarını yenile
+                    const currentTableId = $('#tableModal').data('current-table-id') || $('#tableModal').data('table-id');
+                    if (currentTableId) {
+                        TableManager.loadTableDetails(currentTableId);
+                    } else {
+                        // Manuel olarak table ID'sini bul
+                        const tableInfo = App.currentTableOrders[0];
+                        if (tableInfo && tableInfo.tableId) {
+                            TableManager.loadTableDetails(tableInfo.tableId);
+                        } else {
+                            // Son çare - sayfayı yenile
+                            setTimeout(() => {
+                                location.reload();
+                            }, 1000);
+                        }
+                    }
+                    TableManager.loadTables(true);
+                } else {
+                    ToastHelper.error(response.message);
+                }
+            },
+            error: function () {
+                LoaderHelper.hide();
+                ToastHelper.error('Bağlantı hatası!');
             }
         });
     }
