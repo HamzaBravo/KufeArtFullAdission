@@ -60,6 +60,7 @@ public class OrderController : Controller
                             history.ProductPrice,
                             history.ShorLabel,
                             ProductType = product.Type.ToString(),
+                            ProductDescription = product.Description,
                             IsReady = batchStatus != null ? batchStatus.IsReady : false,
                             CompletedAt = batchStatus != null ? batchStatus.CompletedAt : null
                         };
@@ -82,7 +83,8 @@ public class OrderController : Controller
                         productName = o.ProductName,
                         quantity = o.ProductQuantity,
                         price = o.ProductPrice,
-                        categoryName = o.ProductType
+                        categoryName = o.ProductType,
+                        Description = o.ProductDescription // ✅ BURASI DA EKLENDİ
                     }).ToList(),
                     note = g.First().ShorLabel,
                     isNew = false,

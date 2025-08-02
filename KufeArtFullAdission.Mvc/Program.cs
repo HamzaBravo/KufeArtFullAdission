@@ -27,7 +27,7 @@ builder.Services.AddScoped<IImageService, ImageService>();
 
 // DBContext yapýlandýrmasý
 builder.Services.AddDbContext<DBContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("HamzaLocal")), ServiceLifetime.Scoped);
+    options.UseSqlServer(builder.Configuration.GetConnectionString("LiveServer")), ServiceLifetime.Scoped);
 
 // Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -36,13 +36,26 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LoginPath = "/Auth/Login";
         options.LogoutPath = "/Auth/Logout";
         options.AccessDeniedPath = "/Auth/AccessDenied";
-        options.ExpireTimeSpan = TimeSpan.FromDays(7);
+        options.ExpireTimeSpan = TimeSpan.FromDays(30);
         options.SlidingExpiration = true;
         options.Cookie.Name = "KufeArtAuth";
         options.Cookie.HttpOnly = true;
         options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-    });
+        options.Cookie.MaxAge = TimeSpan.FromDays(30); // Cookie ömrü
 
+        options.Events.OnValidatePrincipal = async context =>
+        {
+            // Her request'te session'ý yenile
+            var lastChanged = context.Properties.IssuedUtc;
+            if (lastChanged.HasValue &&
+                DateTimeOffset.UtcNow.Subtract(lastChanged.Value) > TimeSpan.FromHours(1))
+            {
+                context.Properties.IssuedUtc = DateTimeOffset.UtcNow;
+                context.ShouldRenew = true;
+            }
+        };
+
+    });
 
 // Program.cs builder.Services kýsmýna ekleyin:
 builder.Services.Configure<FormOptions>(options =>

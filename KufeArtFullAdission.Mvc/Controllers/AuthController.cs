@@ -71,8 +71,9 @@ public class AuthController(DBContext _dbContext) : Controller
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var authProperties = new AuthenticationProperties
             {
-                IsPersistent = true, // "Beni Hatırla" özelliği
-                ExpiresUtc = DateTimeOffset.Now.AddDays(7) // 7 gün geçerli
+                IsPersistent = true, // Tarayıcı kapanınca da geçerli
+                ExpiresUtc = DateTimeOffset.UtcNow.AddDays(30), // ✅ 30 güne çıkarın
+                AllowRefresh = true, // ✅ Yenilemeye izin ver
             };
 
             await HttpContext.SignInAsync(

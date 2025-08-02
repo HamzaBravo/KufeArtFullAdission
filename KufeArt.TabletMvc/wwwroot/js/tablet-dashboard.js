@@ -187,37 +187,42 @@ class TabletDashboard {
         if (!modalContent) return;
 
         modalContent.innerHTML = `
-        <div class="order-detail-header">
-            <h4>${orderDetail.tableName} - Sipariş Detayı</h4>
-            <div class="detail-meta">
-                <span><i class="fas fa-clock"></i> ${this.formatTime(new Date(orderDetail.orderTime))}</span>
-                <span><i class="fas fa-user"></i> ${orderDetail.waiterName}</span>
-                <span class="status-badge ${orderDetail.status.toLowerCase()}">${this.getStatusText(orderDetail.status)}</span>
-            </div>
-            ${orderDetail.note ? `<div class="order-note"><i class="fas fa-sticky-note"></i> ${orderDetail.note}</div>` : ''}
+    <div class="order-detail-header">
+        <h4>${orderDetail.tableName} - Sipariş Detayı</h4>
+        <div class="detail-meta">
+            <span><i class="fas fa-clock"></i> ${this.formatTime(new Date(orderDetail.orderTime))}</span>
+            <span><i class="fas fa-user"></i> ${orderDetail.waiterName}</span>
+            <span class="status-badge ${orderDetail.status.toLowerCase()}">${this.getStatusText(orderDetail.status)}</span>
+        </div>
+        ${orderDetail.note ? `<div class="order-note"><i class="fas fa-sticky-note"></i> ${orderDetail.note}</div>` : ''}
+    </div>
+    
+    <div class="order-detail-items">
+        <h5><i class="fas fa-list"></i> Ürünler (${orderDetail.items.length})</h5>
+        <div class="detail-products-list">
+            ${orderDetail.items.map(item => `
+                <div class="detail-product-item">
+                    <div class="product-info">
+                        <span class="product-name">${item.productName}</span>
+                        <!-- ✅ Description kontrolü ve gösterimi -->
+                        ${item.description && item.description.trim() ? `
+                            <span class="product-description">
+                                <i class="fas fa-info-circle"></i>
+                                ${item.description}
+                            </span>
+                        ` : ''}
+                    </div>
+                    <div class="product-quantity">
+                        <span class="quantity">x${item.quantity}</span>
+                    </div>
+                </div>
+            `).join('')}
         </div>
         
-        <div class="order-detail-items">
-            <h5><i class="fas fa-list"></i> Ürünler (${orderDetail.items.length})</h5>
-            <div class="detail-products-list">
-                ${orderDetail.items.map(item => `
-                    <div class="detail-product-item">
-                        <div class="product-info">
-                            <span class="product-name">${item.productName}</span>
-                            <span class="product-category">${item.categoryName || 'Kategori'}</span>
-                        </div>
-                        <div class="product-quantity">
-                            <span class="quantity">x${item.quantity}</span>
-                            <span class="price">₺${(item.price * item.quantity).toFixed(2)}</span>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-            
-            <div class="detail-total">
-                <strong>Toplam: ₺${orderDetail.totalAmount.toFixed(2)}</strong>
-            </div>
+        <div class="detail-summary">
+            <strong>Toplam ${orderDetail.items.length} ürün</strong>
         </div>
+    </div>
     `;
 
         const markReadyBtn = document.getElementById('markAsReadyBtn');
@@ -282,12 +287,98 @@ class TabletDashboard {
         }
     }
 
+    renderOrder(order) {
+        const timeElapsed = this.calculateTimeElapsed(order.orderTime);
+        const statusClass = this.getStatusClass(order.status);
+
+        // ⏰ Süre bazlı stil belirleme
+        const timeClass = this.getTimeBasedClass(order.orderTime);
+        const isNewOrder = this.isNewOrder(order.orderTime);
+        const isUrgent = this.isUrgentOrder(order.orderTime);
+
+        return `
+    <div class="order-row ${statusClass} ${timeClass} ${isNewOrder ? 'new-order-fire' : ''} ${isUrgent ? 'urgent' : ''}" 
+         data-order-id="${order.orderBatchId}">
+         
+        <div class="order-info">
+            <div class="table-section">
+                <h4 class="table-name">
+                    <i class="fas fa-table"></i>
+                    ${order.tableName}
+                </h4>
+                <span class="waiter-name">
+                    <i class="fas fa-user"></i>
+                    ${order.waiterName}
+                </span>
+            </div>
+            
+            <div class="order-summary">
+                <!-- ✨ NOT en belirgin şekilde -->
+                ${order.note ? `
+                    <div class="order-note">
+                        ${order.note}
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+
+        <!-- 📦 Sadece ürün sayısı -->
+        <div class="order-products">
+            <div class="order-summary-count">
+                <i class="fas fa-shopping-basket"></i>
+                ${order.items.length} Ürün
+            </div>
+        </div>
+
+        <div class="order-actions">
+            <div class="order-status">
+                <span class="status-badge ${statusClass}">
+                    ${this.getStatusIcon(order.status)} ${this.getStatusText(order.status)}
+                </span>
+                <span class="order-time ${this.getTimeUrgencyClass(order.orderTime)}">
+                    ${timeElapsed}
+                </span>
+            </div>
+            
+            <div class="action-buttons">
+                ${this.renderActionButtons(order)}
+            </div>
+        </div>
+    </div>
+    `;
+    }
+
+    // ✨ Yeni yardımcı fonksiyonlar
+    getTimeBasedClass(orderTime) {
+        const minutes = this.getMinutesElapsed(orderTime);
+        if (minutes > 15) return 'time-critical';
+        if (minutes > 10) return 'time-warning';
+        return 'time-good';
+    }
+
+    isNewOrder(orderTime) {
+        return this.getMinutesElapsed(orderTime) < 2;
+    }
+
+    isUrgentOrder(orderTime) {
+        return this.getMinutesElapsed(orderTime) > 20;
+    }
+
+    getTimeUrgencyClass(orderTime) {
+        const minutes = this.getMinutesElapsed(orderTime);
+        if (minutes > 15) return 'time-urgent';
+        if (minutes > 10) return 'time-warning';
+        return 'time-normal';
+    }
+
+    // ✅ EKSİK FONKSİYON - renderOrders 
     renderOrders() {
         const container = document.getElementById('ordersContainer');
         if (!container) return;
 
         let filteredOrders = this.orders;
 
+        // Filter'a göre siparişleri filtrele
         if (this.currentFilter !== 'all') {
             filteredOrders = this.orders.filter(order => {
                 if (this.currentFilter === 'New') return order.status === 'New';
@@ -297,6 +388,7 @@ class TabletDashboard {
             });
         }
 
+        // Siparişleri sırala: Önce yeni, sonra diğerleri
         filteredOrders.sort((a, b) => {
             const statusPriority = { 'New': 1, 'InProgress': 2, 'Ready': 3 };
             const aPriority = statusPriority[a.status] || 4;
@@ -306,32 +398,43 @@ class TabletDashboard {
                 return aPriority - bPriority;
             }
 
+            // Aynı status'taysa zamanına göre sırala
             return new Date(a.orderTime) - new Date(b.orderTime);
         });
 
+        // Eğer hiç sipariş yoksa empty state göster
         if (filteredOrders.length === 0) {
             this.showEmptyState();
             return;
         }
 
+        // Empty state'i gizle
         const emptyState = document.getElementById('emptyState');
         if (emptyState) emptyState.style.display = 'none';
 
+        // Scroll pozisyonunu koru
         const currentScrollTop = container.scrollTop;
+
+        // HTML'yi oluştur ve ekle
         container.innerHTML = filteredOrders.map(order => this.renderOrderCard(order)).join('');
+
+        // Scroll pozisyonunu geri getir
         container.scrollTop = currentScrollTop;
     }
 
+    // ✅ EKSİK FONKSİYON - renderOrderCard
     renderOrderCard(order) {
         const statusClass = order.status.toLowerCase();
         const timeElapsed = this.getTimeElapsed(new Date(order.orderTime));
         const isNewOrder = order.isNew || false;
 
+        // Sipariş ID kontrolü
         if (!order.orderBatchId) {
             console.error('❌ Sipariş ID eksik:', order);
             return '';
         }
 
+        // Ready siparişler için kalan süre hesapla
         let readyTimeRemaining = '';
         if (order.status === 'Ready' && order.completedAt) {
             const completedTime = new Date(order.completedAt);
@@ -341,7 +444,6 @@ class TabletDashboard {
 
             if (remaining > 0) {
                 readyTimeRemaining = `<span class="ready-countdown">🕒 ${remaining} dk sonra gizlenecek</span>`;
-            } else {
             }
         }
 
@@ -361,19 +463,17 @@ class TabletDashboard {
             
             <div class="order-summary">
                 <span class="item-count">${order.items.length} ürün</span>
-                ${order.note ? `<span class="order-note">${order.note}</span>` : ''}
+                ${order.note ? `<span class="order-note">📝 ${order.note}</span>` : ''}
                 ${readyTimeRemaining}
             </div>
         </div>
 
+        <!-- ✨ Sadece ürün sayısı göster, detayları gizle -->
         <div class="order-products">
-            ${order.items.slice(0, 3).map(item => `
-                <div class="product-item">
-                    <span class="product-name">${item.productName}</span>
-                    <span class="product-quantity">x${item.quantity}</span>
-                </div>
-            `).join('')}
-            ${order.items.length > 3 ? `<div class="more-items">+${order.items.length - 3} ürün daha</div>` : ''}
+            <div class="order-summary-count">
+                <i class="fas fa-shopping-basket"></i>
+                ${order.items.length} Ürün
+            </div>
         </div>
 
         <div class="order-actions">

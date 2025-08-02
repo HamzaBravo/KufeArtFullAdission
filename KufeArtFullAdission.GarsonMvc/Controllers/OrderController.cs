@@ -475,20 +475,35 @@ public class OrderController(DBContext _dbContext) : Controller
             var httpClient = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient("AdminPanel");
             await httpClient.PostAsJsonAsync("/api/notification/new-order", notificationData);
 
-            // 2. Tablet projesine DOĞRUDAN bildirim (detaylı veri ile)
+            // 2. ✅ Tablet projesine SADECE İLGİLİ DEPARTMANA bildirim gönder
             var tabletClient = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient("TabletPanel");
 
-            var res1 = await tabletClient.PostAsJsonAsync("/api/notification/tablet-kitchen", new
-            {
-                OrderData = notificationData,
-                Department = "Kitchen"  // ✅ Department ekle
-            });
+            // Mutfak ürünleri var mı kontrol et
+            var hasKitchenItems = orderItems.Any(item => item.GetType().GetProperty("ProductType")?.GetValue(item)?.ToString() == "Kitchen");
 
-            var res2 = await tabletClient.PostAsJsonAsync("/api/notification/tablet-bar", new
+            // Bar ürünleri var mı kontrol et  
+            var hasBarItems = orderItems.Any(item => item.GetType().GetProperty("ProductType")?.GetValue(item)?.ToString() == "Bar");
+
+            // ✅ Sadece ilgili departmanlara bildirim gönder
+            if (hasKitchenItems)
             {
-                OrderData = notificationData,
-                Department = "Bar"      // ✅ Department ekle
-            });
+                await tabletClient.PostAsJsonAsync("/api/notification/tablet-kitchen", new
+                {
+                    OrderData = notificationData,
+                    Department = "Kitchen"
+                });
+                Console.WriteLine("🍳 Mutfak tabletine bildirim gönderildi");
+            }
+
+            if (hasBarItems)
+            {
+                await tabletClient.PostAsJsonAsync("/api/notification/tablet-bar", new
+                {
+                    OrderData = notificationData,
+                    Department = "Bar"
+                });
+                Console.WriteLine("🍹 Bar tabletine bildirim gönderildi");
+            }
 
         }
         catch (Exception ex)
@@ -528,6 +543,7 @@ public class OrderController(DBContext _dbContext) : Controller
                                         Price = history.ProductPrice,
                                         TotalPrice = history.TotalPrice,
                                         CategoryName = product.CategoryName,
+                                        Description=product.Description,
                                         ProductType = product.Type == ProductOrderType.Kitchen ? "Kitchen" : "Bar"
                                     }).ToListAsync();
 

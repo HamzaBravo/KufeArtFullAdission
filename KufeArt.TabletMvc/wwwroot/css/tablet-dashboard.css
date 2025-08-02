@@ -750,3 +750,534 @@
         margin-left: -100px;
     }
 }
+
+/* 📝 YENİ - Sadece NOT Gösterimi */
+.order-info {
+    flex: 0 0 320px; /* Genişletildi */
+    padding-right: 24px;
+}
+
+.order-summary {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* ✨ NOT vurgusu - Çok daha büyük ve göze çarpan */
+.order-note {
+    font-size: 1rem; /* Büyütüldü */
+    color: #1e293b; /* Koyu renk */
+    font-weight: 600; /* Kalın */
+    background: linear-gradient(135deg, #fef3c7, #fed7aa); /* Gradient arka plan */
+    padding: 12px 16px; /* Büyük padding */
+    border-radius: 12px;
+    border-left: 4px solid #f59e0b; /* Sol kenar vurgu */
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15); /* Hafif gölge */
+    font-style: normal; /* İtalik kaldırıldı */
+    line-height: 1.4;
+    position: relative;
+}
+
+    .order-note::before {
+        content: "📝 ";
+        margin-right: 8px;
+    }
+
+/* Ürün detaylarını gizle - sadece sayı göster */
+.order-products {
+    flex: 0 0 120px; /* Küçültüldü */
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.order-summary-count {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 20px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-align: center;
+    min-width: 80px;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+/* 🎨 Tablet için özel animasyonlar */
+@keyframes orderPulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+
+    50% {
+        transform: scale(1.02);
+        box-shadow: 0 8px 30px rgba(59, 130, 246, 0.15);
+    }
+}
+
+.order-row.urgent {
+    animation: orderPulse 2s ease-in-out infinite;
+    border-left: 6px solid #ef4444 !important;
+}
+
+/* 🔥 Yeni sipariş için ateş efekti */
+.order-row.new-order-fire::after {
+    content: "🔥 YENİ";
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    animation: bounce 1s ease-in-out infinite;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+
+    40% {
+        transform: translateY(-8px);
+    }
+
+    60% {
+        transform: translateY(-4px);
+    }
+}
+
+/* ⏰ Süre bazlı renk kodlaması */
+.order-row.time-critical {
+    background: linear-gradient(90deg, rgba(239, 68, 68, 0.05), #ffffff);
+    border-left: 6px solid #ef4444 !important;
+}
+
+.order-row.time-warning {
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.05), #ffffff);
+    border-left: 6px solid #f59e0b !important;
+}
+
+.order-row.time-good {
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.05), #ffffff);
+    border-left: 6px solid #10b981 !important;
+}
+
+/* 💰 Toplam tutar badge */
+.order-total-badge {
+    background: linear-gradient(135deg, #16a085, #27ae60);
+    color: white;
+    padding: 8px 14px;
+    border-radius: 16px;
+    font-size: 1rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 3px 10px rgba(22, 160, 133, 0.3);
+}
+
+/* ⏰ Zaman vurguları */
+.order-time.time-urgent {
+    color: #ef4444;
+    font-weight: 700;
+    animation: textPulse 1.5s ease-in-out infinite;
+}
+
+.order-time.time-warning {
+    color: #f59e0b;
+    font-weight: 600;
+}
+
+.order-time.time-normal {
+    color: #10b981;
+}
+
+@keyframes textPulse {
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+}
+
+/* 🎯 Action button'ları daha çekici */
+.btn-ready {
+    background: linear-gradient(135deg, #10b981, #059669);
+    border: none;
+    color: white;
+    padding: 10px 18px;
+    border-radius: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+    .btn-ready:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    }
+
+.btn-details {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    border: none;
+    color: white;
+    padding: 10px 18px;
+    border-radius: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+/* ✨ Ürün sayısı gösterimi */
+.order-summary-count {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 20px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-align: center;
+    min-width: 120px;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+}
+
+/* 📝 Not vurgusu - daha belirgin */
+.order-note {
+    font-size: 0.9rem !important;
+    color: #1e293b !important;
+    font-weight: 600 !important;
+    background: linear-gradient(135deg, #fef3c7, #fed7aa) !important;
+    padding: 8px 12px !important;
+    border-radius: 8px !important;
+    border-left: 3px solid #f59e0b !important;
+    box-shadow: 0 2px 6px rgba(245, 158, 11, 0.15) !important;
+    font-style: normal !important;
+    margin-top: 4px !important;
+    display: block !important;
+}
+
+/* Ürün listesi gizle, sadece sayı göster */
+.order-products {
+    flex: 0 0 140px;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-right: 1px solid #f1f5f9;
+    margin-right: 20px;
+}
+
+/* 📱 ORDER ROW - Düzeltilmiş Layout */
+.order-row {
+    display: flex;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #f1f5f9;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    min-height: 100px; /* ✅ Minimum yükseklik */
+}
+
+/* 📝 ORDER INFO - Sol Bölüm - Sabit genişlik */
+.order-info {
+    flex: 0 0 320px; /* ✅ Genişletildi */
+    padding-right: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* 🛍️ ORDER PRODUCTS - Orta Bölüm - Esnek */
+.order-products {
+    flex: 1; /* ✅ Kalan alanı kapla */
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-right: 1px solid #f1f5f9;
+    margin-right: 24px;
+}
+
+/* 🎯 ORDER ACTIONS - Sağ Bölüm - Sabit genişlik ve sağa yapışık */
+.order-actions {
+    flex: 0 0 200px; /* ✅ Genişletildi */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 12px;
+    margin-left: auto; /* ✅ Sağa yapışık */
+}
+
+/* ✨ Ürün sayısı badge - Daha büyük ve merkezi */
+.order-summary-count {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    padding: 16px 24px; /* ✅ Büyütüldü */
+    border-radius: 24px;
+    font-size: 1.2rem; /* ✅ Büyütüldü */
+    font-weight: 700;
+    text-align: center;
+    min-width: 140px;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+}
+
+/* 📝 Not vurgusu - Çok daha belirgin */
+.order-note {
+    font-size: 1rem !important; /* ✅ Büyütüldü */
+    color: #1e293b !important;
+    font-weight: 600 !important;
+    background: linear-gradient(135deg, #fef3c7, #fed7aa) !important;
+    padding: 12px 16px !important; /* ✅ Büyütüldü */
+    border-radius: 12px !important;
+    border-left: 4px solid #f59e0b !important;
+    box-shadow: 0 3px 8px rgba(245, 158, 11, 0.2) !important;
+    font-style: normal !important;
+    margin-top: 8px !important;
+    display: block !important;
+    line-height: 1.4 !important;
+}
+
+    .order-note::before {
+        content: "📝 ";
+        margin-right: 8px;
+    }
+
+/* 🎯 Action Buttons - Tablet için optimize */
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.btn-ready,
+.btn-details {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 16px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 0.95rem;
+}
+
+.btn-ready {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+    .btn-ready:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    }
+
+.btn-details {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: white;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+    .btn-details:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    }
+
+.completed-badge {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    color: #065f46;
+    padding: 12px 16px;
+    border-radius: 16px;
+    font-weight: 600;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+/* 📊 Status ve Time - Sağ üstte */
+.order-status {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.status-badge {
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.order-time {
+    font-size: 0.85rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+/* 📱 Tablet landscape (yatay) için optimizasyon */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+    .order-row {
+        padding: 16px 20px;
+    }
+
+    .order-info {
+        flex: 0 0 280px;
+    }
+
+    .order-actions {
+        flex: 0 0 180px;
+    }
+
+    .action-buttons {
+        flex-direction: row;
+        gap: 8px;
+    }
+
+    .btn-ready,
+    .btn-details {
+        flex: 1;
+        padding: 10px 12px;
+        font-size: 0.9rem;
+    }
+}
+
+/* 📱 Mobile portrait için */
+@media (max-width: 768px) {
+    .order-row {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 16px;
+        gap: 16px;
+    }
+
+    .order-info,
+    .order-products,
+    .order-actions {
+        flex: none;
+        padding: 0;
+        margin: 0;
+        border: none;
+    }
+
+    .action-buttons {
+        flex-direction: row;
+        gap: 12px;
+    }
+
+    .btn-ready,
+    .btn-details {
+        flex: 1;
+    }
+}
+/* ✅ Modal ürün detayları - FİYATSIZ */
+.detail-product-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    padding: 16px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #e2e8f0;
+}
+
+    .detail-product-item .product-quantity {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .detail-product-item .quantity {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: white;
+        padding: 8px 14px;
+        border-radius: 20px;
+        font-size: 1rem;
+        font-weight: 700;
+        min-width: 50px;
+        text-align: center;
+    }
+
+/* ✅ Toplam özet - fiyatsız */
+.detail-summary {
+    background: #f8fafc;
+    text-align: center;
+    padding: 16px;
+    border-radius: 12px;
+    border: 2px solid #e2e8f0;
+    margin-top: 12px;
+}
+
+    .detail-summary strong {
+        font-size: 1.3rem;
+        color: #1e293b;
+        font-weight: 700;
+    }
+
+/* ✅ Ürün detayı stili */
+.product-description {
+    font-size: 0.85rem;
+    color: #6b7280;
+    background: #f9fafb;
+    padding: 6px 10px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    font-style: italic;
+    line-height: 1.4;
+    border-left: 3px solid #d1d5db;
+}
+
+    .product-description i {
+        color: #9ca3af;
+        font-size: 0.75rem;
+        flex-shrink: 0;
+    }
+
+.product-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+.product-name {
+    font-weight: 700;
+    color: #1e293b;
+    font-size: 1.1rem;
+    margin: 0;
+}

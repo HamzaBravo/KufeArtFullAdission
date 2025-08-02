@@ -79,13 +79,24 @@ class TabletSignalR {
     }
 
     handleNewOrder(orderData) {
+        console.log('📦 Yeni sipariş bildirimi geldi:', orderData);
+        console.log('🏷️ Mevcut tablet departmanı:', this.department);
+
+        // ✅ Sipariş ürünlerini kontrol et - bu departmana ait ürün var mı?
+        const hasRelevantItems = this.checkIfOrderContainsRelevantItems(orderData);
+
+        if (!hasRelevantItems) {
+            console.log('⏭️ Bu sipariş bu departmanla ilgili değil, ses çalmıyor');
+            return; // ✅ Ses çalmadan çık
+        }
+
+        console.log('✅ Bu departmanla ilgili sipariş, ses çalınıyor!');
 
         if (window.TabletDashboard) {
             window.TabletDashboard.loadOrders().then(() => {
- 
+                // ✅ Sadece ilgili siparişlerde ses çal
                 this.playNotificationSound();
                 TabletUtils.vibrate([300, 100, 300, 100, 300]);
-
                 this.triggerVisualEffects(orderData);
 
                 if (window.TabletDashboard) {
@@ -95,6 +106,29 @@ class TabletSignalR {
             });
         }
     }
+
+
+    checkIfOrderContainsRelevantItems(orderData) {
+        try {
+            // Items dizisini kontrol et
+            if (orderData.Items && Array.isArray(orderData.Items)) {
+                const relevantItems = orderData.Items.filter(item => {
+                    return item.ProductType === this.department;
+                });
+
+                console.log(`🔍 ${this.department} departmanı için ${relevantItems.length} ürün bulundu`);
+                return relevantItems.length > 0;
+            }
+
+            // Eğer Items yoksa, departman kontrolü yapamayız - güvenli tarafta kal
+            console.log('⚠️ Sipariş items bilgisi yok, güvenli tarafta kalınıyor');
+            return true;
+        } catch (error) {
+            console.error('❌ Departman kontrolü hatası:', error);
+            return true; // Hata durumunda güvenli tarafta kal
+        }
+    }
+
     triggerVisualEffects(orderData) {
         document.body.classList.add('shake-screen');
         setTimeout(() => document.body.classList.remove('shake-screen'), 600);
