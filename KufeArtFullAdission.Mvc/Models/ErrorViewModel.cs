@@ -79,6 +79,7 @@ namespace KufeArtFullAdission.Mvc.Models
         public string ShortLabel { get; set; }
         public Guid PersonId { get; set; }
         public List<Guid>? SelectedOrderItemIds { get; set; }
+
     }
 
     public class PaymentInfo
@@ -103,5 +104,7 @@ namespace KufeArtFullAdission.Mvc.Models
         public string CustomerName { get; set; } = "";
         public bool UseKufePoints { get; set; } = false;
         public int RequestedPoints { get; set; } = 0;
+
+        public List<Guid>? SelectedOrderItemIds { get; set; }
     }
 }

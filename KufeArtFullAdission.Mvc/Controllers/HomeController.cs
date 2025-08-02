@@ -157,11 +157,12 @@ public class HomeController(DBContext _dbContext) : Controller
                     h.ShorLabel,
                     h.CreatedAt,
                     h.PersonFullName,
-                    h.IsCancelled,        // ✅ YENİ
-                    h.CancelReason,       // ✅ YENİ
-                    h.CancelledAt,        // ✅ YENİ
-                    h.CancelledByName,    // ✅ YENİ
-                    h.IsPaid              // ✅ YENİ
+                    h.IsCancelled,
+                    h.CancelReason,
+                    h.CancelledAt,
+                    h.CancelledByName,
+                    h.IsPaid,
+                    h.PaidAt              // ✅ YENİ SATIR
                 })
                 .ToListAsync();
 
@@ -503,10 +504,33 @@ public class HomeController(DBContext _dbContext) : Controller
 
             // Ödeme tutarı hesaplaması
             double paymentAmount = 0;
+            List<AddtionHistoryDbEntity> selectedOrderItems = new();
+
             if (paymentDto.PaymentMode == "full")
+            {
                 paymentAmount = remainingAmount;
+                selectedOrderItems = orders.Where(o => !o.IsPaid && !o.IsCancelled).ToList();
+            }
             else if (paymentDto.PaymentMode == "partial")
+            {
                 paymentAmount = paymentDto.CustomAmount;
+
+                // ✅ YENİ: Parçalı ödeme için FIFO mantığı ile ürünleri seç
+                double remainingPayment = paymentAmount;
+                selectedOrderItems = orders
+                    .Where(o => !o.IsPaid && !o.IsCancelled)
+                    .OrderBy(o => o.CreatedAt)
+                    .TakeWhile(o =>
+                    {
+                        if (remainingPayment >= o.TotalPrice)
+                        {
+                            remainingPayment -= o.TotalPrice;
+                            return true;
+                        }
+                        return false;
+                    })
+                    .ToList();
+            }
 
             if (paymentAmount <= 0 || paymentAmount > remainingAmount)
                 return Json(new { success = false, message = "Geçersiz ödeme tutarı!" });
@@ -625,7 +649,18 @@ public class HomeController(DBContext _dbContext) : Controller
                 PersonId = Guid.NewGuid() // TODO: Session'dan al
             };
 
+
+            // ✅ YENİ: Seçilen ürünleri ödendi olarak işaretle
+            foreach (var orderItem in selectedOrderItems)
+            {
+                orderItem.IsPaid = true;
+                orderItem.PaidAt = DateTime.Now;
+                orderItem.PaymentId = payment.Id;
+            }
+
             _dbContext.Payments.Add(payment);
+
+
 
             // Hesap kapanış kontrolü
             var newTotalPaid = existingPayments + paymentAmount;
