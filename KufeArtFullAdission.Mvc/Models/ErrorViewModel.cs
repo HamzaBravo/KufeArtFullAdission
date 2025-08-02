@@ -78,6 +78,7 @@ namespace KufeArtFullAdission.Mvc.Models
         public double Amount { get; set; }
         public string ShortLabel { get; set; }
         public Guid PersonId { get; set; }
+        public List<Guid>? SelectedOrderItemIds { get; set; }
     }
 
     public class PaymentInfo

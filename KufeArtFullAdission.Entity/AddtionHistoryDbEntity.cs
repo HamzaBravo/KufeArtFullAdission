@@ -12,4 +12,17 @@ public sealed class AddtionHistoryDbEntity:BaseDbEntity
     public double TotalPrice { get; set; } // toplam fiyat
     public Guid PersonId { get; set; } // siparişi veren kişinin id'si
     public string PersonFullName { get; set; } // siparişi veren kişinin tam adı
+
+    // ✅ YENİ: İptal edilme bilgileri
+    public bool IsCancelled { get; set; } = false;
+    public string CancelReason { get; set; }
+    public DateTime? CancelledAt { get; set; }
+    public Guid? CancelledBy { get; set; }
+    public string CancelledByName { get; set; }
+
+
+    // ✅ YENİ: Ödeme bilgileri
+    public bool IsPaid { get; set; } = false;
+    public DateTime? PaidAt { get; set; }
+    public Guid? PaymentId { get; set; } // PaymentDbEntity ile bağlantı
 }

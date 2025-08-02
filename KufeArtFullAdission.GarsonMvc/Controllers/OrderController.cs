@@ -44,9 +44,6 @@ public class OrderController(DBContext _dbContext) : Controller
     }
 
 
-    // KufeArtFullAdission.GarsonMvc/Controllers/OrderController.cs
-    // CancelOrderItem metodunda debug logları ekle:
-
     [HttpPost]
     public async Task<IActionResult> CancelOrderItem([FromBody] CancelOrderItemRequest request)
     {
@@ -65,6 +62,13 @@ public class OrderController(DBContext _dbContext) : Controller
             }
 
             Console.WriteLine($"✅ Sipariş bulundu: {orderItem.ProductName}");
+
+
+            orderItem.IsCancelled = true;
+            orderItem.CancelReason = request.CancelReason ?? "Garson tarafından iptal edildi";
+            orderItem.CancelledAt = DateTime.Now;
+            orderItem.CancelledBy = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            orderItem.CancelledByName = User.GetFullName();
 
             var table = await _dbContext.Tables.FindAsync(orderItem.TableId);
             var waiterName = User.GetFullName();
@@ -567,6 +571,7 @@ public class OrderController(DBContext _dbContext) : Controller
 public class CancelOrderItemRequest
 {
     public Guid OrderItemId { get; set; }
+    public string? CancelReason { get; set; }
 }
 
 // DTO Classes

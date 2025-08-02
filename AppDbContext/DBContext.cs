@@ -19,4 +19,5 @@ public class DBContext(DbContextOptions<DBContext> options) : DbContext(options)
     public DbSet<CustomerPointsDbEntity> CustomerPoints { get; set; }
     public DbSet<CustomerDbEntity> Customers { get; set; }
     public DbSet<OrderBatchStatusDbEntity> OrderBatchStatuses { get; set; }
+    public DbSet<PaymentItemDbEntity> PaymentItems { get; set; }
 }

@@ -1,4 +1,5 @@
 ﻿using AppDbContext;
+using Azure.Core;
 using KufeArtFullAdission.Entity;
 using KufeArtFullAdission.Enums;
 using KufeArtFullAdission.Mvc.Extensions;
@@ -148,15 +149,18 @@ public class HomeController(DBContext _dbContext) : Controller
                 .OrderBy(h => h.CreatedAt)
                 .Select(h => new
                 {
-                    id = h.Id,
-                    shorLabel = h.ShorLabel,
-                    productName = h.ProductName,
-                    productPrice = h.ProductPrice,
-                    productQuantity = h.ProductQuantity,
-                    totalPrice = h.TotalPrice,
-                    personFullName = h.PersonFullName,
-                    createdAt = h.CreatedAt,
-                    orderBatchId = h.OrderBatchId
+                    h.ProductName,
+                    h.ProductQuantity,
+                    h.ProductPrice,
+                    h.TotalPrice,
+                    h.ShorLabel,
+                    h.CreatedAt,
+                    h.PersonFullName,
+                    h.IsCancelled,        // ✅ YENİ
+                    h.CancelReason,       // ✅ YENİ
+                    h.CancelledAt,        // ✅ YENİ
+                    h.CancelledByName,    // ✅ YENİ
+                    h.IsPaid              // ✅ YENİ
                 })
                 .ToListAsync();
 
@@ -176,7 +180,7 @@ public class HomeController(DBContext _dbContext) : Controller
                 .ToListAsync();
 
             // Hesaplamalar
-            var totalOrderAmount = orders.Sum(o => o.totalPrice);
+            var totalOrderAmount = orders.Sum(o => o.TotalPrice);
             var totalPaidAmount = payments.Sum(p => p.amount);
             var remainingAmount = Math.Max(0, totalOrderAmount - totalPaidAmount); // ✅ Negatif değer engelle
 
@@ -397,7 +401,33 @@ public class HomeController(DBContext _dbContext) : Controller
     {
         try
         {
-            var tables = await _dbContext.Tables.FirstOrDefaultAsync(x => x.Id == paymentDto.TableId);
+            var table = await _dbContext.Tables.FirstOrDefaultAsync(x => x.Id == paymentDto.TableId);
+            if (table == null || !table.AddionStatus.HasValue)
+                return Json(new { success = false, message = "Masa bulunamadı!" });
+
+            // ✅ YENİ: İptal edilmemiş siparişleri kontrol et
+            var orders = await _dbContext.AddtionHistories
+                .Where(h => h.AddionStatusId == paymentDto.AddionStatusId && !h.IsCancelled)
+                .ToListAsync();
+
+            if (!orders.Any())
+                return Json(new { success = false, message = "Sipariş bulunamadı!" });
+
+            // ✅ YENİ: Hangi ürünlerin ödeneceğini belirle
+            List<AddtionHistoryDbEntity> selectedOrderItems = new();
+
+            if (paymentDto.SelectedOrderItemIds?.Any() == true)
+            {
+                // Seçilen ürünler
+                selectedOrderItems = orders
+                    .Where(o => paymentDto.SelectedOrderItemIds.Contains(o.Id) && !o.IsPaid)
+                    .ToList();
+            }
+            else
+            {
+                // Tüm ödenmemiş ürünler
+                selectedOrderItems = orders.Where(o => !o.IsPaid).ToList();
+            }
 
             var payment = new PaymentDbEntity
             {
@@ -410,14 +440,28 @@ public class HomeController(DBContext _dbContext) : Controller
             };
 
             _dbContext.Payments.Add(payment);
+            await _dbContext.SaveChangesAsync(); // Payment ID'sini almak için
+
+            // ✅ YENİ: Seçilen ürünleri ödendi olarak işaretle
+            foreach (var orderItem in selectedOrderItems)
+            {
+                orderItem.IsPaid = true;
+                orderItem.PaidAt = DateTime.Now;
+                orderItem.PaymentId = payment.Id;
+            }
+
             await _dbContext.SaveChangesAsync();
+            await NotifyWaitersTableClosed(paymentDto.TableId, table.Name);
 
-
-            await NotifyWaitersTableClosed(paymentDto.TableId, tables.Name);
             return Json(new
             {
                 success = true,
-                message = "Ödeme başarıyla kaydedildi!"
+                message = "Ödeme başarıyla kaydedildi!",
+                data = new
+                {
+                    paymentId = payment.Id,
+                    paidOrderCount = selectedOrderItems.Count
+                }
             });
         }
         catch (Exception ex)
@@ -505,7 +549,7 @@ public class HomeController(DBContext _dbContext) : Controller
 
                         if (product != null && product.HasKufePoints && product.KufePoints > 0)
                         {
-                            int orderPoints = product.KufePoints ?? 0* order.ProductQuantity;
+                            int orderPoints = product.KufePoints ?? 0 * order.ProductQuantity;
                             totalEarnedPoints += orderPoints;
                             Console.WriteLine($"➕ {product.Name}: {orderPoints} puan");
                         }

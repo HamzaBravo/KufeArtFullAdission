@@ -407,3 +407,28 @@ input[list] {
         font-size: 1.1em;
         letter-spacing: 0.5px;
     }
+
+.order-cancelled {
+    background-color: #fff5f5;
+    border-left: 4px solid #dc3545;
+}
+
+    .order-cancelled .product-name {
+        text-decoration: line-through;
+        color: #6c757d;
+    }
+
+.order-paid {
+    background-color: #f0f9ff;
+    border-left: 4px solid #28a745;
+}
+
+.order-pending {
+    background-color: #fffbf0;
+    border-left: 4px solid #ffc107;
+}
+
+.order-status {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
