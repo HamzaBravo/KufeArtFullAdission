@@ -33,7 +33,40 @@ class AdminSignalRClient {
         }
     }
 
+    handleOrderCancelledNotification(cancelData) {
+        const notification = {
+            id: Date.now(),
+            type: 'OrderCancelled',
+            title: '❌ Sipariş İptal',
+            message: cancelData.message,
+            icon: cancelData.icon,
+            color: cancelData.color,
+            timestamp: new Date(cancelData.Timestamp),
+            data: cancelData,
+            isRead: false
+        };
+
+        this.notifications.unshift(notification);
+        this.showBrowserNotification(notification);
+        this.updateNotificationUI();
+
+        // Masa listesini güncelle
+        if (window.TableManager) {
+            window.TableManager.loadTables();
+        }
+
+        // Toast notification  
+        if (window.ToastHelper) {
+            window.ToastHelper.warning(cancelData.message);
+        }
+    }
+
     bindSignalREvents() {
+        this.connection.on("OrderCancelledReceived", (cancelData) => {
+            console.log("❌ Sipariş iptal bildirimi:", cancelData);
+            this.handleOrderCancelledNotification(cancelData);
+        });
+
         // Yeni sipariş bildirimi
         this.connection.on("NewOrderReceived", (orderData) => {
             console.log("🔔 Yeni sipariş bildirimi:", orderData);
@@ -55,6 +88,18 @@ class AdminSignalRClient {
             console.log("👥 Admin grubuna katıldı:", message);
         });
 
+        // ✅ YENİ: Masa işlemi bildirimi
+        this.connection.on("TableOperationReceived", (operationData) => {
+            console.log("🔄 Masa işlemi bildirimi:", operationData);
+            this.handleTableOperationNotification(operationData);
+        });
+
+        // ✅ YENİ: Sipariş iptal bildirimi
+        this.connection.on("OrderItemCancelledReceived", (cancelData) => {
+            console.log("❌ Sipariş iptal bildirimi:", cancelData);
+            this.handleOrderItemCancelledNotification(cancelData);
+        });
+
         // Bağlantı kopması
         this.connection.onclose((error) => {
             console.log("❌ SignalR bağlantısı koptu:", error);
@@ -69,17 +114,110 @@ class AdminSignalRClient {
             this.updateConnectionStatus(true);
             this.connection.invoke("JoinAdminGroup");
         });
+
+
+    }
+
+    handleOrderItemCancelledNotification(cancelData) {
+        // Notification objesi oluştur
+        const notification = {
+            id: Date.now(),
+            type: 'OrderItemCancelled',
+            title: '❌ Sipariş İptal',
+            message: cancelData.Message,
+            icon: cancelData.Icon,
+            color: cancelData.Color,
+            timestamp: new Date(cancelData.Timestamp),
+            data: cancelData,
+            isRead: false
+        };
+
+        // Notifications array'e ekle
+        this.notifications.unshift(notification);
+
+        // Browser notification
+        this.showBrowserNotification(notification);
+
+        // UI güncellemesi
+        this.updateNotificationUI();
+
+        // Masa listesini güncelle
+        if (window.TableManager) {
+            window.TableManager.loadTables();
+        }
+
+        // Toast notification
+        if (window.ToastHelper) {
+            window.ToastHelper.warning(cancelData.message);
+        }
+    }
+
+    handleTableOperationNotification(operationData) {
+        console.log("🔄 Masa işlemi bildirimi RAW DATA:", operationData);
+
+        // İşlem türüne göre başlık ve ikon belirle
+        let title = '🔄 Masa İşlemi';
+        let toastType = 'info';
+
+        if (operationData.action === 'MoveTable') {
+            title = '📋 Masa Taşıma';
+            toastType = 'info';
+        } else if (operationData.action === 'MergeTables') {
+            title = '🔗 Masa Birleştirme';
+            toastType = 'success';
+        } else if (operationData.action === 'CancelOrder') {
+            title = '🗑️ Masa İptal';
+            toastType = 'warning';
+        }
+
+        const notification = {
+            id: Date.now(),
+            type: 'TableOperation',
+            title: title,
+            // ✅ KÜÇÜK HARF kullan (camelCase)
+            message: operationData.message || 'Masa işlemi yapıldı',
+            icon: operationData.icon || 'fas fa-table',
+            color: operationData.color || '#3b82f6',
+            timestamp: new Date(operationData.timestamp),
+            data: operationData,
+            isRead: false
+        };
+
+        this.notifications.unshift(notification);
+        this.showBrowserNotification(notification);
+        this.updateNotificationUI();
+
+        // Masa listesini güncelle
+        if (window.TableManager) {
+            window.TableManager.loadTables();
+        }
+
+        // ✅ Toast notification - KÜÇÜK HARF
+        if (window.ToastHelper) {
+            if (toastType === 'info') {
+                window.ToastHelper.info(operationData.message);
+            } else if (toastType === 'success') {
+                window.ToastHelper.success(operationData.message);
+            } else if (toastType === 'warning') {
+                window.ToastHelper.warning(operationData.message);
+            }
+        }
+
+        console.log("🍞 Masa işlemi toast mesajı gönderildi:", operationData.message);
     }
 
     handleNewOrderNotification(orderData) {
+        console.log("🔔 Yeni sipariş bildirimi RAW DATA:", orderData);
+        console.log("🔍 orderData.Message:", orderData.Message);
+        console.log("🔍 orderData.message:", orderData.message);
         // Notification objesi oluştur
         const notification = {
             id: Date.now(),
             type: 'NewOrder',
             title: 'Yeni Sipariş!',
-            message: orderData.Message,
-            icon: orderData.Icon,
-            color: orderData.Color,
+            message: orderData.message,
+            icon: orderData.icon,
+            color: orderData.color,
             timestamp: new Date(orderData.Timestamp),
             data: orderData,
             isRead: false
@@ -94,8 +232,6 @@ class AdminSignalRClient {
         // UI güncellemesi
         this.updateNotificationUI();
 
-        // Sound notification
-        this.playNotificationSound();
 
         // Masa listesini güncelle
         if (window.TableManager) {
@@ -104,7 +240,7 @@ class AdminSignalRClient {
 
         // Toast notification
         if (window.ToastHelper) {
-            window.ToastHelper.success(orderData.Message);
+            window.ToastHelper.success(orderData.message);
         }
     }
 
@@ -114,7 +250,7 @@ class AdminSignalRClient {
             window.TableManager.loadTables();
         }
 
-        console.log("Masa durumu güncellendi:", tableData.TableName);
+        console.log("Masa durumu güncellendi:", tableData.tableName);
     }
 
     showBrowserNotification(notification) {
@@ -271,17 +407,6 @@ class AdminSignalRClient {
         if (statusIndicator) {
             statusIndicator.className = isConnected ? 'status-connected' : 'status-disconnected';
             statusIndicator.title = isConnected ? 'Canlı bağlantı aktif' : 'Bağlantı kopuk';
-        }
-    }
-
-    playNotificationSound() {
-        // Notification sound çalma
-        try {
-            const audio = new Audio('/sounds/notification.mp3');
-            audio.volume = 0.3;
-            audio.play().catch(e => console.log("Ses çalınamadı:", e));
-        } catch (error) {
-            console.log("Notification sound error:", error);
         }
     }
 

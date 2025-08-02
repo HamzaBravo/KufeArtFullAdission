@@ -629,7 +629,7 @@ public class HomeController(DBContext _dbContext) : Controller
         }
     }
 
-    // 🎯 YENİ: UpdateCustomerPoints helper metodu (eğer yoksa ekleyin)
+
     private async Task UpdateCustomerPoints(Guid customerId, Guid? productId, int points, string description)
     {
         Console.WriteLine($"🎁 UpdateCustomerPoints: {customerId} için {points} puan");
@@ -686,7 +686,7 @@ public class HomeController(DBContext _dbContext) : Controller
                 return Json(new
                 {
                     success = false,
-                    message = "Bu telefon numarasına kayıtlı müşteri bulunamadı! Ödeme sırasında yeni üye olarak kaydedilecek."
+                    message = "Bu telefon numarasına kayıtlı müşteri bulunamadı!"
                 });
             }
 
@@ -747,41 +747,6 @@ public class HomeController(DBContext _dbContext) : Controller
                 message = "Hata oluştu: " + ex.Message
             });
         }
-    }
-    // Ödeme tutarını hesapla
-    private double CalculatePaymentAmount(List<AddtionHistoryDbEntity> orders, QuickPaymentDto paymentDto)
-    {
-        var totalAmount = orders.Sum(o => o.TotalPrice);
-
-        return paymentDto.PaymentMode switch
-        {
-            "full" => totalAmount,
-            "half" => Math.Round(totalAmount / 2, 2),
-            "tip15" => Math.Round(totalAmount * 1.15, 2),
-            "tip10" => Math.Round(totalAmount * 1.10, 2),
-            "tip20" => Math.Round(totalAmount * 1.20, 2),
-            "label" => orders
-                .Where(o => o.ShorLabel == paymentDto.PaymentLabel)
-                .Sum(o => o.TotalPrice),
-            "custom" => paymentDto.CustomAmount,
-            _ => totalAmount
-        };
-    }
-
-    // Ödeme mesajı oluştur
-    private string GetPaymentMessage(string mode, double amount)
-    {
-        return mode switch
-        {
-            "full" => $"Hesap tamamen kapatıldı! Toplam: ₺{amount:F2}",
-            "half" => $"Yarım ödeme alındı: ₺{amount:F2}",
-            "tip15" => $"₺{amount:F2} (+%15 bahşiş ile) ödeme alındı!",
-            "tip10" => $"₺{amount:F2} (+%10 bahşiş ile) ödeme alındı!",
-            "tip20" => $"₺{amount:F2} (+%20 bahşiş ile) ödeme alındı!",
-            "label" => $"Etiket ödemesi alındı: ₺{amount:F2}",
-            "custom" => $"Özel tutar ödemesi alındı: ₺{amount:F2}",
-            _ => $"Ödeme alındı: ₺{amount:F2}"
-        };
     }
 
     private async Task<double> GetDailySales(DateTime date)

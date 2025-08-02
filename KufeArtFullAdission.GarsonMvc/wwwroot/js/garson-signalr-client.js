@@ -1,4 +1,4 @@
-﻿// KufeArtFullAdission.GarsonMvc/wwwroot/js/garson-signalr-client.js
+﻿
 class WaiterSignalRClient {
     constructor() {
         this.connection = null;
@@ -45,7 +45,6 @@ class WaiterSignalRClient {
     bindSignalREvents() {
         console.log("🔧 SignalR events bağlanıyor...");
 
-        // İnaktif masa uyarısı
         this.connection.on("InactiveTableAlert", (alertData) => {
             console.log("⏰ Masa takip uyarısı:", alertData);
             this.handleInactiveTableAlert(alertData);
@@ -63,6 +62,12 @@ class WaiterSignalRClient {
         this.connection.on("TableOperationCompleted", (data) => {
             console.log("✅ Masa işlemi tamamlandı:", data);
             this.handleTableOperationCompleted(data);
+        });
+
+        // ✅ YENİ: Sipariş item iptal edildi
+        this.connection.on("OrderItemCancelled", (data) => {
+            console.log("❌ Sipariş item iptal edildi:", data);
+            this.handleOrderItemCancelled(data);
         });
 
         // ✅ YENİ: Tablet'den sipariş tamamlama bildirimi
@@ -116,11 +121,33 @@ class WaiterSignalRClient {
         });
     }
 
+    handleOrderItemCancelled(data) {
+        // Toast göster
+        this.showToast(data.Message, 'info');
+
+        // Dashboard'ı yenile
+        this.refreshPageData();
+
+        // Notification ekle
+        const notification = {
+            id: Date.now(),
+            type: 'OrderCancelled',
+            title: '❌ Sipariş İptal',
+            message: data.Message,
+            timestamp: new Date(),
+            isRead: false
+        };
+
+        this.notifications.unshift(notification);
+        this.updateNotificationBadge();
+        this.saveNotificationsToStorage();
+    }
+
     handleTableOperationCompleted(data) {
         // Toast göster
         this.showToast(data.Message, 'success');
 
-        // Sayfa verilerini yenile
+        // Dashboard'ı yenile
         this.refreshPageData();
 
         // Notification ekle
@@ -288,18 +315,14 @@ class WaiterSignalRClient {
     }
 
     refreshPageData() {
-        console.log("🔄 Sayfa verileri yenileniyor...");
-
-        // Dashboard varsa yenile
+        // Ana sayfadaysak masaları yenile
         if (window.GarsonDashboard) {
-            window.GarsonDashboard.refreshDashboard();
+            window.GarsonDashboard.loadTables();
         }
 
-        // Tablo varsa yenile
-        if (window.location.pathname.includes('/Order/Index')) {
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
+        // Sipariş sayfasındaysak masa detayını yenile
+        if (window.orderPageInstance) {
+            window.orderPageInstance.loadTableDetails();
         }
     }
 

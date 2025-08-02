@@ -734,7 +734,7 @@ class QRMenuEngine {
                     <i class="fas fa-info-circle"></i>
                     <div>
                         <strong>Henüz üye değil misiniz?</strong><br>
-                        Üye olmak için garsonunuzdan yardım alın. Garsonlarımız sizin için hızlıca üyelik işlemlerinizi tamamlayıp şifrenizi oluşturabilir.
+                        Üye olmak için garsonunuzdan yardım alın. Küfe point ile hesap öderken indirimlerden yararlanın.
                     </div>
                 </div>
             </div>

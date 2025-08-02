@@ -58,7 +58,6 @@ public class NotificationController(IHubContext<OrderHub> _hubContext,DBContext 
     }
 
     [HttpPost("table-status-change")]
-    [Authorize]
     public async Task<IActionResult> TableStatusChange([FromBody] TableStatusChangeDto statusChange)
     {
         try
@@ -84,7 +83,7 @@ public class NotificationController(IHubContext<OrderHub> _hubContext,DBContext 
     }
 
     [HttpPost("order-complete")]
-    [Authorize]
+
     public async Task<IActionResult> OrderComplete([FromBody] OrderCompleteDto orderComplete)
     {
         try
@@ -111,10 +110,8 @@ public class NotificationController(IHubContext<OrderHub> _hubContext,DBContext 
         }
     }
 
-    // KufeArtFullAdission.Mvc/Controllers/NotificationController.cs - Yeni method ekle
 
     [HttpPost("notify-waiters")]
-    [Authorize]
     public async Task<IActionResult> NotifyWaiters([FromBody] WaiterNotificationDto notification)
     {
         try
@@ -138,7 +135,109 @@ public class NotificationController(IHubContext<OrderHub> _hubContext,DBContext 
         }
     }
 
-    // ✅ YENİ: Sipariş detaylarını çekme metodu
+
+    [HttpPost("table-operation")]
+    [AllowAnonymous] // Garson panelinden gelecek
+    public async Task<IActionResult> TableOperation([FromBody] TableOperationNotificationDto notification)
+    {
+        try
+        {
+            Console.WriteLine($"📨 Admin panele masa işlemi bildirimi geldi: {notification.Action}");
+
+            var operationData = new
+            {
+                type = "TableOperation",
+                action = notification.Action,
+                sourceTableId = notification.SourceTableId,
+                sourceTableName = notification.SourceTableName,
+                targetTableId = notification.TargetTableId,
+                targetTableName = notification.TargetTableName,
+                waiterName = notification.WaiterName,
+                message = notification.Message,
+                timestamp = notification.Timestamp,
+                icon = notification.Icon,
+                color = notification.Color
+            };
+
+            // Admin paneline bildirim gönder
+            await _hubContext.Clients.Group("AdminPanel").SendAsync("TableOperationReceived", operationData);
+
+            Console.WriteLine($"✅ Admin panele masa işlemi bildirimi gönderildi: {notification.Message}");
+            return Ok(new { success = true, message = "Masa işlemi bildirimi gönderildi" });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Masa işlemi bildirimi hatası: {ex.Message}");
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
+
+    [HttpPost("order-item-cancelled")]
+    [AllowAnonymous] // Garson panelinden gelecek
+    public async Task<IActionResult> OrderItemCancelled([FromBody] OrderItemCancelledNotificationDto notification)
+    {
+        try
+        {
+            Console.WriteLine($"📨 Admin panele sipariş iptal bildirimi geldi: {notification.ProductName}");
+
+            var cancelData = new
+            {
+                Type = "OrderItemCancelled",
+                TableName = notification.TableName,
+                ProductName = notification.ProductName,
+                WaiterName = notification.WaiterName,
+                Message = notification.Message,
+                Timestamp = notification.Timestamp,
+                Icon = notification.Icon,
+                Color = notification.Color
+            };
+
+            // Admin paneline bildirim gönder
+            await _hubContext.Clients.Group("AdminPanel").SendAsync("OrderItemCancelledReceived", cancelData);
+
+            Console.WriteLine($"✅ Admin panele sipariş iptal bildirimi gönderildi: {notification.Message}");
+            return Ok(new { success = true, message = "Sipariş iptal bildirimi gönderildi" });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Sipariş iptal bildirimi hatası: {ex.Message}");
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
+
+    [HttpPost("order-cancelled")]
+    [AllowAnonymous] // Garson panelinden gelecek
+    public async Task<IActionResult> OrderCancelled([FromBody] OrderCancelledNotificationDto notification)
+    {
+        try
+        {
+            Console.WriteLine($"📨 Admin panele sipariş iptal bildirimi geldi: {notification.ProductName}");
+
+            var cancelData = new
+            {
+                Type = notification.Type,
+                TableName = notification.TableName,
+                ProductName = notification.ProductName,
+                WaiterName = notification.WaiterName,
+                Message = notification.Message,
+                Timestamp = notification.Timestamp,
+                Icon = notification.Icon,
+                Color = notification.Color
+            };
+
+            // Admin paneline bildirim gönder
+            await _hubContext.Clients.Group("AdminPanel").SendAsync("OrderCancelledReceived", cancelData);
+
+            Console.WriteLine($"✅ Admin panele sipariş iptal bildirimi gönderildi: {notification.Message}");
+            return Ok(new { success = true, message = "Sipariş iptal bildirimi gönderildi" });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Sipariş iptal bildirimi hatası: {ex.Message}");
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
+
     private async Task<List<object>> GetOrderItemsAsync(Guid tableId)
     {
         try
@@ -182,6 +281,42 @@ public class NotificationController(IHubContext<OrderHub> _hubContext,DBContext 
     }
 }
 
+public class OrderCancelledNotificationDto
+{
+    public string Type { get; set; } = "";
+    public string TableName { get; set; } = "";
+    public string ProductName { get; set; } = "";
+    public string WaiterName { get; set; } = "";
+    public string Message { get; set; } = "";
+    public DateTime Timestamp { get; set; }
+    public string Icon { get; set; } = "";
+    public string Color { get; set; } = "";
+}
+
+public class TableOperationNotificationDto
+{
+    public string Action { get; set; } = "";
+    public Guid SourceTableId { get; set; }
+    public string SourceTableName { get; set; } = "";
+    public Guid? TargetTableId { get; set; }
+    public string? TargetTableName { get; set; }
+    public string WaiterName { get; set; } = "";
+    public string Message { get; set; } = "";
+    public DateTime Timestamp { get; set; }
+    public string Icon { get; set; } = "";
+    public string Color { get; set; } = "";
+}
+
+public class OrderItemCancelledNotificationDto
+{
+    public string TableName { get; set; } = "";
+    public string ProductName { get; set; } = "";
+    public string WaiterName { get; set; } = "";
+    public string Message { get; set; } = "";
+    public DateTime Timestamp { get; set; }
+    public string Icon { get; set; } = "";
+    public string Color { get; set; } = "";
+}
 
 public class WaiterNotificationDto
 {

@@ -1,7 +1,4 @@
-﻿// KufeArt.TabletMvc/wwwroot/js/tablet-common.js
-
-class TabletUtils {
-    // 💰 PARA FORMATLAMA
+﻿class TabletUtils {
     static formatCurrency(amount) {
         if (typeof amount !== 'number') {
             amount = parseFloat(amount) || 0;
@@ -13,7 +10,6 @@ class TabletUtils {
         }).format(amount);
     }
 
-    // ⏰ ZAMAN FORMATLAMA
     static formatTime(date) {
         if (!(date instanceof Date)) {
             date = new Date(date);
@@ -37,7 +33,6 @@ class TabletUtils {
         });
     }
 
-    // ⏱️ ZAMAN FARKI HESAPLAMA
     static getTimeElapsed(startTime) {
         const now = new Date();
         const start = new Date(startTime);
@@ -52,9 +47,7 @@ class TabletUtils {
         return `${hours}s ${remainingMins}dk önce`;
     }
 
-    // 🔔 TOAST BİLDİRİMLER
     static showToast(message, type = 'info', duration = 4000) {
-        // Toast container varsa kullan, yoksa oluştur
         let toastContainer = document.getElementById('toastContainer');
         if (!toastContainer) {
             toastContainer = document.createElement('div');
@@ -63,13 +56,11 @@ class TabletUtils {
             document.body.appendChild(toastContainer);
         }
 
-        // Toast element oluştur
         const toastId = 'toast_' + Date.now();
         const toast = document.createElement('div');
         toast.id = toastId;
         toast.className = `toast-notification toast-${type}`;
 
-        // Icon belirleme
         const icons = {
             'success': 'fas fa-check-circle',
             'error': 'fas fa-exclamation-circle',
@@ -87,15 +78,12 @@ class TabletUtils {
             </div>
         `;
 
-        // Toast'ı ekle ve animasyon
         toastContainer.appendChild(toast);
 
-        // Slide in animation
         requestAnimationFrame(() => {
             toast.classList.add('toast-show');
         });
 
-        // Otomatik kapat
         setTimeout(() => {
             TabletUtils.closeToast(toastId);
         }, duration);
@@ -115,43 +103,35 @@ class TabletUtils {
         }
     }
 
-    // 🔊 SES ÇALMA
     static playNotificationSound() {
         try {
-            console.log('🔊 TabletUtils ses çalıyor...');
 
             const audio = document.getElementById('notificationSound');
             if (audio) {
-                audio.volume = 0.9; // Maksimum ses
-                audio.currentTime = 0; // Baştan başlat
+                audio.volume = 0.9; 
+                audio.currentTime = 0; 
 
                 const playPromise = audio.play();
 
                 if (playPromise !== undefined) {
                     playPromise.catch(error => {
-                        console.log('Ses çalınamadı (kullanıcı etkileşimi gerekli):', error);
                     });
                 }
             } else {
-                console.log('❌ Audio element bulunamadı');
             }
         } catch (error) {
-            console.log('Bildirim sesi çalınamadı:', error);
         }
     }
 
-    // 📳 VİBRASYON
     static vibrate(pattern = [200, 100, 200]) {
         if ('vibrate' in navigator) {
             try {
                 navigator.vibrate(pattern);
             } catch (error) {
-                console.log('Vibrasyon desteklenmiyor:', error);
             }
         }
     }
 
-    // 🏷️ STATUS BADGE OLUŞTURMA
     static createStatusBadge(status) {
         const statusConfig = {
             'New': { class: 'new', icon: 'clock', text: 'Yeni' },
@@ -169,7 +149,6 @@ class TabletUtils {
         `;
     }
 
-    // 📱 CİHAZ BİLGİLERİ
     static getDeviceInfo() {
         return {
             isMobile: /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
@@ -182,12 +161,11 @@ class TabletUtils {
         };
     }
 
-    // 🌐 NETWORK DURUMU
     static checkNetworkStatus() {
         if ('onLine' in navigator) {
             return navigator.onLine;
         }
-        return true; // Varsayılan olarak online kabul et
+        return true; 
     }
 
     static onNetworkChange(callback) {
@@ -195,13 +173,12 @@ class TabletUtils {
         window.addEventListener('offline', () => callback(false));
     }
 
-    // 💾 LOCAL STORAGE YÖNETİMİ
     static setStorageItem(key, value) {
         try {
             const data = {
                 value: value,
                 timestamp: Date.now(),
-                expires: Date.now() + (24 * 60 * 60 * 1000) // 24 saat
+                expires: Date.now() + (24 * 60 * 60 * 1000) 
             };
             localStorage.setItem(`tablet_${key}`, JSON.stringify(data));
             return true;
@@ -218,7 +195,6 @@ class TabletUtils {
 
             const data = JSON.parse(item);
 
-            // Expire kontrolü
             if (data.expires && Date.now() > data.expires) {
                 localStorage.removeItem(`tablet_${key}`);
                 return null;
@@ -241,7 +217,6 @@ class TabletUtils {
         }
     }
 
-    // 🔄 DEBOUNCE UTILITY
     static debounce(func, wait, immediate = false) {
         let timeout;
         return function executedFunction(...args) {
@@ -256,16 +231,13 @@ class TabletUtils {
         };
     }
 
-    // 📊 PERFORMANS ÖLÇÜMÜ
     static measurePerformance(name, fn) {
         const start = performance.now();
         const result = fn();
         const end = performance.now();
-        console.log(`⚡ ${name}: ${(end - start).toFixed(2)}ms`);
         return result;
     }
 
-    // 🎨 TEMA YÖNETİMİ
     static setTheme(theme) {
         document.documentElement.setAttribute('data-theme', theme);
         TabletUtils.setStorageItem('theme', theme);
@@ -275,7 +247,6 @@ class TabletUtils {
         return TabletUtils.getStorageItem('theme') || 'light';
     }
 
-    // 🔍 ELEMENT UTILITIES
     static $(selector) {
         return document.querySelector(selector);
     }
@@ -291,7 +262,6 @@ class TabletUtils {
         return element;
     }
 
-    // 📱 FULL SCREEN YÖNETİMİ
     static async requestFullscreen() {
         try {
             const element = document.documentElement;
@@ -325,7 +295,6 @@ class TabletUtils {
         }
     }
 
-    // 🔐 GÜVENLİK UTILITIES
     static sanitizeHtml(str) {
         const div = document.createElement('div');
         div.textContent = str;
@@ -338,7 +307,6 @@ class TabletUtils {
         return div.innerHTML;
     }
 
-    // 📝 FORM UTILITIES
     static serializeForm(form) {
         const formData = new FormData(form);
         const data = {};
@@ -355,11 +323,8 @@ class TabletUtils {
         return data;
     }
 
-    // 🎯 INIT FUNCTIONS
     static initializeTablet() {
-        console.log('🚀 Tablet Utils başlatılıyor...');
 
-        // Network durumu
         TabletUtils.onNetworkChange((isOnline) => {
             const statusElement = document.getElementById('connectionStatus');
             if (statusElement) {
@@ -374,15 +339,12 @@ class TabletUtils {
             }
         });
 
-        // Saat güncelleme
         TabletUtils.updateClock();
         setInterval(TabletUtils.updateClock, 1000);
 
-        // Tema yükle
         const savedTheme = TabletUtils.getTheme();
         TabletUtils.setTheme(savedTheme);
 
-        console.log('✅ Tablet Utils hazır!');
     }
 
     static updateClock() {
@@ -394,7 +356,6 @@ class TabletUtils {
     }
 }
 
-// 🎨 CSS STYLES (Toast için)
 const toastStyles = `
 <style>
 .toast-container {
@@ -491,43 +452,29 @@ const toastStyles = `
 </style>
 `;
 
-// Global utilities
 window.TabletUtils = TabletUtils;
 
-// Logout function (global)
 window.logout = function () {
     if (confirm('Çıkış yapmak istediğinizden emin misiniz?')) {
         window.location.href = '/Home/Logout';
     }
 };
 
-// DOM hazır olduğunda başlat
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('🔍 DOM hazır, tablet-common.js çalışıyor...');
 
-    // Toast CSS'ini ekle
     document.head.insertAdjacentHTML('beforeend', toastStyles);
 
-    // Tablet utils'i başlat
     TabletUtils.initializeTablet();
-
-    // SignalR'ı başlat
-    console.log('🔍 SignalR başlatılıyor...');
     TabletSignalR.init();
-    console.log('✅ TabletSignalR başlatıldı');
 
-    // Dashboard'ı başlat
     if (document.getElementById('ordersContainer')) {
         TabletDashboard.init();
 
-        // ✅ SES İZNİ - Sadece dashboard sayfasında iste
         requestAudioPermission();
     }
 });
 
-// ✅ SES İZNİ İSTEME FONKSİYONU
 function requestAudioPermission() {
-    // Sayfa yüklendiğinde kullanıcıdan tıklama iste
     const audioPermissionDiv = document.createElement('div');
     audioPermissionDiv.innerHTML = `
         <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
@@ -548,14 +495,11 @@ function requestAudioPermission() {
     document.body.appendChild(audioPermissionDiv);
 
     document.getElementById('enableAudioBtn').addEventListener('click', () => {
-        // Ses test et
         const testAudio = new Audio('/sounds/notification.mp3');
         testAudio.volume = 0.3;
         testAudio.play().then(() => {
-            console.log('✅ Ses izni verildi');
             audioPermissionDiv.remove();
         }).catch(e => {
-            console.log('❌ Ses izni verilemedi:', e);
             audioPermissionDiv.remove();
         });
     });

@@ -1,4 +1,4 @@
-﻿// KufeArtFullAdission.GarsonMvc/wwwroot/js/garson-layout.js
+﻿
 class GarsonLayout {
     constructor() {
         this.init();
@@ -10,7 +10,6 @@ class GarsonLayout {
     }
 
     bindEvents() {
-        // Notification panel events
         document.getElementById('notificationBtn')?.addEventListener('click', () => {
             this.toggleNotifications();
         });
@@ -23,7 +22,6 @@ class GarsonLayout {
             this.closeNotifications();
         });
 
-        // Profile panel events
         document.getElementById('profileBtn')?.addEventListener('click', () => {
             this.toggleProfile();
         });
@@ -32,13 +30,11 @@ class GarsonLayout {
             this.closeProfile();
         });
 
-        // Cart modal events (existing functionality)
         document.addEventListener('click', (e) => {
             if (e.target.id === 'closeCartBtn' || e.target.closest('#closeCartBtn')) {
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation();
-                console.log('❌ Close button clicked');
                 this.closeCartModal();
                 return false;
             }
@@ -47,13 +43,11 @@ class GarsonLayout {
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation();
-                console.log('📱 Overlay clicked');
                 this.closeCartModal();
                 return false;
             }
         }, true);
 
-        // Navigation
         window.addEventListener('popstate', () => {
             this.updateActiveNav();
         });
@@ -63,7 +57,6 @@ class GarsonLayout {
         const panel = document.getElementById('notificationPanel');
         const overlay = document.getElementById('panelOverlay');
 
-        console.log('🔔 Notification butonuna tıklandı');
 
         if (panel && overlay) {
             const isOpen = panel.classList.contains('open');
@@ -75,13 +68,11 @@ class GarsonLayout {
                 overlay.classList.add('active');
                 document.body.style.overflow = 'hidden';
 
-                // Bildirimleri render et
                 if (window.waiterSignalR) {
                     window.waiterSignalR.renderNotificationPanel();
                 }
             }
         } else {
-            console.error('❌ Panel veya overlay bulunamadı');
         }
     }
 
@@ -123,8 +114,7 @@ class GarsonLayout {
     }
 
     closeCartModal() {
-        // Existing cart modal functionality
-        console.log('Cart modal kapatıldı');
+       
     }
 
     updateActiveNav() {
@@ -141,7 +131,6 @@ class GarsonLayout {
     }
 }
 
-// Global functions
 function searchCustomer() {
     alert('Müşteri arama özelliği yakında...');
 }
@@ -160,7 +149,6 @@ function logout() {
     }
 }
 
-// Initialize
 document.addEventListener('DOMContentLoaded', () => {
     new GarsonLayout();
 });

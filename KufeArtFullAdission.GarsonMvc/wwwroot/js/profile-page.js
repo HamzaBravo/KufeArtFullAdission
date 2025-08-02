@@ -1,18 +1,16 @@
-﻿// KufeArtFullAdission.GarsonMvc/wwwroot/js/profile-page.js
+﻿
 class ProfilePage {
     constructor() {
         this.bindEvents();
     }
 
     bindEvents() {
-        // Modal dışı tıklama
         document.getElementById('passwordModalOverlay').addEventListener('click', (e) => {
             if (e.target === e.currentTarget) {
                 this.closePasswordModal();
             }
         });
 
-        // ESC tuşu ile modal kapatma
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 this.closePasswordModal();
@@ -20,7 +18,6 @@ class ProfilePage {
         });
     }
 
-    // Ad soyad düzenleme
     editFullName() {
         const displayElement = document.getElementById('displayFullName');
         const currentName = displayElement.textContent;
@@ -31,7 +28,6 @@ class ProfilePage {
         input.className = 'edit-input';
         input.maxLength = 100;
 
-        // Save/Cancel buttons
         const actions = document.createElement('div');
         actions.className = 'edit-actions';
         actions.innerHTML = `

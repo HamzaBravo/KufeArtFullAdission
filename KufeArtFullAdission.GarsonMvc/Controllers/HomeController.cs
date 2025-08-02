@@ -90,141 +90,112 @@ public class HomeController(DBContext _dbContext) : Controller
     }
 
 
-    // ✅ YENİ: Masa Taşıma İşlemi
     [HttpPost]
     public async Task<IActionResult> MoveTable([FromBody] MoveTableRequest request)
     {
         try
         {
-            Console.WriteLine($"🔄 Masa taşıma başlatılıyor: {request.SourceTableId} -> {request.TargetTableId}");
-
-            // 1. Kaynak ve hedef masaları al
             var sourceTable = await _dbContext.Tables.FindAsync(request.SourceTableId);
             var targetTable = await _dbContext.Tables.FindAsync(request.TargetTableId);
 
             if (sourceTable == null || targetTable == null)
-            {
                 return Json(new { success = false, message = "Masa bulunamadı!" });
-            }
 
-            // 2. Kaynak masa dolu mu kontrol et
             if (!sourceTable.AddionStatus.HasValue)
-            {
-                return Json(new { success = false, message = "Kaynak masa zaten boş!" });
-            }
+                return Json(new { success = false, message = "Kaynak masada aktif sipariş yok!" });
 
-            // 3. Hedef masa boş mu kontrol et
             if (targetTable.AddionStatus.HasValue)
-            {
                 return Json(new { success = false, message = "Hedef masa zaten dolu!" });
-            }
 
-            // 4. Taşıma işlemini gerçekleştir
-            var sourceAddionStatusId = sourceTable.AddionStatus.Value;
+            var waiterName = User.GetFullName();
 
-            // Kaynak masayı boşalt
+            // Masa taşıma işlemi
+            targetTable.AddionStatus = sourceTable.AddionStatus;
             sourceTable.AddionStatus = null;
 
-            // Hedef masaya taşı
-            targetTable.AddionStatus = sourceAddionStatusId;
-
-            // 5. Adisyon geçmişindeki masa bilgilerini güncelle
-            var orderHistories = await _dbContext.AddtionHistories
-                .Where(h => h.AddionStatusId == sourceAddionStatusId)
+            // Sipariş geçmişindeki TableId'yi güncelle
+            var orders = await _dbContext.AddtionHistories
+                .Where(h => h.TableId == sourceTable.Id)
                 .ToListAsync();
 
-            foreach (var history in orderHistories)
+            foreach (var order in orders)
             {
-                history.TableId = targetTable.Id;
-                // Not: TableName güncellenmez çünkü hangi masadan geldiğini bilmek önemli
+                order.TableId = targetTable.Id;
             }
 
             await _dbContext.SaveChangesAsync();
 
-            Console.WriteLine($"✅ Masa taşıma tamamlandı: {sourceTable.Name} -> {targetTable.Name}");
-
-            // 6. Admin panele bildirim gönder
-            await NotifyAdminPanelTableChange("move", sourceTable, targetTable);
+            // ✅ Real-time bildirim gönder
+            await SendTableOperationNotification(
+                "MoveTable",
+                sourceTable,
+                targetTable,
+                $"📋 {waiterName} tarafından {sourceTable.Name} masası {targetTable.Name} masasına taşındı"
+            );
 
             return Json(new
             {
                 success = true,
-                message = $"{sourceTable.Name} başarıyla {targetTable.Name} masasına taşındı!"
+                message = $"{sourceTable.Name} masası {targetTable.Name} masasına başarıyla taşındı!"
             });
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Masa taşıma hatası: {ex.Message}");
-            return Json(new { success = false, message = "Masa taşıma işlemi başarısız!" });
+            return Json(new { success = false, message = "Masa taşıma başarısız: " + ex.Message });
         }
     }
 
-    // ✅ YENİ: Masa Birleştirme İşlemi
     [HttpPost]
     public async Task<IActionResult> MergeTables([FromBody] MergeTablesRequest request)
     {
         try
         {
-            Console.WriteLine($"🔗 Masa birleştirme başlatılıyor: {request.SourceTableId} + {request.TargetTableId}");
-
-            // 1. Kaynak ve hedef masaları al
             var sourceTable = await _dbContext.Tables.FindAsync(request.SourceTableId);
             var targetTable = await _dbContext.Tables.FindAsync(request.TargetTableId);
 
             if (sourceTable == null || targetTable == null)
-            {
                 return Json(new { success = false, message = "Masa bulunamadı!" });
-            }
 
-            // 2. Her iki masa da dolu mu kontrol et
-            if (!sourceTable.AddionStatus.HasValue || !targetTable.AddionStatus.HasValue)
-            {
-                return Json(new { success = false, message = "Birleştirme için her iki masa da dolu olmalı!" });
-            }
+            if (!sourceTable.AddionStatus.HasValue)
+                return Json(new { success = false, message = "Kaynak masada aktif sipariş yok!" });
 
-            var sourceAddionStatusId = sourceTable.AddionStatus.Value;
-            var targetAddionStatusId = targetTable.AddionStatus.Value;
+            if (!targetTable.AddionStatus.HasValue)
+                return Json(new { success = false, message = "Hedef masada aktif sipariş yok!" });
 
-            // 3. Kaynak masadaki tüm siparişleri hedef masaya taşı
-            var sourceOrderHistories = await _dbContext.AddtionHistories
-                .Where(h => h.AddionStatusId == sourceAddionStatusId)
+            var waiterName = User.GetFullName();
+
+            // Kaynak masadaki siparişleri hedef masaya taşı
+            var sourceOrders = await _dbContext.AddtionHistories
+                .Where(h => h.AddionStatusId == sourceTable.AddionStatus)
                 .ToListAsync();
 
-            foreach (var history in sourceOrderHistories)
+            foreach (var order in sourceOrders)
             {
-                history.AddionStatusId = targetAddionStatusId;
-                history.TableId = targetTable.Id;
-                // Orijinal masa adını not olarak ekle
-                if (string.IsNullOrEmpty(history.ShorLabel))
-                {
-                    history.ShorLabel = $"({sourceTable.Name}'den taşındı)";
-                }
-                else
-                {
-                    history.ShorLabel += $" ({sourceTable.Name}'den taşındı)";
-                }
+                order.AddionStatusId = targetTable.AddionStatus.Value;
+                order.TableId = targetTable.Id;
             }
 
-            // 4. Kaynak masayı boşalt
+            // Kaynak masayı temizle
             sourceTable.AddionStatus = null;
-
             await _dbContext.SaveChangesAsync();
 
-            Console.WriteLine($"✅ Masa birleştirme tamamlandı: {sourceTable.Name} -> {targetTable.Name}");
-
-            // 6. Admin panele bildirim gönder
-            await NotifyAdminPanelTableChange("merge", sourceTable, targetTable);
+            // ✅ Real-time bildirim gönder
+            await SendTableOperationNotification(
+                "MergeTables",
+                sourceTable,
+                targetTable,
+                $"🔗 {waiterName} tarafından {sourceTable.Name} masası {targetTable.Name} masası ile birleştirildi"
+            );
 
             return Json(new
             {
                 success = true,
-                message = $"{sourceTable.Name} başarıyla {targetTable.Name} ile birleştirildi!"
+                message = $"{sourceTable.Name} masası {targetTable.Name} masası ile başarıyla birleştirildi!"
             });
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Masa birleştirme hatası: {ex.Message}");
-            return Json(new { success = false, message = "Masa birleştirme işlemi başarısız!" });
+            return Json(new { success = false, message = "Masa birleştirme başarısız: " + ex.Message });
         }
     }
 
@@ -234,88 +205,91 @@ public class HomeController(DBContext _dbContext) : Controller
     {
         try
         {
-            Console.WriteLine($"❌ Sipariş iptal başlatılıyor: {request.TableId}");
-
             var table = await _dbContext.Tables.FindAsync(request.TableId);
-            if (table == null)
-            {
-                return Json(new { success = false, message = "Masa bulunamadı!" });
-            }
+            if (table == null || !table.AddionStatus.HasValue)
+                return Json(new { success = false, message = "Masa bulunamadı veya zaten boş!" });
 
-            if (!table.AddionStatus.HasValue)
-            {
-                return Json(new { success = false, message = "Masa zaten boş!" });
-            }
+            var tableName = table.Name;
+            var waiterName = User.GetFullName();
 
-            var addionStatusId = table.AddionStatus.Value;
-
-            // 1. Sipariş geçmişini sil
-            var orderHistories = await _dbContext.AddtionHistories
-                .Where(h => h.AddionStatusId == addionStatusId)
+            // Siparişleri sil
+            var orders = await _dbContext.AddtionHistories
+                .Where(h => h.AddionStatusId == table.AddionStatus)
                 .ToListAsync();
 
-            _dbContext.AddtionHistories.RemoveRange(orderHistories);
+            _dbContext.AddtionHistories.RemoveRange(orders);
 
-            //// 2. AddionStatus'u sil
-            //var addionStatus = await _dbContext.AddionStatuses.FindAsync(addionStatusId);
-            //if (addionStatus != null)
-            //{
-            //    _dbContext.AddionStatuses.Remove(addionStatus);
-            //}
-
-            // 3. Masayı boşalt
+            // Masa durumunu sıfırla
             table.AddionStatus = null;
-
             await _dbContext.SaveChangesAsync();
 
-            Console.WriteLine($"✅ Sipariş iptal tamamlandı: {table.Name}");
-
-            // 4. Admin panele bildirim gönder
-            await NotifyAdminPanelTableChange("cancel", table, null);
+            // ✅ YENİ: Real-time bildirim gönder
+            await SendTableOperationNotification(
+                "CancelOrder",
+                table,
+                null, // target table yok
+                $"🗑️ {waiterName} tarafından {tableName} masasının siparişi iptal edildi"
+            );
 
             return Json(new
             {
                 success = true,
-                message = $"{table.Name} masasının siparişi iptal edildi!"
+                message = $"{tableName} masasının siparişi başarıyla iptal edildi!"
             });
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Sipariş iptal hatası: {ex.Message}");
-            return Json(new { success = false, message = "Sipariş iptal işlemi başarısız!" });
+            return Json(new { success = false, message = "İşlem başarısız: " + ex.Message });
         }
     }
 
-    // ✅ YENİ: Admin Panele Bildirim Gönderme
-    private async Task NotifyAdminPanelTableChange(string action, TableDbEntity sourceTable, TableDbEntity? targetTable)
+    private async Task SendTableOperationNotification(string action, TableDbEntity sourceTable, TableDbEntity? targetTable, string customMessage = null)
     {
         try
         {
-            string message = action switch
+            var waiterName = User.GetFullName();
+
+            string message = customMessage ?? action switch
             {
-                "move" => $"{sourceTable.Name} masası {targetTable?.Name} masasına taşındı",
-                "merge" => $"{sourceTable.Name} masası {targetTable?.Name} ile birleştirildi",
-                "cancel" => $"{sourceTable.Name} masasının siparişi iptal edildi",
-                _ => "Masa işlemi gerçekleştirildi"
+                "MoveTable" => $"📋 {waiterName} tarafından {sourceTable.Name} masası {targetTable?.Name} masasına taşındı",
+                "MergeTables" => $"🔗 {waiterName} tarafından {sourceTable.Name} masası {targetTable?.Name} ile birleştirildi",
+                "CancelOrder" => $"🗑️ {waiterName} tarafından {sourceTable.Name} masasının siparişi iptal edildi",
+                _ => $"✅ {waiterName} tarafından masa işlemi gerçekleştirildi"
             };
 
-            var notification = new
+            var notification = new TableOperationNotificationDto
             {
-                Type = "TableOperation",
+                
+                //Type = "TableOperation",
                 Action = action,
                 SourceTableId = sourceTable.Id,
                 SourceTableName = sourceTable.Name,
                 TargetTableId = targetTable?.Id,
                 TargetTableName = targetTable?.Name,
+                WaiterName = waiterName,
                 Message = message,
-                Timestamp = DateTime.Now
+                Timestamp = DateTime.Now,
+                Icon = action switch
+                {
+                    "MoveTable" => "fas fa-arrows-alt",
+                    "MergeTables" => "fas fa-link",
+                    "CancelOrder" => "fas fa-times-circle",
+                    _ => "fas fa-table"
+                },
+                Color = action switch
+                {
+                    "MoveTable" => "#3b82f6",
+                    "MergeTables" => "#10b981",
+                    "CancelOrder" => "#dc3545",
+                    _ => "#6b7280"
+                }
             };
 
             // ✅ 1. HTTP ile admin panele bildirim gönder
             try
             {
                 var httpClient = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient("AdminPanel");
-                await httpClient.PostAsJsonAsync("/api/notification/table-operation", notification);
+                var res = await httpClient.PostAsJsonAsync("/api/notification/table-operation", notification);
                 Console.WriteLine($"✅ HTTP ile admin panele masa işlemi bildirimi gönderildi: {message}");
             }
             catch (Exception httpEx)
@@ -332,8 +306,10 @@ public class HomeController(DBContext _dbContext) : Controller
                     Action = action,
                     SourceTableName = sourceTable.Name,
                     TargetTableName = targetTable?.Name,
+                    WaiterName = waiterName,
                     Message = message,
-                    Success = true
+                    Success = true,
+                    Timestamp = DateTime.Now
                 });
                 Console.WriteLine($"✅ SignalR ile garson paneline masa işlemi bildirimi gönderildi");
             }
@@ -364,4 +340,57 @@ public class HomeController(DBContext _dbContext) : Controller
             .Distinct()
             .CountAsync();
     }
+
+    // ✅ YENİ: Sipariş iptal bildirimi helper method
+    private async Task SendOrderCancelNotification(string tableName, string productName, string waiterName)
+    {
+        try
+        {
+            // 1. HTTP ile admin panele bildirim
+            var httpClient = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient("AdminPanel");
+            var notification = new
+            {
+                Type = "OrderCancelled",
+                TableName = tableName,
+                ProductName = productName,
+                WaiterName = waiterName,
+                Message = $"❌ {waiterName} tarafından {tableName} masasından {productName} siparişi iptal edildi",
+                Timestamp = DateTime.Now,
+                Icon = "fas fa-times-circle",
+                Color = "#dc3545"
+            };
+
+            await httpClient.PostAsJsonAsync("/api/notification/order-cancelled", notification);
+            Console.WriteLine($"✅ Admin panele sipariş iptal bildirimi gönderildi: {productName}");
+
+            // 2. SignalR ile garson paneline
+            var hubContext = HttpContext.RequestServices.GetRequiredService<IHubContext<WaiterHub>>();
+            await hubContext.Clients.All.SendAsync("OrderItemCancelled", new
+            {
+                TableName = tableName,
+                ProductName = productName,
+                WaiterName = waiterName,
+                Message = $"❌ {productName} siparişi iptal edildi",
+                Success = true
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Sipariş iptal bildirimi hatası: {ex.Message}");
+        }
+    }
+}
+
+public class TableOperationNotificationDto
+{
+    public string Action { get; set; } = "";
+    public Guid SourceTableId { get; set; }
+    public string SourceTableName { get; set; } = "";
+    public Guid? TargetTableId { get; set; }
+    public string? TargetTableName { get; set; }
+    public string WaiterName { get; set; } = "";
+    public string Message { get; set; } = "";
+    public DateTime Timestamp { get; set; }
+    public string Icon { get; set; } = "";
+    public string Color { get; set; } = "";
 }

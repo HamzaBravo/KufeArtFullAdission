@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // 🎯 DATABASE
 builder.Services.AddDbContext<DBContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("HamzaLocal")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("LiveServer")));
 
 // 🔐 AUTHENTICATION
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -72,6 +72,13 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Add("X-Robots-Tag", "noindex, nofollow");
+    await next();
+});
+
 
 app.MapControllerRoute(
     name: "default",

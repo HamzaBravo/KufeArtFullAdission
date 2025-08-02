@@ -18,7 +18,7 @@ public class CustomerController(DBContext _dbContext) : Controller
 
     // Müşteri kayıt işlemi
     [HttpPost]
-    public async Task<IActionResult> Create(CustomerDbEntity customer)
+    public async Task<IActionResult> Create([FromBody]CustomerDbEntity customer)
     {
         try
         {

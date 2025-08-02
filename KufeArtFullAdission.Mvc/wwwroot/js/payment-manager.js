@@ -356,9 +356,8 @@ window.PaymentManager = {
         const phoneNumberInput = document.getElementById('customerPhoneInput');
         const phoneNumber = phoneNumberInput ? phoneNumberInput.value.trim() : '';
 
-        console.log('Girilen telefon:', phoneNumber);
-
-        if (!phoneNumber || phoneNumber === '') {
+        // Validasyonlar
+        if (!phoneNumber) {
             ToastHelper.warning('Lütfen telefon numarası girin!');
             return;
         }
@@ -368,50 +367,34 @@ window.PaymentManager = {
             return;
         }
 
-        // 🔧 BASİTLEŞTİRİLDİ: TableId'yi modal'dan al
         const currentTableId = $('#tableModal').data('current-table-id');
-
-        console.log('🔍 Bulunan TableId:', currentTableId); // Debug
-
         LoaderHelper.show('Müşteri puanları sorgulanıyor...');
 
         $.ajax({
             url: '/Home/GetCustomerPoints',
             method: 'GET',
-            data: {
-                phoneNumber: phoneNumber,
-                tableId: currentTableId
-            },
+            data: { phoneNumber, tableId: currentTableId },
             success: function (response) {
                 LoaderHelper.hide();
 
                 if (response.success) {
+                    // Müşteri var - puanları göster
                     PaymentManager.displayCustomerPoints(response.data);
                 } else {
-                    ToastHelper.info(response.message || 'Müşteri bulunamadı, yeni üye olarak kaydedilecek!');
-                    PaymentManager.displayNewCustomerPoints(phoneNumber);
+                    // Müşteri yok - sadece bildir ve gizle
+                    ToastHelper.info('Müşteri bulunamadı!');
+                    $('#customerPointsResult').hide();
                 }
             },
-            error: function (xhr, status, error) {
+            error: function () {
                 LoaderHelper.hide();
-                console.error('AJAX Error:', xhr.responseText); // Debug
                 ToastHelper.error('Bağlantı hatası!');
+                $('#customerPointsResult').hide();
             }
         });
     },
 
-    // 🎯 YENİ: Yeni müşteri için puan gösterimi
-    displayNewCustomerPoints: function (phoneNumber) {
-        $('#currentPoints').text('0');
-        $('#willEarnPoints').text('Hesaplanıyor...');
 
-        $('#pointDiscountSection').hide(); // Puan yok, indirim yok
-        $('#customerPointsResult').show();
-
-        ToastHelper.info('Yeni müşteri olarak kaydedilecek ve puanlar hesabına eklenecek!');
-    },
-
-    // payment-manager.js dosyasında displayCustomerPoints fonksiyonunu şöyle güncelleyin:
     displayCustomerPoints: function (data) {
         PaymentManager.currentCustomerData = data;
 

@@ -1,5 +1,4 @@
-﻿// KufeArtFullAdission.GarsonMvc/wwwroot/js/customer-create.js
-class CustomerCreate {
+﻿class CustomerCreate {
     constructor() {
         this.form = document.getElementById('customerCreateForm');
         this.submitBtn = document.getElementById('submitBtn');
@@ -10,23 +9,18 @@ class CustomerCreate {
     }
 
     bindEvents() {
-        // Form submit
         this.form.addEventListener('submit', (e) => this.handleSubmit(e));
 
-        // Şifre görünürlük toggle
         document.getElementById('togglePassword')?.addEventListener('click', this.togglePassword);
 
-        // Müşteri arama
         this.searchBtn.addEventListener('click', () => this.searchCustomer());
 
-        // Enter ile arama
         document.getElementById('searchPhone').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 this.searchCustomer();
             }
         });
 
-        // Telefon input validation
         const phoneInput = document.querySelector('input[name="phoneNumber"]');
         phoneInput.addEventListener('input', this.validatePhone);
     }
@@ -34,10 +28,9 @@ class CustomerCreate {
     setupPhoneFormatting() {
         const phoneInput = document.querySelector('input[name="phoneNumber"]');
         phoneInput.addEventListener('input', function (e) {
-            // Sadece sayı kabul et
+         
             this.value = this.value.replace(/[^0-9]/g, '');
 
-            // 11 haneli limit
             if (this.value.length > 11) {
                 this.value = this.value.substring(0, 11);
             }
@@ -101,7 +94,6 @@ class CustomerCreate {
                 this.showSuccess(result.message);
                 this.resetForm();
 
-                // 2 saniye sonra ana sayfaya dön
                 setTimeout(() => {
                     window.location.href = '/';
                 }, 2000);
@@ -191,19 +183,16 @@ class CustomerCreate {
         const phone = document.querySelector('input[name="phoneNumber"]').value.trim();
         const password = document.querySelector('input[name="password"]').value.trim();
 
-        // Ad soyad kontrolü
         if (!fullname || fullname.length < 2) {
             this.showError('Ad soyad en az 2 karakter olmalıdır!');
             return false;
         }
 
-        // Telefon kontrolü
         if (!phone || phone.length !== 11 || !phone.startsWith('05')) {
             this.showError('Geçerli bir telefon numarası girin! (05XXXXXXXXX)');
             return false;
         }
 
-        // Şifre kontrolü
         if (!password || password.length < 4) {
             this.showError('Şifre en az 4 karakter olmalıdır!');
             return false;
@@ -229,14 +218,12 @@ class CustomerCreate {
 
     resetForm() {
         this.form.reset();
-        // Hata mesajlarını temizle
         document.querySelectorAll('.form-error').forEach(error => {
             error.style.display = 'none';
         });
     }
 
     showSuccess(message) {
-        // Toast sistemi varsa kullan, yoksa alert
         if (typeof window.showToast === 'function') {
             window.showToast(message, 'success');
         } else {
@@ -253,7 +240,6 @@ class CustomerCreate {
     }
 }
 
-// Sayfa yüklendiğinde başlat
 document.addEventListener('DOMContentLoaded', () => {
     new CustomerCreate();
 });

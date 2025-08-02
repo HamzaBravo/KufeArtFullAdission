@@ -6,6 +6,7 @@ using KufeArtFullAdission.Enums;
 using KufeArtFullAdission.GarsonMvc.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
@@ -43,7 +44,9 @@ public class OrderController(DBContext _dbContext) : Controller
     }
 
 
-    // ✅ YENİ: Tekil sipariş item iptal etme
+    // KufeArtFullAdission.GarsonMvc/Controllers/OrderController.cs
+    // CancelOrderItem metodunda debug logları ekle:
+
     [HttpPost]
     public async Task<IActionResult> CancelOrderItem([FromBody] CancelOrderItemRequest request)
     {
@@ -57,42 +60,56 @@ public class OrderController(DBContext _dbContext) : Controller
 
             if (orderItem == null)
             {
+                Console.WriteLine($"❌ Sipariş bulunamadı: {request.OrderItemId}");
                 return Json(new { success = false, message = "Sipariş bulunamadı!" });
             }
+
+            Console.WriteLine($"✅ Sipariş bulundu: {orderItem.ProductName}");
+
+            var table = await _dbContext.Tables.FindAsync(orderItem.TableId);
+            var waiterName = User.GetFullName();
+            var productName = orderItem.ProductName;
+            var tableName = table?.Name ?? "Bilinmeyen Masa";
 
             // Sipariş item'ı sil
             _dbContext.AddtionHistories.Remove(orderItem);
             await _dbContext.SaveChangesAsync();
 
-            Console.WriteLine($"✅ Sipariş item iptal tamamlandı: {orderItem.ProductName}");
+            Console.WriteLine($"✅ Sipariş DB'den silindi: {productName}");
 
             // Masa hala sipariş var mı kontrol et
             var tableHasOrders = await _dbContext.AddtionHistories
                 .AnyAsync(h => h.TableId == orderItem.TableId);
 
-            if (!tableHasOrders)
+            if (!tableHasOrders && table != null)
             {
-                // Masa tamamen boşaldı, masa durumunu güncelle
-                var table = await _dbContext.Tables.FindAsync(orderItem.TableId);
-                if (table != null)
-                {
-                    table.AddionStatus = null;
-                    await _dbContext.SaveChangesAsync();
-                    Console.WriteLine($"✅ Masa boşaltıldı: {table.Name}");
-                }
+                table.AddionStatus = null;
+                await _dbContext.SaveChangesAsync();
+                Console.WriteLine($"✅ Masa boşaltıldı: {table.Name}");
             }
 
-            return Json(new
+            // ✅ YENİ: Real-time bildirim gönder
+            Console.WriteLine($"📨 Admin panele bildirim gönderiliyor...");
+            await SendOrderCancelNotification(tableName, productName, waiterName);
+
+            var successResponse = new
             {
                 success = true,
-                message = $"{orderItem.ProductName} siparişi iptal edildi!",
+                message = $"{productName} siparişi iptal edildi!",
                 tableIsEmpty = !tableHasOrders
-            });
+            };
+
+            Console.WriteLine($"✅ Başarılı response gönderiliyor");
+            return Json(successResponse);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"❌ Sipariş item iptal hatası: {ex.Message}");
-            return Json(new { success = false, message = "Sipariş iptal işlemi başarısız!" });
+            return Json(new
+            {
+                success = false,
+                message = "Sipariş iptal işlemi başarısız: " + ex.Message
+            });
         }
     }
 
@@ -504,6 +521,45 @@ public class OrderController(DBContext _dbContext) : Controller
             // Hata durumunda boş liste döndür
             System.Diagnostics.Debug.WriteLine($"❌ Sipariş detayları alınamadı: {ex.Message}");
             return new List<object>();
+        }
+    }
+
+    // ✅ YENİ: Sipariş iptal bildirimi helper method
+    private async Task SendOrderCancelNotification(string tableName, string productName, string waiterName)
+    {
+        try
+        {
+            // 1. HTTP ile admin panele bildirim
+            var httpClient = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient("AdminPanel");
+            var notification = new
+            {
+                Type = "OrderCancelled",
+                TableName = tableName,
+                ProductName = productName,
+                WaiterName = waiterName,
+                Message = $"❌ {waiterName} tarafından {tableName} masasından {productName} siparişi iptal edildi",
+                Timestamp = DateTime.Now,
+                Icon = "fas fa-times-circle",
+                Color = "#dc3545"
+            };
+
+            var res = await httpClient.PostAsJsonAsync("/api/notification/order-cancelled", notification);
+            Console.WriteLine($"✅ Admin panele sipariş iptal bildirimi gönderildi: {productName}");
+
+            // 2. SignalR ile garson paneline
+            var hubContext = HttpContext.RequestServices.GetRequiredService<IHubContext<WaiterHub>>();
+            await hubContext.Clients.All.SendAsync("OrderItemCancelled", new
+            {
+                TableName = tableName,
+                ProductName = productName,
+                WaiterName = waiterName,
+                Message = $"❌ {productName} siparişi iptal edildi",
+                Success = true
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Sipariş iptal bildirimi hatası: {ex.Message}");
         }
     }
 }

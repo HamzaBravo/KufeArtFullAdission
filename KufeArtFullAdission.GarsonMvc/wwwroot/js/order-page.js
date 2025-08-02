@@ -57,16 +57,28 @@ class OrderPage {
         const historyOverlay = document.getElementById('historyOverlay');
 
         if (showHistoryBtn) {
-            showHistoryBtn.addEventListener('click', () => this.showOrderHistory());
+            showHistoryBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.showOrderHistory();
+            });
         }
 
-        // ✅ KAPANMA EVENT'LERİ - MULTIPLE EVENT LISTENER
+        // ✅ KAPANMA EVENT'LERİ - ÇOKLU EKLE
         if (closeHistoryBtn) {
-            closeHistoryBtn.addEventListener('click', () => this.closeHistoryModal());
+            closeHistoryBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.closeHistoryModal();
+            });
         }
 
         if (historyOverlay) {
-            historyOverlay.addEventListener('click', () => this.closeHistoryModal());
+            historyOverlay.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.closeHistoryModal();
+            });
         }
 
         // ESC tuşu ile kapanma
@@ -81,9 +93,11 @@ class OrderPage {
 
         // ESC tuşu
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.isCartModalOpen) {
-                console.log('⌨️ ESC pressed');
-                this.closeCartModal();
+            if (e.key === 'Escape') {
+                const historyModal = document.getElementById('historyModal');
+                if (historyModal && historyModal.style.display === 'block') {
+                    this.closeHistoryModal();
+                }
             }
         });
 
@@ -512,7 +526,9 @@ class OrderPage {
         const modal = document.getElementById('historyModal');
         const content = document.getElementById('historyContent');
 
+        // ✅ Modal açma düzeltmesi
         modal.style.display = 'block';
+        document.body.style.overflow = 'hidden'; // ✅ Scroll kilitle
         console.log('📋 Sipariş geçmişi modalı açıldı');
 
         try {
@@ -523,19 +539,19 @@ class OrderPage {
                 this.renderOrderHistory(result.data);
             } else {
                 content.innerHTML = `
-                    <div class="history-error">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <p>${result.message}</p>
-                    </div>
-                `;
+                <div class="history-error">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>${result.message}</p>
+                </div>
+            `;
             }
         } catch (error) {
             content.innerHTML = `
-                <div class="history-error">
-                    <i class="fas fa-wifi"></i>
-                    <p>Bağlantı hatası!</p>
-                </div>
-            `;
+            <div class="history-error">
+                <i class="fas fa-wifi"></i>
+                <p>Bağlantı hatası!</p>
+            </div>
+        `;
         }
     }
 
@@ -583,30 +599,58 @@ class OrderPage {
         content.innerHTML = html;
     }
 
-    // ✅ YENİ: Tekil sipariş iptal etme
     async cancelOrderItem(orderId, productName) {
         if (!confirm(`"${productName}" siparişini iptal etmek istediğinizden emin misiniz?`)) {
             return;
         }
 
+        console.log('🗑️ Sipariş iptal başlatılıyor:', { orderId, productName });
+
         try {
             const response = await fetch('/Order/CancelOrderItem', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
                 body: JSON.stringify({ orderItemId: orderId })
             });
 
+            console.log('📨 Response status:', response.status);
+            console.log('📨 Response ok:', response.ok);
+
+            // Response kontrolü
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
             const result = await response.json();
+            console.log('✅ Response data:', result);
 
             if (result.success) {
-                this.showToast('Sipariş iptal edildi!', 'success');
-                this.showOrderHistory(); // Geçmişi yenile
-                this.updateTableSummary(); // Masa özetini güncelle
+                console.log('🎉 Sipariş başarıyla iptal edildi');
+                this.showToast(`${productName} siparişi iptal edildi!`, 'success');
+
+                // Geçmişi yenile
+                await this.showOrderHistory();
+
+                // Masa özetini güncelle
+                await this.loadTableDetails();
+
+                // Eğer masa boşaldıysa sayfayı yenile
+                if (result.tableIsEmpty) {
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1500);
+                }
             } else {
-                this.showToast(result.message, 'error');
+                console.log('❌ Backend hata mesajı:', result.message);
+                this.showToast(result.message || 'Sipariş iptal edilemedi!', 'error');
             }
         } catch (error) {
-            this.showToast('Sipariş iptal edilemedi!', 'error');
+            console.error('💥 JavaScript hatası:', error);
+            console.error('💥 Error stack:', error.stack);
+            this.showToast('Bağlantı hatası! Sipariş iptal edilemedi.', 'error');
         }
     }
 
@@ -693,6 +737,7 @@ class OrderPage {
         const modal = document.getElementById('historyModal');
         if (modal) {
             modal.style.display = 'none';
+            document.body.style.overflow = ''; // ✅ Body scroll'u geri aç
             console.log('📋 Sipariş geçmişi modalı kapatıldı');
         }
     }

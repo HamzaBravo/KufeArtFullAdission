@@ -50,6 +50,12 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Add("X-Robots-Tag", "noindex, nofollow");
+    await next();
+});
+
 app.UseHttpsRedirection();
 
 

@@ -10,7 +10,7 @@ builder.Services.AddHostedService<InactiveTableMonitorService>();
 
 // Database
 builder.Services.AddDbContext<DBContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("HamzaLocal")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("LiveServer")));
 
 // Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -70,6 +70,12 @@ app.UseCors();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Add("X-Robots-Tag", "noindex, nofollow");
+    await next();
+});
 
 app.MapControllerRoute(
     name: "default",

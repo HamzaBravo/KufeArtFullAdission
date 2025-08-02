@@ -700,3 +700,41 @@ body {
         cursor: not-allowed;
         transform: none;
     }
+/* KufeArtFullAdission.GarsonMvc/wwwroot/css/dashboard.css */
+/* ✅ YENİ: Geçmiş butonu stili */
+.history-btn {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+}
+
+    .history-btn:hover {
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+    }
+
+/* ✅ Table actions düzeltmesi - 3 buton için */
+.table-actions {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    opacity: 0.9;
+    transition: all 0.3s ease;
+    z-index: 20;
+}
+
+/* Mobile için yatay dizim */
+@media (max-width: 768px) {
+    .table-actions {
+        opacity: 1;
+        flex-direction: row;
+        gap: 2px; /* ✅ 3 buton için daha az gap */
+    }
+
+    .action-btn {
+        width: 22px; /* ✅ 3 buton için daha küçük */
+        height: 22px;
+        font-size: 0.6rem;
+    }
+}

@@ -1,5 +1,4 @@
-﻿// KufeArt.TabletMvc/wwwroot/js/tablet-signalr.js
-
+﻿
 class TabletSignalR {
     constructor() {
         this.connection = null;
@@ -10,7 +9,6 @@ class TabletSignalR {
     }
 
     getDepartmentFromUser() {
-        // HTML'den department bilgisini çek
         const departmentElement = document.querySelector('.tablet-details h3');
         if (departmentElement) {
             return departmentElement.textContent.trim();
@@ -25,27 +23,17 @@ class TabletSignalR {
         }
         return window.tabletSignalR;
     }
-
-    // KufeArt.TabletMvc/wwwroot/js/tablet-signalr.js
-    // KufeArt.TabletMvc/wwwroot/js/tablet-signalr.js
     async connect() {
         try {
-            console.log('🔄 SignalR bağlantısı kuruluyor...');
-
-            // ✅ Kendi TabletHub'ını kullan
             this.connection = new signalR.HubConnectionBuilder()
-                .withUrl("/tabletHub") // /orderHub değil /tabletHub
+                .withUrl("/tabletHub") 
                 .withAutomaticReconnect([0, 2000, 10000, 30000])
                 .build();
 
-            // Event listeners
             this.bindEvents();
 
-            // Bağlantıyı başlat
             await this.connection.start();
-            console.log('✅ SignalR bağlandı');
 
-            // Departmana göre gruba katıl
             if (this.department === 'Kitchen') {
                 await this.connection.invoke("JoinKitchenGroup");
             } else if (this.department === 'Bar') {
@@ -57,7 +45,6 @@ class TabletSignalR {
             this.reconnectAttempts = 0;
 
         } catch (error) {
-            console.error('❌ SignalR bağlantı hatası:', error);
             this.isConnected = false;
             this.updateConnectionStatus(false);
             this.handleConnectionError();
@@ -67,55 +54,40 @@ class TabletSignalR {
     bindEvents() {
         if (!this.connection) return;
 
-        // Yeni sipariş bildirimi
         this.connection.on("NewOrderReceived", (orderData) => {
-            console.log('🔔 Yeni sipariş:', orderData);
             this.handleNewOrder(orderData);
         });
 
-        // Sipariş durumu değişikliği
         this.connection.on("OrderStatusChanged", (statusData) => {
-            console.log('🔄 Sipariş durumu değişti:', statusData);
             this.handleOrderStatusChange(statusData);
         });
 
-        // Bağlantı events
         this.connection.onclose((error) => {
-            console.log('❌ SignalR bağlantısı koptu:', error);
             this.isConnected = false;
             this.updateConnectionStatus(false);
         });
 
         this.connection.onreconnected((connectionId) => {
-            console.log('✅ SignalR yeniden bağlandı:', connectionId);
             this.isConnected = true;
             this.updateConnectionStatus(true);
             this.reconnectAttempts = 0;
         });
 
         this.connection.onreconnecting((error) => {
-            console.log('🔄 SignalR yeniden bağlanıyor...', error);
             this.updateConnectionStatus(false);
         });
     }
 
     handleNewOrder(orderData) {
-        console.log('🔔 Yeni sipariş bildirimi:', orderData);
 
-        // Bildirim geldiğinde API'den yeni siparişleri çek
         if (window.TabletDashboard) {
             window.TabletDashboard.loadOrders().then(() => {
-                // API'den veriler geldi, ses çal
+ 
                 this.playNotificationSound();
                 TabletUtils.vibrate([300, 100, 300, 100, 300]);
 
-                // ✅ 1. GÖRSEL EFEKTLERİ BAŞLAT
                 this.triggerVisualEffects(orderData);
 
-                //const message = `🔔 YENİ SİPARİŞ: ${orderData.tableName || orderData.TableName}`;
-                //TabletUtils.showToast(message, 'info', 8000);
-
-                // ✅ 5. DASHBOARD'I YENİLE
                 if (window.TabletDashboard) {
                     console.log('🔄 Dashboard yenileniyor...');
                     window.TabletDashboard.loadOrders();
@@ -123,19 +95,14 @@ class TabletSignalR {
             });
         }
     }
-    // ✅ YENİ: Görsel efektleri tetikleme
     triggerVisualEffects(orderData) {
-        // 1. Ekran titreşimi
         document.body.classList.add('shake-screen');
         setTimeout(() => document.body.classList.remove('shake-screen'), 600);
 
-        // 2. Konfeti efekti
         this.createConfetti();
 
-        // 3. Sağdan gelen uyarı çubuğu
         this.showNewOrderAlert(orderData);
 
-        // 4. Stat kartlarını highlight et
         this.highlightStats();
     }
 
@@ -155,12 +122,10 @@ class TabletSignalR {
                 confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
                 container.appendChild(confetti);
 
-                // Konfeti parçacığını 3 saniye sonra kaldır
                 setTimeout(() => confetti.remove(), 3000);
             }, i * 50);
         }
 
-        // Container'ı 5 saniye sonra kaldır
         setTimeout(() => container.remove(), 5000);
     }
 
@@ -181,7 +146,6 @@ class TabletSignalR {
 
         document.body.appendChild(alert);
 
-        // 4 saniye sonra kaybol
         setTimeout(() => {
             alert.classList.add('slide-out');
             setTimeout(() => alert.remove(), 500);
@@ -197,25 +161,20 @@ class TabletSignalR {
         });
     }
 
-    // ✅ YENİ: Ses çalma method'u ekle
     playNotificationSound() {
         try {
             console.log('🔊 Bildirim sesi çalınıyor...');
 
-            // Tablet için daha güçlü ses sistemi
             const audio = new Audio('/sounds/notification.mp3');
-            audio.volume = 0.8; // Yüksek ses
+            audio.volume = 0.8; 
             audio.preload = 'auto';
 
-            // Multiple ses çal (tablet'te daha etkili)
             const playPromise = audio.play();
 
             if (playPromise !== undefined) {
                 playPromise
                     .then(() => {
-                        console.log('✅ Ses başarıyla çalındı');
 
-                        // 2 saniye sonra tekrar çal (urgent için)
                         setTimeout(() => {
                             const audio2 = new Audio('/sounds/notification.mp3');
                             audio2.volume = 0.7;
@@ -223,25 +182,19 @@ class TabletSignalR {
                         }, 1500);
                     })
                     .catch(error => {
-                        console.error('❌ Ses çalınamadı:', error);
-                        // Fallback: System beep
                         this.fallbackBeep();
                     });
             }
 
-            // TabletUtils ses sistemi de çalıştır
             TabletUtils.playNotificationSound();
 
         } catch (error) {
-            console.error('❌ Ses sistemi hatası:', error);
             this.fallbackBeep();
         }
     }
 
-    // ✅ Fallback beep sistemi
     fallbackBeep() {
         try {
-            // Web Audio API ile beep
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
@@ -255,14 +208,11 @@ class TabletSignalR {
             oscillator.start();
             oscillator.stop(audioContext.currentTime + 0.3);
 
-            console.log('🔔 Fallback beep çalındı');
         } catch (error) {
-            console.log('Fallback beep de çalınamadı:', error);
         }
     }
 
     handleOrderStatusChange(statusData) {
-        // Sipariş durumu değişikliği
         if (window.TabletDashboard) {
             window.TabletDashboard.updateOrderStatus(statusData);
         }
@@ -290,7 +240,6 @@ class TabletSignalR {
         }
     }
 
-    // Public methods
     isConnectionActive() {
         return this.isConnected && this.connection?.state === signalR.HubConnectionState.Connected;
     }
@@ -300,7 +249,6 @@ class TabletSignalR {
             try {
                 return await this.connection.invoke(method, ...args);
             } catch (error) {
-                console.error(`SignalR ${method} hatası:`, error);
                 throw error;
             }
         } else {
@@ -308,6 +256,4 @@ class TabletSignalR {
         }
     }
 }
-
-// Global access
 window.TabletSignalR = TabletSignalR;

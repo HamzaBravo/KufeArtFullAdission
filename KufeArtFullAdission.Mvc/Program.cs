@@ -27,7 +27,7 @@ builder.Services.AddScoped<IImageService, ImageService>();
 
 // DBContext yapýlandýrmasý
 builder.Services.AddDbContext<DBContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("HamzaLocal")), ServiceLifetime.Scoped);
+    options.UseSqlServer(builder.Configuration.GetConnectionString("LiveServer")), ServiceLifetime.Scoped);
 
 // Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -108,6 +108,11 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Add("X-Robots-Tag", "noindex, nofollow");
+    await next();
+});
 
 app.MapControllerRoute(
     name: "default",
